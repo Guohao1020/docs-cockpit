@@ -97,23 +97,45 @@ PYTHONPATH=/some/where python -m docs_cockpit build
 
 适合只想试一次 · 或不想动 site-packages 的洁癖场景。
 
-### D. 装为 Claude skill · 让 Claude 主动用
+### D. 装为 Claude Code plugin · 让 Claude 主动用
 
-```bash
-# Linux/macOS
-cp -r docs-cockpit ~/.claude/skills/docs-cockpit
+Claude Code 用户推荐这条路。装完后,Claude 看到 "把 docs 做成 dashboard"、"docs/ 下面 spec/plan/RFC 一堆 md · 想集中浏览" 这类请求,会自动调用 docs-cockpit skill。
 
-# Windows PowerShell
-Copy-Item -Recurse docs-cockpit "$env:USERPROFILE\.claude\skills\docs-cockpit"
+按你 Claude Code 版本走两条路:
+
+**D-1 · 用 slash command(较新版本 · 大约 v2.1+)**:
+
+```
+/plugin marketplace add Guohao1020/docs-cockpit
+/plugin install docs-cockpit@docs-cockpit
 ```
 
-装完后 Claude Code / Cowork 看到下面这类问题会自动调用 docs-cockpit skill:
+如果提示 `/plugin isn't available in this environment`,说明版本太老,走下面 D-2 兜底(或者跑 `claude --version` 看版本号,旧的用 `npm install -g @anthropic-ai/claude-code@latest` 升级)。
 
-- "把我项目的 md 文档做成 dashboard"
-- "docs/ 下面 spec/plan/RFC 一堆 md · 想集中浏览"
-- "build a docs preview that scans docs/spec/module/M*.md"
+**D-2 · 改 settings.json(永远能用 · 也是老版本回退路径)**:
 
-**注意**:作为 skill 用还是建议**同时** `pip install` 一下 · 否则 Claude 跑 `python -m docs_cockpit build` 时找不到包。两步是组合关系不是互斥。
+编辑 `~/.claude/settings.json`(Linux/macOS)或 `%USERPROFILE%\.claude\settings.json`(Windows),**合并**进这两个 block(不要把其他已有 key 删掉):
+
+```json
+{
+  "extraKnownMarketplaces": {
+    "docs-cockpit": {
+      "source": { "source": "github", "repo": "Guohao1020/docs-cockpit" }
+    }
+  },
+  "enabledPlugins": {
+    "docs-cockpit@docs-cockpit": true
+  }
+}
+```
+
+如果 `extraKnownMarketplaces` 或 `enabledPlugins` 这两个 key 已经存在,把新条目**追加进去** · 不要整段替换。
+
+**任选一条路改完后,重启 Claude Code。** 重启时它会从 GitHub fetch `Guohao1020/docs-cockpit`,解析 `.claude-plugin/marketplace.json` + `plugin.json`,skill 就上线了。
+
+**验证**:让 Claude 跑一句 *"把 docs/ 下面所有 md 做成 dashboard"* — 应该自动调起 docs-cockpit 开始工作流。
+
+> ⚠️ **仍然需要 `pip install`**(上面选项 A)让 `docs-cockpit` CLI 进 PATH · Claude 是当子进程调用的。Plugin 安装 + pip 安装是组合不是互斥。
 
 ---
 

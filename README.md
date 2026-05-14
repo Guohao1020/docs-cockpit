@@ -97,23 +97,45 @@ PYTHONPATH=/some/where python -m docs_cockpit build
 
 For trying it once, or if you don't want to touch site-packages.
 
-### D. Install as a Claude skill — let Claude invoke it
+### D. Install as a Claude Code plugin — let Claude invoke it
 
-```bash
-# Linux/macOS
-cp -r docs-cockpit ~/.claude/skills/docs-cockpit
+This is the recommended path for Claude Code users. Once installed, Claude auto-detects docs-cockpit when you say things like "bundle my docs into a dashboard" and runs it for you.
 
-# Windows PowerShell
-Copy-Item -Recurse docs-cockpit "$env:USERPROFILE\.claude\skills\docs-cockpit"
+Two install paths depending on your Claude Code version:
+
+**D-1. Via slash command** (newer Claude Code, ~v2.1+):
+
+```
+/plugin marketplace add Guohao1020/docs-cockpit
+/plugin install docs-cockpit@docs-cockpit
 ```
 
-Once installed, Claude Code / Cowork auto-invokes the docs-cockpit skill for requests like:
+If you see `/plugin isn't available in this environment`, your version is too old — use D-2 below (or run `claude --version` and upgrade via `npm install -g @anthropic-ai/claude-code@latest`).
 
-- "bundle my project's md files into a dashboard"
-- "I've got spec/plan/RFC mds under docs/ — want a single browsable view"
-- "build a docs preview that scans docs/spec/module/M*.md"
+**D-2. Via settings.json** (always works, also the fallback for older Claude Code):
 
-**Note**: even when using it as a skill, you should **also** `pip install` it — otherwise Claude's `python -m docs_cockpit build` won't find the package. The two are complementary, not mutually exclusive.
+Edit `~/.claude/settings.json` (Linux/macOS) or `%USERPROFILE%\.claude\settings.json` (Windows) and **merge** these two blocks into the existing top-level object (don't replace any other keys):
+
+```json
+{
+  "extraKnownMarketplaces": {
+    "docs-cockpit": {
+      "source": { "source": "github", "repo": "Guohao1020/docs-cockpit" }
+    }
+  },
+  "enabledPlugins": {
+    "docs-cockpit@docs-cockpit": true
+  }
+}
+```
+
+If `extraKnownMarketplaces` or `enabledPlugins` already exist in your settings, add the new entries **inside** those objects rather than replacing them.
+
+**After either path, restart Claude Code.** On next startup it fetches `Guohao1020/docs-cockpit` from GitHub, parses `.claude-plugin/marketplace.json` + `plugin.json`, and the skill goes live.
+
+**Verify it worked**: ask Claude something like *"bundle the markdown under docs/ into a dashboard"* — it should pick up `docs-cockpit` and start the workflow.
+
+> ⚠️ **You still need `pip install`** (option A above) so the `docs-cockpit` CLI is on PATH — Claude invokes it as a subprocess. Plugin install + pip install is a combination, not an either/or.
 
 ---
 
