@@ -1,0 +1,19 @@
+{
+  "name": "docs-cockpit",
+  "description": "Bundle a project's Markdown docs into a single-file HTML cockpit with sidebar nav, kanban, and KPI dashboard — driven by YAML frontmatter.",
+  "version": "0.1.0",
+  "author": {
+    "name": "Guohao1020"
+  },
+  "homepage": "https://github.com/Guohao1020/docs-cockpit",
+  "repository": "https://github.com/Guohao1020/docs-cockpit",
+  "license": "MIT",
+  "keywords": [
+    "documentation",
+    "markdown",
+    "html",
+    "dashboard",
+    "kanban",
+    "docs-preview"
+  ]
+}

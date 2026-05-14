@@ -1,0 +1,18 @@
+{
+  "name": "docs-cockpit",
+  "owner": {
+    "name": "Guohao1020"
+  },
+  "description": "Single-plugin marketplace for docs-cockpit — markdown to HTML cockpit aggregator.",
+  "plugins": [
+    {
+      "name": "docs-cockpit",
+      "source": {
+        "source": "github",
+        "repo": "Guohao1020/docs-cockpit"
+      },
+      "description": "Bundle a project's Markdown docs into a single-file HTML cockpit with sidebar nav, kanban, and KPI dashboard.",
+      "version": "0.1.0"
+    }
+  ]
+}
