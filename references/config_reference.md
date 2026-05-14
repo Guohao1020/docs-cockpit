@@ -20,10 +20,10 @@ design:         { colors: { primary, primary_deep, ... } }
 
 ```yaml
 project:
-  name: Sourcery                    # 必填 · wordmark 主标题 + footer 版权 + tab title
+  name: MyProject                   # 必填 · wordmark 主标题 + footer 版权 + tab title
   subtitle: 文档预览                # 默认 "Docs preview" · wordmark 副标题
-  glyph: S                          # 默认 "P" · wordmark 方块里的单字符
-  description: 通用爬虫平台          # 默认 "Project documentation preview" · footer 第一列描述
+  glyph: M                          # 默认 "P" · wordmark 方块里的单字符
+  description: 项目文档预览站        # 默认 "Project documentation preview" · footer 第一列描述
   output: docs/index.html           # 默认 "docs/index.html" · 相对 paths.repo
 ```
 
@@ -39,7 +39,7 @@ project:
 paths:
   repo: "."                          # 默认 "." · 即 docs-cockpit.yaml 所在目录
   # 还可以定义任意命名的额外变量,后续在 groups[*].* 里用 {var} 引用
-  external_plans: "{home}/.claude/plans/sourcery"
+  external_plans: "{home}/.claude/plans/my-project"
   internal_docs: "{repo}/docs"
 ```
 
@@ -75,7 +75,7 @@ groups:
 
 ### worktree 处理
 
-Sourcery 用 `.claude/worktrees/<wt-name>/` 装 worktree。在 worktree 内跑 build 时,`{main_repo}` 会自动指回 main(用于读 main 的 DESIGN.md 等)。其他项目不用 worktree 就忽略这个变量。
+典型用法:在 `.claude/worktrees/<wt-name>/` 装 worktree。在 worktree 内跑 build 时,`{main_repo}` 会自动指回 main(用于读 main 的 DESIGN.md 等)。其他项目不用 worktree 就忽略这个变量。
 
 ---
 
@@ -95,7 +95,7 @@ Sourcery 用 `.claude/worktrees/<wt-name>/` 装 worktree。在 worktree 内跑 b
     - { title: 项目说明, path: "{repo}/CLAUDE.md" }
 ```
 
-适合:每一条都是手挑的,不会动态增长。Sourcery 的 "Overview" / "项目说明" / "Design System" 是典型场景。
+适合:每一条都是手挑的,不会动态增长。"Overview" / "项目说明" / "Design System" 是典型场景。
 
 ### 2. 目录扫描 · `scan`
 
@@ -111,7 +111,7 @@ Sourcery 用 `.claude/worktrees/<wt-name>/` 装 worktree。在 worktree 内跑 b
     exclude_underscores: true           # 默认 true · 跳过 _xxx.md 与 README.md
 ```
 
-适合:目录里会持续加新文件 · Sourcery 的 spec/concept/ spec/module/ plan/ task/ RFC/ 都是。
+适合:目录里会持续加新文件 · `spec/concept/` / `spec/module/` / `plan/` / `task/` / `RFC/` 都是典型场景。
 
 #### `title_transform` 选项
 
@@ -130,8 +130,8 @@ Sourcery 用 `.claude/worktrees/<wt-name>/` 装 worktree。在 worktree 内跑 b
   icon: R
   color: storm-deep
   glob:
-    - "{home}/.claude/plans/sourcery/**/*.md"
-    - "{home}/Documents/notes/sourcery-*.md"
+    - "{home}/.claude/plans/my-project/**/*.md"
+    - "{home}/Documents/notes/my-project-*.md"
 ```
 
 适合:文件分散在多个不连续路径,或要跨工作目录引入文档。`**/*.md` 是递归(Python `glob.glob(recursive=True)` 语义)。
@@ -153,7 +153,7 @@ Sourcery 用 `.claude/worktrees/<wt-name>/` 装 worktree。在 worktree 内跑 b
 
 ### 同一 group 内三种来源混用
 
-允许。Sourcery 的 "RFCs" group 就是 `files`(显式 4 条 RFC + DATA_SCHEMA)。如果想加一个"我手挑两篇 + 再扫一个目录"的 group,直接两个 block 都给:
+允许。例如 "RFCs" group 用 `files` 显式列出 4 条 RFC + DATA_SCHEMA 就是典型做法。如果想加一个"我手挑两篇 + 再扫一个目录"的 group,直接两个 block 都给:
 
 ```yaml
 - name: Mixed
@@ -205,7 +205,7 @@ status_progress_ranges:
   shipped: [100, 100]
 ```
 
-但要注意:前端 Kanban 的 5 列(`STATUS_ORDER`)硬编码了 Sourcery 这套词。换词汇就要同步改 `templates/index.html.tmpl` 里的 `STATUS_ORDER` / `STATUS_LABEL` / `STATUS_COLOR`。
+但要注意:前端 Kanban 的 5 列(`STATUS_ORDER`)硬编码了默认这套词(`planned` / `in-progress` / `blocked` / `done` / `deferred`)。换词汇就要同步改 `templates/index.html.tmpl` 里的 `STATUS_ORDER` / `STATUS_LABEL` / `STATUS_COLOR`。
 
 ### `kanban.card_types`
 
@@ -232,7 +232,7 @@ Sprint Timeline 排序时,这个列表里的 sprint 名优先(按列表顺序)·
 sprint_order: [M0, M1.1, M1.2, M2, M3, GA]
 ```
 
-Sourcery 实际值见 `examples/sourcery.yaml`。
+完整示例见 `examples/full.yaml`。
 
 ---
 

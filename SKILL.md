@@ -202,7 +202,7 @@ Full schema and rationale: see `references/frontmatter_conventions.md`.
 ## Examples — clone-and-edit starting points
 
 - **`examples/minimal.yaml`** — smallest workable config: one group, a couple of files, no kanban. Good for "I have a tiny `docs/` and just want a sidebar".
-- **`examples/sourcery.yaml`** — the full config the skill was extracted from: 10 groups, mix of explicit files + dir scans + globs into `~/.claude/plans/`, kanban enabled with PRD-driven module statuses. Reference this when you're scaling a real project up.
+- **`examples/full.yaml`** — comprehensive reference config: 10 groups, mix of explicit files + dir scans + globs into `~/.claude/plans/`, kanban enabled with PRD-driven module statuses. Reference this when you're scaling a real project up.
 
 ## The forcing function (worth surfacing to the user)
 

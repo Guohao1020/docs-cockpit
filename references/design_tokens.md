@@ -169,7 +169,7 @@ design:
 2. **放到 `docs/_assets/` 之类的子目录**
 3. **改 template 的 `<script src>` / `<link href>` 指向本地相对路径**(`./_assets/marked.min.js`)
 
-当前 build 不自动 vendor — 这是未来 sprint 的事(Sourcery 自己规划在 M1.2 之前不阻塞)。如果用户现在就要,临时方案:
+当前 build 不自动 vendor — 这是未来 sprint 的事(在 M1.2 之前不阻塞主流程)。如果用户现在就要,临时方案:
 
 ```bash
 mkdir -p docs/_assets

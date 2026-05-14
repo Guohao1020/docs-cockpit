@@ -331,13 +331,7 @@ cd docs-cockpit && git pull
 - **`references/frontmatter_conventions.md`** — YAML frontmatter 字段约定 + status × progress 校验
 - **`references/design_tokens.md`** — CSS token / 品牌色 / 字体 / 暗色模式 / 离线 vendor
 - **`examples/minimal.yaml`** — 最小可用配置
-- **`examples/sourcery.yaml`** — Sourcery 实战配置 · 10 groups + 看板
-
----
-
-## 起源 / 致谢
-
-抽自 [Sourcery](https://github.com/Guohao1020) 项目 `scripts/build_docs_html.py`(~1800 行 inline 含 HTML 模板)。抽象做了:`DOC_GROUPS` 硬编码 → YAML 配置;Sourcery 专用路径 → `{repo}` / `{home}` / `{main_repo}` / `{env:X}` 变量;HTML 模板从 Python 字符串里抽出来;品牌 / 看板 / status 区间全参数化。
+- **`examples/full.yaml`** — 完整配置参考 · 10 groups + 看板
 
 ---
 

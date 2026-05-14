@@ -231,7 +231,7 @@ def read_md(path: pathlib.Path) -> tuple[str, dict, str | None, bool]:
 
 
 # ── frontmatter governance 校验 ──────────────────────────────────
-# 默认 status × progress 区间 · 借鉴 Sourcery governance §3.3
+# 默认 status × progress 区间 · 用于文档治理一致性校验
 DEFAULT_STATUS_RANGES = {
     "not-started": (0, 0),
     "planned": (0, 15),

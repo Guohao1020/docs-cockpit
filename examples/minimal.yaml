@@ -32,4 +32,4 @@ groups:
       # 即 subdir/foo.md → "subdir / foo"
 
 # frontmatter / kanban 未开 · 留空即可
-# 想试看板:看 examples/sourcery.yaml
+# 想试看板:看 examples/full.yaml

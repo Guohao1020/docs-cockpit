@@ -69,10 +69,10 @@ updated_at: 2026-05-14
 
 ## ID 命名约定
 
-Sourcery 用:
+一种典型约定:
 
-- `M01` ~ `M24` — modules(PRD §6.3 的 24 个模块)
-- `C01` ~ `C11` — concepts(PRD §5 的核心概念)
+- `M01` ~ `M24` — modules(对应 PRD 里的模块清单)
+- `C01` ~ `C11` — concepts(核心概念)
 - `T-<scope>` — tasks(`T-M1.1.3-login-cookies`)
 - `RFC-001` ~ — RFCs
 

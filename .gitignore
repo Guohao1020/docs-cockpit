@@ -28,6 +28,9 @@ env/
 .DS_Store
 Thumbs.db
 
+# Claude Code · 个人本地配置(权限规则等)· 不入库
+.claude/settings.local.json
+
 # Build artifact · 用户项目里 docs/index.html 是产物 · 不进本仓库
 # (但 examples/ 里的不影响 · 这里只挡顶层意外提交)
 /docs/index.html

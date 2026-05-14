@@ -1,30 +1,30 @@
-# docs-cockpit · Sourcery 完整配置
+# docs-cockpit · 完整配置参考
 #
-# 用途:复刻 Sourcery 的 docs/index.html 看板,含 10 个 group + 看板。
-# 这是 skill 的原始来源 · 也是看板模式的"完整 reference"。
+# 用途:展示 10 个 group + 看板的完整用法 · 含 files / scan / glob 三种来源 + frontmatter kanban。
+# 复制后改 project.name / paths.memory_dir / external_plans 这几行就能跑。
 #
 # 跑:
-#   cd <Sourcery 仓库根>
-#   python -m docs_cockpit build --config <docs-cockpit 安装路径>/examples/sourcery.yaml
+#   cd <你的项目根>
+#   python -m docs_cockpit build --config <docs-cockpit 安装路径>/examples/full.yaml
 #
 # 或拷一份到项目里:
-#   cp examples/sourcery.yaml D:/harvey_work/Sourcery/docs-cockpit.yaml
-#   cd D:/harvey_work/Sourcery
+#   cp examples/full.yaml /path/to/your/project/docs-cockpit.yaml
+#   cd /path/to/your/project
 #   python -m docs_cockpit build
 
 project:
-  name: Sourcery
+  name: MyProject
   subtitle: 文档预览
-  glyph: S
-  description: 通用爬虫平台 · 文档预览站
+  glyph: M
+  description: 项目文档预览站
   output: docs/index.html
 
 paths:
   repo: "."                 # 默认 · 配置文件所在目录
   # 在 worktree 内自动指回 main · 用于读 DESIGN.md
   # main_repo 是内置 · 不用声明
-  memory_dir: "{home}/.claude/projects/D--harvey-work-Sourcery/memory"
-  external_plans: "{home}/.claude/plans/sourcery"
+  memory_dir: "{home}/.claude/projects/my-project/memory"
+  external_plans: "{home}/.claude/plans/my-project"
 
 groups:
   # ── 1. 总览 ─────────────────────────────────────────────
@@ -33,7 +33,6 @@ groups:
     color: primary
     files:
       - { title: README, path: "{repo}/README.md" }
-      - { title: Sponsor Demo, path: "{repo}/docs/sponsor-demo.md" }
       - { title: CHANGELOG, path: "{repo}/CHANGELOG.md" }
 
   # ── 2. Spec · Concepts(PRD §5) ────────────────────────
@@ -75,7 +74,7 @@ groups:
     color: storm-deep
     files:
       - { title: "RFC 001 · 技术栈选型", path: "{repo}/docs/RFC/001-tech-stack.md" }
-      - { title: "RFC 002 · ResourcePool 设计", path: "{repo}/docs/RFC/002-resource-pool-design.md" }
+      - { title: "RFC 002 · 核心组件设计", path: "{repo}/docs/RFC/002-core-design.md" }
       - { title: "RFC 003 · 登录流程", path: "{repo}/docs/RFC/003-login-flow.md" }
       - { title: DATA_SCHEMA, path: "{repo}/docs/DATA_SCHEMA.md" }
 
