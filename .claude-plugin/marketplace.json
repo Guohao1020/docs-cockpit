@@ -3,7 +3,7 @@
   "owner": {
     "name": "Guohao1020"
   },
-  "description": "Single-plugin marketplace for docs-cockpit — markdown to HTML cockpit aggregator.",
+  "description": "Single-plugin marketplace for docs-cockpit — markdown to HTML cockpit aggregator + status reporter.",
   "plugins": [
     {
       "name": "docs-cockpit",
@@ -11,8 +11,8 @@
         "source": "github",
         "repo": "Guohao1020/docs-cockpit"
       },
-      "description": "Bundle a project's Markdown docs into a single-file HTML cockpit with sidebar nav, kanban, and KPI dashboard.",
-      "version": "0.1.0"
+      "description": "Bundle a project's Markdown docs into a single-file HTML cockpit with sidebar nav, kanban, KPI dashboard, AND read docs/state.json to generate status / progress / standup reports.",
+      "version": "0.1.1"
     }
   ]
 }

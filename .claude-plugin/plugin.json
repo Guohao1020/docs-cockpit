@@ -1,7 +1,7 @@
 {
   "name": "docs-cockpit",
-  "description": "Aggregate scattered project markdown (PRD, spec, plan, RFC, tasks, README, session memory) into ONE file:// openable HTML cockpit — sidebar nav, in-page rendering, optional YAML-frontmatter-driven kanban + KPI dashboard. No server, no build pipeline, no Docusaurus/Sphinx multi-page setup.",
-  "version": "0.1.0",
+  "description": "Aggregate scattered project markdown (PRD, spec, plan, RFC, tasks, README, session memory) into ONE file:// openable HTML cockpit — sidebar nav, in-page rendering, optional YAML-frontmatter-driven kanban + KPI dashboard. Ships two skills: `docs-cockpit` (set up / maintain the cockpit) and `docs-cockpit-status` (read docs/state.json and answer status / progress / standup questions). No server, no Docusaurus/Sphinx multi-page setup.",
+  "version": "0.1.1",
   "author": {
     "name": "Guohao1020"
   },
@@ -17,6 +17,8 @@
     "dashboard",
     "kanban",
     "frontmatter",
+    "status-tracking",
+    "standup-report",
     "claude-skill",
     "docs-preview"
   ]

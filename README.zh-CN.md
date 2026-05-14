@@ -10,8 +10,9 @@
 
 - **侧边栏导航 + 文档视图** · marked.js + highlight.js 客户端渲染 · 锚点跳转 · 搜索框 · 浏览状态走 localStorage 持久化
 - **可选项目看板** · MD 文件加 YAML frontmatter(`status: in-progress` / `progress: 60` / `sprint: M1.2`)就自动出 KPI / 模块 Kanban / Sprint Timeline
+- **机器可读的 `state.json`** · 每次 build 在 `index.html` 旁同步写一份 sidecar JSON · 让其他工具 / sibling status skill 不解析 HTML 就能回答"哪些卡 blocked / sprint 进度 / 周报"
 - **跨平台** · 纯 Python 3.10+ + pyyaml · Windows / macOS / Linux 同一份 yaml 跑
-- **同时是 Claude skill** · 装到 `~/.claude/skills/` 后,Claude 看到 "把 docs 汇总成 dashboard" 类请求自动调用
+- **以 Claude Code plugin 形式发布 · 含两个 skill** · `docs-cockpit`(设置 + 维护 cockpit)和 `docs-cockpit-status`(读 state.json 产出状态 / 进度 / 周报)· 根据问句形态自动触发对应那个
 
 ---
 
@@ -99,7 +100,10 @@ PYTHONPATH=/some/where python -m docs_cockpit build
 
 ### D. 装为 Claude Code plugin · 让 Claude 主动用
 
-Claude Code 用户推荐这条路。装完后,Claude 看到 "把 docs 做成 dashboard"、"docs/ 下面 spec/plan/RFC 一堆 md · 想集中浏览" 这类请求,会自动调用 docs-cockpit skill。
+Claude Code 用户推荐这条路。装完后 Claude 会根据问句形态自动选对应 skill:
+
+- **`docs-cockpit`**(操作型)· 触发于 "把 docs 做成 dashboard"、"给我 cockpit 加一个 group"、"写个 pre-commit 让 HTML 不腐烂"、"改下 cockpit 的配色"、"build 跑不起来"
+- **`docs-cockpit-status`**(只读状态)· 触发于 "哪些 module 卡了"、"sprint M1.3 进度多少"、"给我生成一份周报"、"哪些 doc 太久没改"、"这周 cockpit 状态有啥变化"
 
 按你 Claude Code 版本走两条路:
 
@@ -350,7 +354,8 @@ cd docs-cockpit && git pull
 
 ## 文档索引
 
-- **`SKILL.md`** — Claude 用的主指令 · 含 4 workflow + 每步该读哪个 reference
+- **`skills/docs-cockpit/SKILL.md`** — 操作型 skill · 含 setup + 维护 workflow + 每步该读哪个 reference
+- **`skills/docs-cockpit-status/SKILL.md`** — 读状态 skill · 怎么解读 `docs/state.json` 回答 blockers / sprint 进度 / 周报
 - **`references/config_reference.md`** — `docs-cockpit.yaml` 全字段 schema · 必备
 - **`references/frontmatter_conventions.md`** — YAML frontmatter 字段约定 + status × progress 校验
 - **`references/design_tokens.md`** — CSS token / 品牌色 / 字体 / 暗色模式 / 离线 vendor

@@ -1,16 +1,24 @@
 ---
 name: docs-cockpit
 description: |
-  Generate a self-contained, live HTML cockpit (single `index.html`) that aggregates MANY of a project's Markdown documents — spread across folders like `docs/PRD/`, `docs/spec/`, `docs/plan/`, `docs/RFC/`, `docs/task/`, plus root files (README, CHANGELOG, CLAUDE.md) and external paths (`~/.claude/plans/...`, session memory) — into ONE `file://`-openable preview page with sidebar nav, in-page Markdown rendering (marked.js + highlight.js via CDN), and an optional frontmatter-driven project dashboard (KPI / module kanban / sprint timeline) for documents that carry YAML headers like `status: in-progress`, `progress: 45`, `sprint: M1.2`.
+  Set up and maintain a docs-cockpit — a self-contained single-HTML page that aggregates a project's scattered Markdown documents (PRD, spec, plan, RFC, task, README, external plans, session memory) into ONE `file://`-openable preview with sidebar nav, in-page Markdown rendering (marked.js + highlight.js via CDN), and an optional YAML-frontmatter-driven kanban dashboard. Each build also writes a machine-readable `docs/state.json` sidecar that the sibling `docs-cockpit-status` skill reads.
 
-  TRIGGER this skill when the user wants to bundle/aggregate/集中预览 many markdown files into a single navigable HTML page. Common phrasings include "docs dashboard", "文档看板", "项目看板", "doc cockpit", "把 MD 文档汇总成 HTML", "spec/plan/PRD 集中预览", "build docs preview", "实时同步 docs/index.html", "项目进度面板", "把 docs/ 下所有 md 做成 dashboard", "aggregate markdown into one html", "single-file offline preview of my docs", or any near-paraphrase. Also trigger when they want to (a) bootstrap such a page for a new project, (b) add a doc source / group / scan rule to an existing cockpit, (c) wire frontmatter status/progress/sprint into a kanban-by-status view, (d) change design tokens / branding for the cockpit, (e) extract a project-specific `build_docs_html.py` into a reusable tool, or (f) any docs-driven progress board where the source of truth is markdown files with YAML frontmatter.
+  TRIGGER this skill when the user wants to (a) bootstrap a cockpit for a project for the first time, (b) add new doc sources / scan rules / globs to an existing cockpit, (c) wire frontmatter status/progress/sprint conventions to enable the kanban view, (d) customize design tokens / brand colors / typography / dark mode, (e) wire the build into pre-commit / CI to keep `docs/index.html` from going stale, or (f) debug build issues (empty sidebar, missing chips, CDN failures, YAML schema errors). Common phrasings: "把 md 文档汇总成 HTML", "docs dashboard", "build docs preview", "spec/plan/RFC 集中预览", "项目文档看板", "aggregate markdown into one html", "single-file offline preview of my docs", or any near-paraphrase that involves SETTING UP or MAINTAINING the cockpit itself.
 
-  Do NOT trigger for: rendering a single MD file to HTML preview (too simple — use marked/pandoc directly); building a multi-page static site like Sphinx, Docusaurus, MkDocs, GitBook (different toolchain entirely); converting markdown to PDF; CI/Pages deployment workflows; live multi-user kanban boards (Jira/Linear/Trello style with drag-drop and websockets); Notion-style collaborative wikis with permissions; generic file-listing scripts; or pure "how-does-X-work" explanations of YAML/markdown/marked.js. The discriminator: many MD files → ONE static HTML file, optionally driven by their YAML frontmatter, openable with `file://`. If the shape isn't that, this isn't the skill.
+  Do NOT trigger for: rendering a single MD file to HTML (use marked/pandoc); building a multi-page static site like Sphinx/Docusaurus/MkDocs/GitBook (different toolchain); markdown→PDF; live multi-user kanban with drag-drop (Jira/Linear/Trello); Notion-style collaborative wikis. **Also do NOT trigger for status/progress/health questions about an EXISTING cockpit** — phrasings like "what's blocked", "sprint M1.3 progress", "weekly status from the cockpit", "which modules are stalled", "generate a standup report from docs" go to the SIBLING skill `docs-cockpit-status`. The discriminator: this skill **WRITES** project files (yaml, optionally MD frontmatter, runs build) to set up or extend a cockpit; `docs-cockpit-status` only **READS** `docs/state.json` to interpret status. If the user wants to change the cockpit → this skill. If the user wants to be told what the cockpit currently says → the sibling.
 ---
 
-# docs-cockpit
+# docs-cockpit (operational skill)
 
 > Turn a folder of Markdown into a single-file project cockpit you can open with `file://`.
+
+## Scope · what's in this skill vs the sibling
+
+**This skill** (`docs-cockpit`) — **writes/edits** project files. Setup, add groups, build, wire frontmatter, tweak design, debug. If your action ends with the user's repo gaining or changing a yaml / MD / HTML / hook, you're in this skill.
+
+**Sibling skill** (`docs-cockpit-status`) — **reads only**. Answers questions about an existing cockpit's state: "what's blocked", "sprint M1.3 progress", "weekly status report", "which docs are stale". If your action ends with a narrative summary back to the user and no files change, you're in that one.
+
+Hand off to the sibling whenever the user shifts from "I want this cockpit set up" to "tell me what's in the cockpit". Don't try to do both in this skill.
 
 ## What this skill is for
 
@@ -29,7 +37,8 @@ The whole thing is self-contained — open it from `file://`, no localhost, no b
 project root/
 ├── docs-cockpit.yaml              ← user-authored config (you help write it)
 ├── docs/
-│   ├── index.html                 ← BUILD ARTIFACT — do not hand-edit
+│   ├── index.html                 ← BUILD ARTIFACT — human-facing, do not hand-edit
+│   ├── state.json                 ← BUILD ARTIFACT — machine-readable, read by docs-cockpit-status
 │   ├── PRD/*.md
 │   ├── spec/{concept,module}/*.md
 │   ├── plan/**/*.md
@@ -45,7 +54,8 @@ The build:
 3. Reads each MD, splits YAML frontmatter, computes mtime, runs frontmatter governance checks
 4. Aggregates frontmatter into `cards` (for kanban) + `kpi` (rolled-up metrics) if `frontmatter.kanban.enabled`
 5. Serializes `{groups, cards, kpi}` as JSON, embeds inside an HTML template
-6. Writes `<output>` (default `docs/index.html`)
+6. Writes `<output>` (default `docs/index.html`) — human-facing
+7. Writes `<output_dir>/state.json` — same payload **without** per-doc markdown content, for `docs-cockpit-status` to read
 
 Frontend (already inside the template — you don't touch this):
 - Loads marked.js + highlight.js from jsdelivr CDN

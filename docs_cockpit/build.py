@@ -457,6 +457,41 @@ def cmd_build(args: argparse.Namespace) -> int:
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(html, encoding="utf-8")
 
+    # ── sidecar state.json · 给 docs-cockpit-status skill 读 ──
+    # 跟 HTML 同目录 · 但不含逐文档 markdown content(避免文件膨胀)
+    state_path = output.parent / "state.json"
+    state_groups = [
+        {
+            "group": g["group"],
+            "icon": g["icon"],
+            "color": g["color"],
+            "items": [
+                {k: v for k, v in i.items() if k != "content"}
+                for i in g["items"]
+            ],
+        }
+        for g in groups
+    ]
+    state_payload = {
+        "project": {
+            "name": project.get("name"),
+            "subtitle": project.get("subtitle"),
+            "glyph": project.get("glyph"),
+            "description": project.get("description"),
+        },
+        "build_time": build_time,
+        "groups": state_groups,
+        "cards": cards,
+        "kpi": kpi,
+        "sprint_order": sprint_order,
+        "kanban_enabled": kpi is not None,
+        "warnings": warnings,
+    }
+    state_path.write_text(
+        json.dumps(state_payload, ensure_ascii=False, indent=2, default=str),
+        encoding="utf-8",
+    )
+
     total_docs = sum(len(g["items"]) for g in groups)
     total_existing = sum(1 for g in groups for i in g["items"] if i["exists"])
     missing = total_docs - total_existing
@@ -467,6 +502,7 @@ def cmd_build(args: argparse.Namespace) -> int:
     if total_existing == 0:
         _safe_print("[WARN] 0 docs exist · 检查 paths.repo 与 groups[*].* 路径")
     _safe_print(f"[OK] Built {output}")
+    _safe_print(f"     state: {state_path}")
     _safe_print(
         f"     groups: {len(groups)} | docs: {total_docs} "
         f"({total_existing} exist, {missing} missing) | {total_chars:,} chars"
