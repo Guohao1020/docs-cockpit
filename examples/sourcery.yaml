@@ -1,0 +1,151 @@
+# docs-cockpit · Sourcery 完整配置
+#
+# 用途:复刻 Sourcery 的 docs/index.html 看板,含 10 个 group + 看板。
+# 这是 skill 的原始来源 · 也是看板模式的"完整 reference"。
+#
+# 跑:
+#   cd <Sourcery 仓库根>
+#   python -m docs_cockpit build --config <docs-cockpit 安装路径>/examples/sourcery.yaml
+#
+# 或拷一份到项目里:
+#   cp examples/sourcery.yaml D:/harvey_work/Sourcery/docs-cockpit.yaml
+#   cd D:/harvey_work/Sourcery
+#   python -m docs_cockpit build
+
+project:
+  name: Sourcery
+  subtitle: 文档预览
+  glyph: S
+  description: 通用爬虫平台 · 文档预览站
+  output: docs/index.html
+
+paths:
+  repo: "."                 # 默认 · 配置文件所在目录
+  # 在 worktree 内自动指回 main · 用于读 DESIGN.md
+  # main_repo 是内置 · 不用声明
+  memory_dir: "{home}/.claude/projects/D--harvey-work-Sourcery/memory"
+  external_plans: "{home}/.claude/plans/sourcery"
+
+groups:
+  # ── 1. 总览 ─────────────────────────────────────────────
+  - name: 总览 · Overview
+    icon: O
+    color: primary
+    files:
+      - { title: README, path: "{repo}/README.md" }
+      - { title: Sponsor Demo, path: "{repo}/docs/sponsor-demo.md" }
+      - { title: CHANGELOG, path: "{repo}/CHANGELOG.md" }
+
+  # ── 2. Spec · Concepts(PRD §5) ────────────────────────
+  - name: Spec · Concepts (PRD §5)
+    icon: "5"
+    color: primary-deep
+    scan:
+      dir: "{repo}/docs/spec/concept"
+      title_transform: prefix-dot-titlecase
+      # C03-site-adapter.md → C03 · Site Adapter
+
+  # ── 3. Spec · Modules(PRD §6.3) ───────────────────────
+  - name: Spec · Modules (PRD §6 · M01-M24)
+    icon: "6"
+    color: primary
+    scan:
+      dir: "{repo}/docs/spec/module"
+      title_transform: prefix-dot-titlecase
+
+  # ── 4. Plan ────────────────────────────────────────────
+  - name: Plan · 路线图与设计决策
+    icon: P
+    color: graphite
+    scan:
+      dir: "{repo}/docs/plan"
+      recursive: true
+      # 子目录前缀加进 title · roadmap/00-master.md → "roadmap / 00-master"
+
+  # ── 5. Task · Sprint 任务卡 ────────────────────────────
+  - name: Task · Sprint 任务卡
+    icon: T
+    color: bloom-coral
+    scan:
+      dir: "{repo}/docs/task"
+
+  # ── 6. RFCs ────────────────────────────────────────────
+  - name: RFCs
+    icon: F
+    color: storm-deep
+    files:
+      - { title: "RFC 001 · 技术栈选型", path: "{repo}/docs/RFC/001-tech-stack.md" }
+      - { title: "RFC 002 · ResourcePool 设计", path: "{repo}/docs/RFC/002-resource-pool-design.md" }
+      - { title: "RFC 003 · 登录流程", path: "{repo}/docs/RFC/003-login-flow.md" }
+      - { title: DATA_SCHEMA, path: "{repo}/docs/DATA_SCHEMA.md" }
+
+  # ── 7. Governance ──────────────────────────────────────
+  - name: Governance · 文档治理
+    icon: G
+    color: primary-bright
+    files:
+      - { title: 文档治理规范, path: "{repo}/docs/_meta/governance.md" }
+      - { title: "Template · concept", path: "{repo}/docs/_meta/templates/concept.md" }
+      - { title: "Template · module", path: "{repo}/docs/_meta/templates/module.md" }
+      - { title: "Template · task", path: "{repo}/docs/_meta/templates/task.md" }
+
+  # ── 8. Design System ───────────────────────────────────
+  - name: Design System
+    icon: D
+    color: primary
+    files:
+      # 在 worktree 内时 {main_repo} 自动指回 main · 拿到的是 main 的 DESIGN.md
+      - { title: "DESIGN spec(HP 风 token)", path: "{main_repo}/DESIGN.md" }
+
+  # ── 9. 项目说明 ────────────────────────────────────────
+  - name: 项目说明
+    icon: C
+    color: ink
+    files:
+      - { title: CLAUDE.md, path: "{repo}/CLAUDE.md" }
+
+  # ── 10. 外部 plans + memory ────────────────────────────
+  - name: External Plans
+    icon: P
+    color: graphite
+    glob:
+      - "{external_plans}/m1-to-m3-roadmap/*.md"
+
+  - name: Session Memory
+    icon: M
+    color: bloom-deep
+    glob:
+      - "{memory_dir}/*.md"
+
+# ── 看板 ──────────────────────────────────────────────
+frontmatter:
+  enabled: true
+  status_progress_ranges:
+    not-started: [0, 0]
+    planned: [0, 15]
+    in-progress: [5, 95]
+    blocked: [0, 100]
+    done: [100, 100]
+    deferred: [0, 100]
+  kanban:
+    enabled: true
+    # 只把这两类 type 进卡 · rfc 等只在侧边栏
+    card_types: [module, concept]
+    kpi_type: module
+    sprint_order:
+      - M0
+      - M1.1
+      - M1.1.2
+      - M1.1.3
+      - M1.1.4
+      - M1.2
+      - M1.3
+      - M1.4
+      - M1.5
+      - M2
+      - M3
+      - S
+      - TBD
+      - 装修期
+
+# design 不覆盖 · 用默认 HP-style token

@@ -1,0 +1,1410 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>__PROJECT_NAME__ · __PROJECT_SUBTITLE__</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/github.min.css" />
+<style>
+/* ============================================================================
+   DESIGN tokens · HP-style 默认 · 可通过 config.design.colors 覆盖
+   ========================================================================== */
+:root {
+  --colors-primary:        #024ad8;
+  --colors-primary-bright: #296ef9;
+  --colors-primary-deep:   #0e3191;
+  --colors-primary-soft:   #c9e0fc;
+  --colors-on-primary:     #ffffff;
+
+  --colors-canvas:    #ffffff;
+  --colors-paper:     #ffffff;
+  --colors-cloud:     #f7f7f7;
+  --colors-fog:       #e8e8e8;
+  --colors-steel:     #c2c2c2;
+  --colors-hairline:  #e8e8e8;
+
+  --colors-bloom-coral: #ff5050;
+  --colors-bloom-rose:  #f9d4d2;
+  --colors-bloom-deep:  #b3262b;
+  --colors-bloom-wine:  #5a1313;
+
+  --colors-storm-mist: #8ebdce;
+  --colors-storm-sea:  #7fadbe;
+  --colors-storm-deep: #356373;
+
+  --colors-ink:       #1a1a1a;
+  --colors-ink-deep:  #000000;
+  --colors-ink-soft:  #292929;
+  --colors-on-ink:    #ffffff;
+  --colors-charcoal:  #3d3d3d;
+  --colors-graphite:  #636363;
+
+  --spacing-xxs: 4px;
+  --spacing-xs:  8px;
+  --spacing-sm:  12px;
+  --spacing-md:  16px;
+  --spacing-lg:  20px;
+  --spacing-xl:  24px;
+  --spacing-xxl: 32px;
+  --spacing-section: 80px;
+
+  --rounded-none: 0;
+  --rounded-xs:   2px;
+  --rounded-sm:   3px;
+  --rounded-md:   4px;
+  --rounded-lg:   8px;
+  --rounded-xl:   16px;
+  --rounded-pill: 9999px;
+
+  --elev-1: 0 0 0 1px var(--colors-hairline);
+  --elev-2: 0 2px 8px rgba(26, 26, 26, 0.08);
+  --elev-3: 0 8px 24px rgba(26, 26, 26, 0.12);
+
+  --font-display: 'Inter', Arial, system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, Menlo, monospace;
+
+  /* __DESIGN_OVERRIDES__ */
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; height: 100%; }
+body {
+  font-family: var(--font-display);
+  color: var(--colors-ink);
+  background: var(--colors-canvas);
+  font-size: 16px;
+  line-height: 1.38;
+  -webkit-font-smoothing: antialiased;
+}
+a { color: var(--colors-primary); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+/* ── Utility strip(顶部窄条) ──────────────────────────────────── */
+.utility-strip {
+  background: var(--colors-ink);
+  color: var(--colors-on-ink);
+  height: 36px;
+  padding: 0 var(--spacing-xl);
+  display: flex; align-items: center; justify-content: flex-end;
+  gap: var(--spacing-md);
+  font-size: 13px; line-height: 1.5;
+}
+.utility-strip a { color: var(--colors-on-ink); opacity: 0.85; }
+.utility-strip a:hover { opacity: 1; text-decoration: underline; }
+.utility-strip .sep { color: var(--colors-steel); opacity: 0.5; }
+.utility-strip .stamp { font-family: var(--font-mono); color: var(--colors-steel); }
+
+/* ── Nav bar top ─────────────────────────────────────────────── */
+.nav-bar-top {
+  background: var(--colors-canvas);
+  height: 64px;
+  padding: 0 32px;
+  border-bottom: 1px solid var(--colors-hairline);
+  display: flex; align-items: center; gap: var(--spacing-xl);
+  position: sticky; top: 0; z-index: 50;
+}
+.wordmark {
+  font-weight: 700; font-size: 22px;
+  letter-spacing: -0.02em; color: var(--colors-ink-deep);
+  display: flex; align-items: center; gap: 10px;
+}
+.wordmark .glyph {
+  width: 28px; height: 28px; background: var(--colors-primary);
+  color: var(--colors-on-primary); display: grid; place-items: center;
+  font-family: var(--font-mono); font-weight: 700; font-size: 14px;
+  border-radius: var(--rounded-md);
+}
+.wordmark .subtitle {
+  font-size: 14px; font-weight: 400; color: var(--colors-graphite);
+  margin-left: 8px;
+}
+.nav-right { margin-left: auto; display: flex; align-items: center; gap: var(--spacing-md); }
+.text-input-search {
+  height: 40px; padding: var(--spacing-sm) var(--spacing-md) var(--spacing-sm) 40px;
+  background: var(--colors-canvas);
+  border: 1px solid var(--colors-steel);
+  border-radius: var(--rounded-md);
+  font-family: var(--font-display); font-size: 14px; width: 280px;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23636363' stroke-width='2'><circle cx='11' cy='11' r='7'/><path d='M21 21l-4.3-4.3'/></svg>");
+  background-repeat: no-repeat; background-position: 14px center;
+  outline: none;
+}
+.text-input-search:focus { border-color: var(--colors-ink); }
+
+/* ── App shell ─────────────────────────────────────────────── */
+.app-shell {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  min-height: calc(100vh - 36px - 64px - 200px);
+}
+@media (max-width: 1023px) {
+  .app-shell { grid-template-columns: 1fr; }
+  .sidebar.collapsed { display: none; }
+}
+
+/* ── Sidebar(ink · 群组导航) ─────────────────────────────────── */
+.sidebar {
+  background: var(--colors-ink);
+  color: var(--colors-on-ink);
+  padding: var(--spacing-md);
+  overflow-y: auto;
+  max-height: calc(100vh - 36px - 64px);
+  position: sticky; top: 64px;
+}
+.sidebar .group-label {
+  font-family: var(--font-mono);
+  font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--colors-steel);
+  margin: var(--spacing-md) 0 6px;
+  padding: 0 10px;
+  display: flex; align-items: center; gap: 6px;
+}
+.sidebar .group-label .group-icon {
+  width: 14px; height: 14px; border-radius: var(--rounded-xs);
+  display: grid; place-items: center; font-size: 9px; font-weight: 700;
+  background: var(--colors-primary); color: var(--colors-on-primary);
+}
+.sidebar .group-label .group-icon.color-primary-bright { background: var(--colors-primary-bright); }
+.sidebar .group-label .group-icon.color-primary-deep { background: var(--colors-primary-deep); }
+.sidebar .group-label .group-icon.color-graphite { background: var(--colors-graphite); }
+.sidebar .group-label .group-icon.color-storm-deep { background: var(--colors-storm-deep); }
+.sidebar .group-label .group-icon.color-ink { background: #444; }
+.sidebar .group-label .group-icon.color-bloom-deep { background: var(--colors-bloom-deep); }
+.sidebar .group-label .group-icon.color-bloom-coral { background: var(--colors-bloom-coral); }
+.sidebar .nav-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 7px 10px;
+  border-radius: var(--rounded-md);
+  font-size: 13px; line-height: 1.4;
+  color: rgba(255,255,255,0.78);
+  cursor: pointer;
+  margin-bottom: 1px;
+  border: none; background: transparent; text-align: left; width: 100%;
+  font-family: var(--font-display);
+}
+.sidebar .nav-item:hover {
+  background: rgba(255,255,255,0.05);
+  color: var(--colors-on-ink);
+}
+.sidebar .nav-item.active {
+  background: var(--colors-primary);
+  color: var(--colors-on-primary);
+  font-weight: 500;
+}
+.sidebar .nav-item .badge-missing {
+  font-family: var(--font-mono); font-size: 9px;
+  background: var(--colors-bloom-deep); color: var(--colors-on-primary);
+  padding: 1px 5px; border-radius: var(--rounded-xs);
+  text-transform: uppercase; letter-spacing: 0.05em;
+}
+.sidebar .empty-state {
+  font-size: 12px; color: var(--colors-steel);
+  padding: 12px 10px; font-style: italic;
+}
+
+/* ── Main pane ─────────────────────────────────────────────── */
+.main-pane {
+  background: var(--colors-canvas);
+  padding: var(--spacing-xl) 48px var(--spacing-xxl);
+  overflow-x: hidden;
+}
+.doc-header {
+  border-bottom: 1px solid var(--colors-hairline);
+  padding-bottom: var(--spacing-md);
+  margin-bottom: var(--spacing-xl);
+}
+.breadcrumb {
+  font-family: var(--font-mono);
+  font-size: 11px; color: var(--colors-graphite);
+  letter-spacing: 0.04em; text-transform: uppercase;
+  margin-bottom: var(--spacing-xs);
+}
+.breadcrumb .crumb-sep { margin: 0 6px; color: var(--colors-steel); }
+.doc-title {
+  font-size: 28px; font-weight: 500; line-height: 1.17;
+  margin: 0 0 var(--spacing-xs);
+}
+.doc-meta {
+  font-family: var(--font-mono);
+  font-size: 11px; color: var(--colors-graphite);
+  display: flex; gap: 12px; align-items: center; flex-wrap: wrap;
+}
+.doc-meta .chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 2px 8px; border-radius: var(--rounded-lg);
+  font-weight: 700; font-size: 10px; letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.doc-meta .chip-ok { background: #e3f3e7; color: #1f7a3a; }
+.doc-meta .chip-warn { background: #fff2d4; color: #8a5a00; }
+.doc-meta .chip-danger { background: var(--colors-bloom-rose); color: var(--colors-bloom-wine); }
+
+/* ── Markdown body ─────────────────────────────────────────── */
+.markdown-body {
+  max-width: 920px;
+  font-family: var(--font-display);
+  color: var(--colors-ink);
+  font-size: 16px; line-height: 1.7;
+}
+.markdown-body h1 {
+  font-size: 36px; font-weight: 500; line-height: 1.1;
+  margin: 0 0 var(--spacing-md);
+  letter-spacing: -0.01em;
+}
+.markdown-body h2 {
+  font-size: 26px; font-weight: 500; line-height: 1.2;
+  margin: var(--spacing-xxl) 0 var(--spacing-sm);
+  padding-top: var(--spacing-md);
+  border-top: 1px solid var(--colors-hairline);
+}
+.markdown-body h2:first-of-type { border-top: none; padding-top: 0; }
+.markdown-body h3 {
+  font-size: 20px; font-weight: 500; line-height: 1.3;
+  margin: var(--spacing-xl) 0 var(--spacing-xs);
+  color: var(--colors-ink);
+}
+.markdown-body h4 {
+  font-size: 16px; font-weight: 700; line-height: 1.4;
+  margin: var(--spacing-lg) 0 var(--spacing-xs);
+  color: var(--colors-charcoal);
+}
+.markdown-body p { margin: 0 0 var(--spacing-md); }
+.markdown-body strong { font-weight: 600; }
+.markdown-body em { font-style: italic; color: var(--colors-charcoal); }
+.markdown-body code {
+  font-family: var(--font-mono);
+  font-size: 13.5px;
+  background: var(--colors-cloud);
+  padding: 2px 6px;
+  border-radius: var(--rounded-sm);
+  color: var(--colors-primary-deep);
+  border: 1px solid var(--colors-fog);
+}
+.markdown-body pre {
+  background: var(--colors-ink);
+  color: var(--colors-on-ink);
+  padding: var(--spacing-md);
+  border-radius: var(--rounded-lg);
+  overflow-x: auto;
+  margin: var(--spacing-md) 0;
+  box-shadow: var(--elev-2);
+}
+.markdown-body pre code {
+  background: transparent;
+  color: inherit;
+  border: none;
+  padding: 0;
+  font-size: 13px;
+  line-height: 1.6;
+}
+.markdown-body blockquote {
+  border-left: 3px solid var(--colors-primary);
+  background: var(--colors-cloud);
+  padding: var(--spacing-md) var(--spacing-lg);
+  margin: var(--spacing-md) 0;
+  border-radius: 0 var(--rounded-md) var(--rounded-md) 0;
+  color: var(--colors-charcoal);
+}
+.markdown-body blockquote p:last-child { margin-bottom: 0; }
+.markdown-body ul, .markdown-body ol {
+  margin: 0 0 var(--spacing-md); padding-left: 28px;
+}
+.markdown-body li { margin-bottom: 6px; }
+.markdown-body li::marker { color: var(--colors-graphite); }
+.markdown-body table {
+  width: 100%; border-collapse: collapse;
+  margin: var(--spacing-md) 0;
+  font-size: 14px; line-height: 1.5;
+  border: 1px solid var(--colors-hairline);
+  border-radius: var(--rounded-lg);
+  overflow: hidden;
+}
+.markdown-body th {
+  background: var(--colors-cloud);
+  text-align: left;
+  font-size: 12px; font-weight: 700; line-height: 1.3;
+  text-transform: uppercase; letter-spacing: 0.04em;
+  color: var(--colors-graphite);
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--colors-steel);
+}
+.markdown-body td {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--colors-hairline);
+  vertical-align: top;
+}
+.markdown-body tr:last-child td { border-bottom: none; }
+.markdown-body hr {
+  border: none;
+  border-top: 1px solid var(--colors-hairline);
+  margin: var(--spacing-xl) 0;
+}
+.markdown-body img { max-width: 100%; border-radius: var(--rounded-lg); }
+.markdown-body a {
+  color: var(--colors-primary);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.markdown-body a:hover { color: var(--colors-primary-deep); }
+.markdown-body .anchor-link {
+  opacity: 0; margin-left: 6px;
+  font-weight: 400; color: var(--colors-graphite);
+  text-decoration: none;
+}
+.markdown-body h2:hover .anchor-link,
+.markdown-body h3:hover .anchor-link,
+.markdown-body h4:hover .anchor-link { opacity: 1; }
+
+/* ── Banner ────────────────────────────────────────────────── */
+.banner {
+  display: flex; align-items: center; gap: var(--spacing-md);
+  padding: var(--spacing-sm) var(--spacing-lg);
+  border-radius: var(--rounded-lg);
+  background: var(--colors-cloud);
+  border-left: 4px solid var(--colors-graphite);
+  margin-bottom: var(--spacing-md);
+  font-size: 14px;
+}
+.banner.info { background: var(--colors-primary-soft); border-left-color: var(--colors-primary); }
+.banner.warn { background: #fff2d4; border-left-color: #c98a00; }
+.banner.danger { background: var(--colors-bloom-rose); border-left-color: var(--colors-bloom-deep); }
+
+/* ── Footer dark ─────────────────────────────────────────── */
+.footer-dark {
+  background: var(--colors-ink); color: var(--colors-on-ink);
+  padding: 56px var(--spacing-xl) var(--spacing-xl);
+  margin-top: var(--spacing-section);
+}
+.footer-grid {
+  max-width: 1366px; margin: 0 auto;
+  display: grid; grid-template-columns: 1.4fr 1fr 1fr 1fr;
+  gap: var(--spacing-xl);
+}
+@media (max-width: 767px) { .footer-grid { grid-template-columns: 1fr 1fr; } }
+.footer-col h5 { font-size: 16px; font-weight: 500; line-height: 1.38; margin: 0 0 var(--spacing-sm); }
+.footer-col ul { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 6px; }
+.footer-col li { font-size: 13px; line-height: 1.5; }
+.footer-col a, .footer-col code {
+  color: rgba(255,255,255,0.78);
+  font-size: 13px; line-height: 1.5;
+}
+.footer-col code {
+  font-family: var(--font-mono);
+  background: rgba(255,255,255,0.06);
+  padding: 1px 6px; border-radius: var(--rounded-sm);
+}
+.footer-strip {
+  border-top: 1px solid rgba(255,255,255,0.08);
+  margin: var(--spacing-xxl) auto 0;
+  padding-top: var(--spacing-md);
+  color: var(--colors-steel);
+  font-size: 12px; line-height: 1.33;
+  display: flex; justify-content: space-between; flex-wrap: wrap; gap: var(--spacing-md);
+  max-width: 1366px;
+}
+
+/* ============================================================================
+   Dashboard · HP 风
+   ========================================================================== */
+.view-toggle {
+  display: inline-flex;
+  background: var(--colors-cloud);
+  border: 1px solid var(--colors-hairline);
+  border-radius: var(--rounded-md);
+  padding: 3px;
+  margin-bottom: var(--spacing-xl);
+}
+.view-toggle button {
+  font-family: var(--font-display);
+  font-size: 13px; font-weight: 500;
+  padding: 7px 22px;
+  background: transparent;
+  border: none;
+  border-radius: calc(var(--rounded-md) - 1px);
+  cursor: pointer;
+  color: var(--colors-graphite);
+  transition: all 0.15s;
+  letter-spacing: 0.02em;
+}
+.view-toggle button:hover { color: var(--colors-ink); }
+.view-toggle button.active {
+  background: var(--colors-paper);
+  color: var(--colors-ink);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+}
+
+#dashboard-view > section,
+#dashboard-view > .dash-hero {
+  margin-bottom: var(--spacing-xxl);
+}
+#dashboard-view > section:last-child { margin-bottom: 0; }
+
+.dash-hero {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 32px;
+  padding: 36px 40px;
+  background: var(--colors-cloud);
+  border-radius: var(--rounded-xl);
+  overflow: hidden;
+}
+.dash-hero .hero-text { position: relative; z-index: 2; max-width: 62%; }
+.dash-hero .hero-eyebrow {
+  font-family: var(--font-mono);
+  font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em;
+  color: var(--colors-graphite); margin-bottom: 12px;
+  font-weight: 500;
+}
+.dash-hero .hero-title {
+  font-family: var(--font-display);
+  font-size: 38px; font-weight: 500; line-height: 1.05;
+  color: var(--colors-ink); margin: 0 0 10px;
+  letter-spacing: -0.015em;
+}
+.dash-hero .hero-sub {
+  font-size: 14px; color: var(--colors-charcoal);
+  line-height: 1.5;
+}
+.dash-hero .hero-sub code {
+  font-size: 12px; padding: 1px 6px;
+  background: var(--colors-paper);
+  border: 1px solid var(--colors-hairline);
+  border-radius: 3px;
+  color: var(--colors-ink);
+}
+.dash-hero .hero-gauge {
+  position: relative; z-index: 2;
+  text-align: right;
+  flex-shrink: 0;
+}
+.dash-hero .hero-gauge-num {
+  font-family: var(--font-display);
+  font-size: 64px; font-weight: 500; line-height: 0.9;
+  color: var(--colors-primary);
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+}
+.dash-hero .hero-gauge-label {
+  font-family: var(--font-mono);
+  font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em;
+  color: var(--colors-graphite); margin-top: 10px;
+  font-weight: 500;
+}
+.dash-hero::after {
+  content: ""; position: absolute;
+  top: -50px; right: -60px;
+  width: 200px; height: 200px;
+  background: var(--colors-primary);
+  transform: rotate(45deg);
+  opacity: 0.07;
+  pointer-events: none;
+  z-index: 1;
+}
+.dash-hero::before {
+  content: ""; position: absolute;
+  top: 40px; right: 120px;
+  width: 80px; height: 80px;
+  background: var(--colors-primary);
+  transform: rotate(45deg);
+  opacity: 0.05;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.kpi-bar {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0;
+  background: var(--colors-hairline);
+  border: 1px solid var(--colors-hairline);
+  border-radius: var(--rounded-xl);
+  overflow: hidden;
+}
+.kpi-bar > .kpi-card + .kpi-card { border-left: 1px solid var(--colors-hairline); }
+@media (max-width: 1100px) {
+  .kpi-bar { grid-template-columns: repeat(2, 1fr); }
+  .kpi-bar > .kpi-card:nth-child(3) { border-left: none; }
+}
+.kpi-card {
+  background: var(--colors-paper);
+  padding: 26px 28px 22px;
+  position: relative;
+}
+.kpi-card::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: var(--colors-ink);
+}
+.kpi-card.kpi-done::before     { background: #059669; }
+.kpi-card.kpi-progress::before { background: var(--colors-primary); }
+.kpi-card.kpi-todo::before     { background: #9ca3af; }
+.kpi-card.kpi-total::before    { background: var(--colors-ink); }
+
+.kpi-card .kpi-label {
+  font-family: var(--font-mono);
+  font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em;
+  color: var(--colors-graphite); margin-bottom: 14px;
+  font-weight: 500;
+}
+.kpi-card .kpi-value {
+  font-family: var(--font-display);
+  font-size: 48px; font-weight: 500; line-height: 0.95;
+  color: var(--colors-ink);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.025em;
+}
+.kpi-card .kpi-sub {
+  font-size: 12px; color: var(--colors-graphite);
+  margin-top: 10px;
+  font-family: var(--font-display);
+  line-height: 1.4;
+}
+.kpi-card.kpi-done .kpi-value     { color: #059669; }
+.kpi-card.kpi-progress .kpi-value { color: var(--colors-primary); }
+
+.progress-track {
+  height: 3px; background: var(--colors-fog);
+  border-radius: 0; overflow: hidden; margin-top: 14px;
+}
+.progress-fill {
+  height: 100%; border-radius: 0;
+  transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.dash-section-title {
+  font-family: var(--font-display);
+  font-size: 11px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.1em;
+  color: var(--colors-ink);
+  margin: 0 0 var(--spacing-lg);
+  padding-bottom: var(--spacing-xs);
+  border-bottom: 1px solid var(--colors-hairline);
+  display: flex; justify-content: space-between; align-items: baseline;
+}
+.dash-section-title .section-meta {
+  font-size: 11px; text-transform: none; letter-spacing: 0;
+  color: var(--colors-graphite);
+  font-family: var(--font-mono);
+  font-weight: 400;
+}
+
+/* Module Kanban */
+.kanban-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: var(--spacing-md);
+  align-items: start;
+}
+@media (max-width: 1280px) { .kanban-grid { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 800px)  { .kanban-grid { grid-template-columns: 1fr; } }
+.kanban-col {
+  background: transparent;
+  padding: 0;
+  min-height: 180px;
+}
+.kanban-col .col-head {
+  font-family: var(--font-mono);
+  font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em;
+  font-weight: 600;
+  margin-bottom: var(--spacing-sm);
+  padding-bottom: var(--spacing-xs);
+  border-bottom: 1px solid;
+  display: flex; justify-content: space-between; align-items: center;
+}
+.kanban-col .col-head .col-name { color: var(--colors-ink); }
+.kanban-col .col-head .count {
+  font-size: 10px; font-weight: 500;
+  color: var(--colors-graphite);
+}
+.kanban-col.s-not-started .col-head { border-color: #9ca3af; }
+.kanban-col.s-not-started .col-head .col-name::before { content: "○ "; color: #9ca3af; }
+.kanban-col.s-planned     .col-head { border-color: #6366f1; }
+.kanban-col.s-planned     .col-head .col-name::before { content: "◐ "; color: #6366f1; }
+.kanban-col.s-in-progress .col-head { border-color: var(--colors-primary); }
+.kanban-col.s-in-progress .col-head .col-name::before { content: "● "; color: var(--colors-primary); }
+.kanban-col.s-blocked     .col-head { border-color: #dc2626; }
+.kanban-col.s-blocked     .col-head .col-name::before { content: "■ "; color: #dc2626; }
+.kanban-col.s-done        .col-head { border-color: #059669; }
+.kanban-col.s-done        .col-head .col-name::before { content: "✓ "; color: #059669; font-weight: 700; }
+
+.module-card {
+  background: var(--colors-paper);
+  border: 1px solid var(--colors-hairline);
+  border-left: 3px solid var(--colors-hairline);
+  border-radius: var(--rounded-md);
+  padding: 12px 14px 14px;
+  margin-bottom: var(--spacing-xs);
+  cursor: pointer;
+  transition: border-color 0.2s, transform 0.15s;
+}
+.module-card:hover {
+  border-color: var(--colors-primary);
+  border-left-color: var(--colors-primary);
+  transform: translateX(2px);
+}
+.kanban-col.s-not-started .module-card { border-left-color: #d1d5db; }
+.kanban-col.s-planned     .module-card { border-left-color: #a5b4fc; }
+.kanban-col.s-in-progress .module-card { border-left-color: var(--colors-primary); }
+.kanban-col.s-blocked     .module-card { border-left-color: #fca5a5; }
+.kanban-col.s-done        .module-card { border-left-color: #6ee7b7; }
+
+.module-card .mc-id {
+  font-family: var(--font-mono);
+  font-size: 10px; font-weight: 600;
+  color: var(--colors-graphite);
+  letter-spacing: 0.06em;
+}
+.module-card .mc-title {
+  font-family: var(--font-display);
+  font-size: 13px; font-weight: 500;
+  margin-top: 4px; margin-bottom: 10px;
+  color: var(--colors-ink); line-height: 1.35;
+}
+.module-card .mc-meta {
+  display: flex; justify-content: space-between; align-items: center;
+  font-size: 10px;
+  font-family: var(--font-mono);
+  margin-bottom: 6px;
+}
+.module-card .mc-sprint {
+  background: var(--colors-cloud);
+  color: var(--colors-ink);
+  padding: 2px 7px;
+  border-radius: 2px;
+  font-weight: 600;
+  font-size: 10px;
+  letter-spacing: 0.02em;
+}
+.module-card .mc-pct {
+  font-weight: 600;
+  color: var(--colors-ink);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Sprint Timeline */
+.sprint-row {
+  display: grid;
+  grid-template-columns: 140px 1fr 80px;
+  gap: 20px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--colors-hairline);
+  align-items: center;
+}
+.sprint-row:last-child { border-bottom: none; }
+.sprint-row .sprint-name {
+  font-family: var(--font-mono);
+  font-size: 13px; font-weight: 600;
+  color: var(--colors-ink);
+  display: flex; align-items: center; gap: 10px;
+}
+.sprint-row .sprint-dot {
+  width: 8px; height: 8px;
+  background: var(--colors-steel);
+  transform: rotate(45deg);
+  flex-shrink: 0;
+}
+.sprint-row.sprint-done .sprint-dot { background: #059669; }
+.sprint-row.sprint-active .sprint-dot { background: var(--colors-primary); }
+.sprint-row .sprint-bar-area {
+  display: flex; align-items: center; gap: 16px;
+}
+.sprint-row .sprint-bar-area .progress-track {
+  flex: 1; margin-top: 0; height: 4px;
+}
+.sprint-row .sprint-pct {
+  font-family: var(--font-mono);
+  font-size: 13px; font-weight: 600;
+  min-width: 48px; text-align: right;
+  color: var(--colors-ink);
+  font-variant-numeric: tabular-nums;
+}
+.sprint-row .sprint-count {
+  font-size: 11px; color: var(--colors-graphite);
+  font-family: var(--font-mono);
+  text-align: right;
+}
+.sprint-row.sprint-done .sprint-pct { color: #059669; }
+.sprint-row.sprint-active .sprint-pct { color: var(--colors-primary); }
+
+/* Concept grid */
+.concept-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: var(--spacing-md);
+}
+.concept-chip {
+  background: var(--colors-paper);
+  border: 1px solid var(--colors-hairline);
+  border-radius: var(--rounded-lg);
+  padding: 18px 20px;
+  cursor: pointer;
+  transition: border-color 0.2s, transform 0.15s;
+}
+.concept-chip:hover {
+  border-color: var(--colors-primary);
+  transform: translateY(-1px);
+}
+.concept-chip .cc-id {
+  font-family: var(--font-mono);
+  font-size: 10px; font-weight: 600;
+  color: var(--colors-graphite);
+  letter-spacing: 0.08em;
+  margin-bottom: 8px;
+  display: flex; justify-content: space-between; align-items: center;
+}
+.concept-chip .cc-id .cc-sprint {
+  font-size: 10px; padding: 1px 6px;
+  background: var(--colors-cloud); color: var(--colors-ink);
+  letter-spacing: 0.02em;
+}
+.concept-chip .cc-title {
+  font-family: var(--font-display);
+  font-size: 14px; font-weight: 500;
+  margin-bottom: 12px;
+  color: var(--colors-ink); line-height: 1.3;
+}
+.concept-chip .cc-status {
+  display: inline-block;
+  width: 7px; height: 7px;
+  margin-right: 7px;
+  vertical-align: middle;
+  transform: rotate(45deg);
+}
+.concept-chip .cc-status.s-done       { background: #059669; }
+.concept-chip .cc-status.s-in-progress { background: var(--colors-primary); }
+.concept-chip .cc-status.s-planned    { background: #6366f1; }
+.concept-chip .cc-status.s-not-started { background: #d1d5db; }
+.concept-chip .cc-status.s-blocked    { background: #dc2626; }
+.concept-chip .cc-status.s-deferred   { background: #d97706; }
+.concept-chip .cc-pct {
+  font-family: var(--font-mono);
+  font-size: 11px; font-weight: 600;
+  color: var(--colors-graphite);
+  text-align: right;
+  margin-top: -6px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Misc ────────────────────────────────────────────────── */
+.scroll-top-btn {
+  position: fixed; bottom: 24px; right: 24px;
+  width: 44px; height: 44px;
+  background: var(--colors-primary); color: var(--colors-on-primary);
+  border: none; border-radius: var(--rounded-pill);
+  cursor: pointer; box-shadow: var(--elev-3);
+  font-size: 18px; font-weight: 700;
+  display: none; align-items: center; justify-content: center;
+  z-index: 100;
+}
+.scroll-top-btn.visible { display: flex; }
+.scroll-top-btn:hover { background: var(--colors-primary-deep); }
+
+#empty-loading {
+  padding: 64px 24px; text-align: center;
+  color: var(--colors-graphite);
+}
+.spinner {
+  width: 32px; height: 32px;
+  border: 3px solid var(--colors-fog);
+  border-top-color: var(--colors-primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  display: inline-block;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+#cdn-failure-banner {
+  display: none;
+  background: var(--colors-bloom-rose);
+  color: var(--colors-bloom-wine);
+  padding: var(--spacing-sm) var(--spacing-lg);
+  text-align: center;
+  font-size: 13px;
+  font-family: var(--font-mono);
+  border-bottom: 2px solid var(--colors-bloom-deep);
+}
+</style>
+</head>
+<body>
+
+<div id="cdn-failure-banner">
+  ⚠️ marked.js / highlight.js CDN 加载失败 · 检查网络 · 或在 docs/ 下 vendor 本地脚本
+</div>
+
+<div class="utility-strip">
+  <span class="stamp">📚 __PROJECT_NAME__ Docs</span>
+  <span class="sep">·</span>
+  <span class="stamp">最后构建 <code id="build-time">__BUILD_TIME__</code></span>
+  <span class="sep">·</span>
+  <span class="stamp"><code id="doc-count">--</code> 篇文档</span>
+  <span class="sep">·</span>
+  <a href="#" onclick="location.reload();return false;">刷新</a>
+</div>
+
+<header class="nav-bar-top">
+  <div class="wordmark">
+    <span class="glyph">__PROJECT_GLYPH__</span>
+    __PROJECT_NAME__
+    <span class="subtitle">· __PROJECT_SUBTITLE__</span>
+  </div>
+  <div class="nav-right">
+    <input
+      class="text-input-search"
+      id="search-input"
+      placeholder="搜索文档标题..."
+      autocomplete="off"
+      autocapitalize="off"
+      spellcheck="false"
+    />
+  </div>
+</header>
+
+<div class="app-shell">
+  <aside class="sidebar" id="sidebar">
+    <!-- nav 由 JS 渲染 -->
+  </aside>
+
+  <main class="main-pane">
+    <!-- 视图切换:看板 / 文档 · kanban_enabled = false 时只显示文档视图 -->
+    <div class="view-toggle" id="view-toggle">
+      <button data-view="dashboard" class="active">📊 看板</button>
+      <button data-view="document">📖 文档</button>
+    </div>
+
+    <div id="dashboard-view"></div>
+
+    <div id="document-view" style="display: none;">
+      <div id="empty-loading">
+        <span class="spinner"></span>
+        <p style="margin-top: 16px;">加载 marked.js 中...</p>
+      </div>
+      <div id="doc-container" style="display: none;">
+        <div class="doc-header">
+          <div class="breadcrumb" id="bc"></div>
+          <h1 class="doc-title" id="doc-title"></h1>
+          <div class="doc-meta" id="doc-meta"></div>
+        </div>
+        <article class="markdown-body" id="content"></article>
+      </div>
+    </div>
+  </main>
+</div>
+
+<footer class="footer-dark">
+  <div class="footer-grid">
+    <div class="footer-col">
+      <div class="wordmark" style="color: var(--colors-on-ink); margin-bottom: var(--spacing-md);">
+        <span class="glyph">__PROJECT_GLYPH__</span>__PROJECT_NAME__
+      </div>
+      <p class="t-caption-md" style="color: var(--colors-steel);">__PROJECT_DESCRIPTION__</p>
+      <p class="t-caption-sm" style="color: var(--colors-steel); margin-top: var(--spacing-sm);">
+        本页是 build artifact · 不要手工编辑
+      </p>
+    </div>
+    <div class="footer-col">
+      <h5>重新生成</h5>
+      <ul>
+        <li><code>python -m docs_cockpit build</code></li>
+        <li>powered by <a href="https://harvey.dev/docs-cockpit">docs-cockpit</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <h5>构建产物</h5>
+      <ul>
+        <li><code>docs/index.html</code> · 本页</li>
+        <li><code>docs-cockpit.yaml</code> · 配置</li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <h5>外部依赖</h5>
+      <ul>
+        <li><a href="https://github.com/markedjs/marked">marked.js v12</a></li>
+        <li><a href="https://github.com/highlightjs/highlight.js">highlight.js v11</a></li>
+        <li><a href="https://rsms.me/inter/">Inter</a> · <a href="https://www.jetbrains.com/lp/mono/">JetBrains Mono</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-strip">
+    <span>© __PROJECT_NAME__ · 内部预览页</span>
+    <span class="mono">build at <code id="footer-build-time">__BUILD_TIME__</code></span>
+  </div>
+</footer>
+
+<button class="scroll-top-btn" id="scroll-top" title="回顶部">↑</button>
+
+<!-- 数据负载 · MUST be last replacement(MD content may contain placeholder literals) -->
+<script id="docs-payload" type="application/json">__DOCS_JSON__</script>
+
+<!-- 第三方 CDN · onerror 触发兜底 banner -->
+<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"
+        onerror="document.getElementById('cdn-failure-banner').style.display='block'"></script>
+<script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/core.min.js"
+        onerror="document.getElementById('cdn-failure-banner').style.display='block'"></script>
+<script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/languages/python.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/languages/javascript.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/languages/typescript.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/languages/bash.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/languages/yaml.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/languages/json.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/languages/sql.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/languages/powershell.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/languages/xml.min.js"></script>
+
+<script>
+/* ============================================================================
+   __PROJECT_NAME__ · 文档预览 主逻辑
+   ========================================================================== */
+(function() {
+  'use strict';
+
+  const STORAGE_PREFIX = '__STORAGE_KEY__';
+  const KANBAN_ENABLED = __KANBAN_ENABLED__;
+  const SPRINT_ORDER = __SPRINT_ORDER_JSON__;
+
+  // ── 读 payload ──────────────────────────────────────────
+  const payload = JSON.parse(document.getElementById('docs-payload').textContent);
+  const groups = payload.groups || [];
+  const cards = payload.cards || [];
+  const kpi = payload.kpi || null;
+
+  // slug → doc 索引
+  const docIndex = {};
+  let totalDocs = 0, missingDocs = 0;
+  for (const g of groups) {
+    for (const item of g.items) {
+      docIndex[item.slug] = Object.assign({}, item, { group: g.group });
+      totalDocs++;
+      if (!item.exists) missingDocs++;
+    }
+  }
+  document.getElementById('doc-count').textContent = totalDocs;
+
+  // ── marked.js ───────────────────────────────────────────
+  function setupMarked() {
+    if (typeof marked === 'undefined') {
+      document.getElementById('cdn-failure-banner').style.display = 'block';
+      return false;
+    }
+    marked.setOptions({
+      gfm: true,
+      breaks: false,
+      headerIds: false,
+      mangle: false,
+      pedantic: false,
+    });
+    const renderer = new marked.Renderer();
+    const slugCounter = {};
+    function headingSlug(text) {
+      let s = text.toLowerCase().replace(/[^a-z0-9一-鿿]+/g, '-').replace(/^-+|-+$/g, '');
+      if (!s) s = 'section';
+      if (slugCounter[s]) { slugCounter[s]++; s = s + '-' + slugCounter[s]; }
+      else { slugCounter[s] = 1; }
+      return s;
+    }
+    renderer.heading = function(text, level) {
+      const slug = headingSlug(text);
+      return '<h' + level + ' id="h-' + slug + '">' + text +
+        ' <a href="#' + window._currentSlug + '__h-' + slug + '" class="anchor-link">#</a></h' + level + '>';
+    };
+    renderer.code = function(code, lang) {
+      let highlighted = code;
+      if (typeof hljs !== 'undefined') {
+        try {
+          if (lang && hljs.getLanguage(lang)) {
+            highlighted = hljs.highlight(code, { language: lang, ignoreIllegals: true }).value;
+          } else {
+            highlighted = hljs.highlightAuto(code).value;
+          }
+        } catch (e) {
+          highlighted = escapeHtml(code);
+        }
+      } else {
+        highlighted = escapeHtml(code);
+      }
+      return '<pre><code class="hljs language-' + (lang || 'plain') + '">' + highlighted + '</code></pre>';
+    };
+    marked.use({ renderer });
+    return true;
+  }
+
+  function escapeHtml(s) {
+    return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  // ── 侧边栏 ──────────────────────────────────────────────
+  function renderSidebar(filterText) {
+    const sb = document.getElementById('sidebar');
+    sb.innerHTML = '';
+    const filter = (filterText || '').toLowerCase().trim();
+    let visibleCount = 0;
+    for (const g of groups) {
+      const matchedItems = g.items.filter(it =>
+        !filter || it.title.toLowerCase().includes(filter)
+      );
+      if (matchedItems.length === 0 && filter) continue;
+      const groupEl = document.createElement('div');
+      groupEl.className = 'sidebar-group';
+      groupEl.innerHTML =
+        '<div class="group-label">' +
+        '<span class="group-icon color-' + (g.color || 'primary') + '">' + (g.icon || '·') + '</span>' +
+        escapeHtml(g.group) +
+        '</div>';
+      if (matchedItems.length === 0) {
+        const empty = document.createElement('div');
+        empty.className = 'empty-state';
+        empty.textContent = '(空)';
+        groupEl.appendChild(empty);
+      } else {
+        for (const item of matchedItems) {
+          const btn = document.createElement('button');
+          btn.className = 'nav-item';
+          btn.dataset.slug = item.slug;
+          let html = escapeHtml(item.title);
+          if (!item.exists) html += ' <span class="badge-missing">missing</span>';
+          btn.innerHTML = html;
+          btn.addEventListener('click', () => navigate(item.slug));
+          if (item.slug === window._currentSlug) btn.classList.add('active');
+          groupEl.appendChild(btn);
+          visibleCount++;
+        }
+      }
+      sb.appendChild(groupEl);
+    }
+    if (visibleCount === 0 && filter) {
+      const empty = document.createElement('div');
+      empty.className = 'empty-state';
+      empty.style.padding = '20px 10px';
+      empty.textContent = '没有匹配 "' + filter + '" 的文档';
+      sb.appendChild(empty);
+    }
+  }
+
+  // ── 单文档渲染 ──────────────────────────────────────────
+  function renderDoc(slug) {
+    const doc = docIndex[slug];
+    if (!doc) {
+      document.getElementById('content').innerHTML = '<p>文档 <code>' + slug + '</code> 不存在</p>';
+      return;
+    }
+    window._currentSlug = slug;
+    document.getElementById('empty-loading').style.display = 'none';
+    document.getElementById('doc-container').style.display = 'block';
+
+    document.getElementById('bc').innerHTML =
+      escapeHtml(doc.group) +
+      '<span class="crumb-sep">/</span>' +
+      escapeHtml(doc.title);
+    document.getElementById('doc-title').textContent = doc.title;
+
+    const meta = document.getElementById('doc-meta');
+    meta.innerHTML = '';
+    if (doc.exists) {
+      meta.innerHTML += '<span class="chip chip-ok">在</span>';
+      meta.innerHTML += '<span>最后改于 <code>' + (doc.mtime || '?') + '</code></span>';
+      meta.innerHTML += '<span class="chip">' + (doc.size || 0).toLocaleString() + ' 字符</span>';
+    } else {
+      meta.innerHTML += '<span class="chip chip-danger">missing</span>';
+    }
+    meta.innerHTML += '<span>路径 <code>' + escapeHtml(doc.path) + '</code></span>';
+
+    try {
+      const html = marked.parse(doc.content || '');
+      document.getElementById('content').innerHTML = html;
+    } catch (e) {
+      document.getElementById('content').innerHTML =
+        '<div class="banner danger">渲染失败:<code>' + escapeHtml(e.message) + '</code></div>' +
+        '<pre>' + escapeHtml(doc.content || '') + '</pre>';
+    }
+
+    document.querySelectorAll('.sidebar .nav-item').forEach(el => {
+      el.classList.toggle('active', el.dataset.slug === slug);
+    });
+
+    window.scrollTo({ top: 0, behavior: 'instant' });
+    try { localStorage.setItem(STORAGE_PREFIX + '-last-slug', slug); } catch (e) {}
+  }
+
+  // ── 视图切换 ────────────────────────────────────────────
+  function switchView(view) {
+    const dash = document.getElementById('dashboard-view');
+    const doc = document.getElementById('document-view');
+    if (!dash || !doc) return;
+    dash.style.display = view === 'dashboard' ? 'block' : 'none';
+    doc.style.display = view === 'document' ? 'block' : 'none';
+    document.querySelectorAll('#view-toggle button').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.view === view);
+    });
+    try { localStorage.setItem(STORAGE_PREFIX + '-last-view', view); } catch (e) {}
+    if (view === 'dashboard') {
+      if (location.hash) history.replaceState(null, '', location.pathname + location.search);
+    }
+  }
+
+  function navigate(slug) {
+    const hash = '#' + slug;
+    if (location.hash !== hash) history.pushState(null, '', hash);
+    switchView('document');
+    renderDoc(slug);
+  }
+
+  function handleHashChange() {
+    const slug = location.hash.replace(/^#/, '').split('__')[0];
+    if (slug && docIndex[slug]) {
+      switchView('document');
+      renderDoc(slug);
+    } else if (!slug) {
+      switchView('dashboard');
+    }
+  }
+
+  // ── 看板渲染 ────────────────────────────────────────────
+  const STATUS_LABEL = {
+    'not-started': '未启动',
+    'planned': '已排期',
+    'in-progress': '进行中',
+    'blocked': '阻塞',
+    'done': '已完成',
+    'deferred': '已推迟'
+  };
+  const STATUS_COLOR = {
+    'not-started': '#9ca3af',
+    'planned': '#6366f1',
+    'in-progress': '#2563eb',
+    'blocked': '#dc2626',
+    'done': '#059669',
+    'deferred': '#d97706'
+  };
+  const STATUS_ORDER = ['not-started', 'planned', 'in-progress', 'blocked', 'done'];
+
+  function renderDashboard() {
+    const root = document.getElementById('dashboard-view');
+    if (!root) return;
+    if (!KANBAN_ENABLED || !kpi) {
+      root.innerHTML =
+        '<div class="banner info">' +
+        '看板未启用 · 在 <code>docs-cockpit.yaml</code> 设 ' +
+        '<code>frontmatter.kanban.enabled: true</code> 并给 MD 文档加 ' +
+        '<code>id / type / status / progress</code> frontmatter。' +
+        '</div>' +
+        '<p style="color: var(--colors-graphite); font-size: 14px;">' +
+        '右上角切到 📖 文档 视图浏览左侧列出的文档。</p>';
+      return;
+    }
+
+    const kpiType = kpi.kpi_type || 'module';
+    const moduleCards = cards.filter(c => c.type === kpiType);
+    const conceptCards = cards.filter(c => c.type === 'concept');
+
+    const heroHtml = (
+      '<div class="dash-hero">' +
+        '<div class="hero-text">' +
+          '<div class="hero-eyebrow">__PROJECT_NAME__ · __PROJECT_SUBTITLE__</div>' +
+          '<h1 class="hero-title">项目看板</h1>' +
+          '<p class="hero-sub">共 <code>' + kpi.total_modules + '</code> 个 ' + escapeHtml(kpiType) +
+          (conceptCards.length ? ' · <code>' + conceptCards.length + '</code> 个 concept' : '') +
+          ' · 实时同步</p>' +
+        '</div>' +
+        '<div class="hero-gauge">' +
+          '<div class="hero-gauge-num">' + kpi.overall_progress + '%</div>' +
+          '<div class="hero-gauge-label">总进度 · 加权</div>' +
+        '</div>' +
+      '</div>'
+    );
+
+    const kpiHtml = (
+      '<section class="kpi-bar">' +
+      '<div class="kpi-card kpi-total">' +
+        '<div class="kpi-label">总 ' + escapeHtml(kpiType) + '</div>' +
+        '<div class="kpi-value">' + kpi.total_modules + '</div>' +
+        '<div class="kpi-sub">' + (conceptCards.length ? conceptCards.length + ' concepts · ' : '') + 'all tracked</div>' +
+      '</div>' +
+      '<div class="kpi-card kpi-done">' +
+        '<div class="kpi-label">已完成</div>' +
+        '<div class="kpi-value">' + kpi.done + '</div>' +
+        '<div class="kpi-sub">status = done</div>' +
+      '</div>' +
+      '<div class="kpi-card kpi-progress">' +
+        '<div class="kpi-label">进行中 / 已排期</div>' +
+        '<div class="kpi-value">' + (kpi.in_progress + kpi.planned) + '</div>' +
+        '<div class="kpi-sub">' + kpi.in_progress + ' active · ' + kpi.planned + ' planned</div>' +
+      '</div>' +
+      '<div class="kpi-card kpi-todo">' +
+        '<div class="kpi-label">未排期</div>' +
+        '<div class="kpi-value">' + kpi.not_started + '</div>' +
+        '<div class="kpi-sub">+ ' + kpi.blocked + ' blocked · ' + kpi.deferred + ' deferred</div>' +
+      '</div>' +
+      '</section>'
+    );
+
+    // Kanban
+    const grouped = {};
+    for (const s of STATUS_ORDER) grouped[s] = [];
+    for (const c of moduleCards) {
+      if (grouped[c.status]) grouped[c.status].push(c);
+    }
+    const renderModuleCard = (c) => (
+      '<div class="module-card" data-slug="' + escapeHtml(c.slug) + '">' +
+        '<div class="mc-id">' + escapeHtml(c.id) + '</div>' +
+        '<div class="mc-title">' + escapeHtml(c.title) + '</div>' +
+        '<div class="mc-meta">' +
+          '<span class="mc-sprint">' + escapeHtml(c.sprint || 'TBD') + '</span>' +
+          '<span class="mc-pct">' + (c.progress || 0) + '%</span>' +
+        '</div>' +
+        '<div class="progress-track"><div class="progress-fill" style="width:' + (c.progress || 0) + '%; background:' + STATUS_COLOR[c.status] + ';"></div></div>' +
+      '</div>'
+    );
+    const kanbanHtml = (
+      '<section class="kanban">' +
+      '<h2 class="dash-section-title"><span>' + escapeHtml(kpiType) + ' Kanban</span><span class="section-meta">5 状态分列</span></h2>' +
+      '<div class="kanban-grid">' +
+      STATUS_ORDER.map(s => (
+        '<div class="kanban-col s-' + s + '">' +
+        '<div class="col-head"><span class="col-name">' + STATUS_LABEL[s] + '</span><span class="count">' + grouped[s].length + '</span></div>' +
+        grouped[s].map(renderModuleCard).join('') +
+        '</div>'
+      )).join('') +
+      '</div>' +
+      '</section>'
+    );
+
+    // Sprint timeline
+    const bySprint = {};
+    for (const c of moduleCards) {
+      const sps = (c.sprint || 'TBD').split(/[-,/]/).map(s => s.trim()).filter(Boolean);
+      for (const sp of sps) {
+        if (!bySprint[sp]) bySprint[sp] = [];
+        bySprint[sp].push(c);
+      }
+    }
+    const sortedSprints = Object.keys(bySprint).sort((a, b) => {
+      const ia = SPRINT_ORDER.indexOf(a);
+      const ib = SPRINT_ORDER.indexOf(b);
+      return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib);
+    });
+    const sprintHtml = (
+      '<section class="sprint-timeline">' +
+      '<h2 class="dash-section-title"><span>Sprint Timeline</span><span class="section-meta">每 Sprint 覆盖与平均进度</span></h2>' +
+      sortedSprints.map(sp => {
+        const mods = bySprint[sp];
+        const avg = Math.round(mods.reduce((a, c) => a + (c.progress || 0), 0) / mods.length);
+        const cls = avg === 100 ? 'sprint-done' : (avg > 0 ? 'sprint-active' : '');
+        return (
+          '<div class="sprint-row ' + cls + '">' +
+          '<div class="sprint-name"><span class="sprint-dot"></span>' + escapeHtml(sp) + '</div>' +
+          '<div class="sprint-bar-area">' +
+            '<div class="progress-track"><div class="progress-fill" style="width:' + avg + '%; background:' + (avg === 100 ? '#059669' : 'var(--colors-primary)') + ';"></div></div>' +
+            '<div class="sprint-pct">' + avg + '%</div>' +
+          '</div>' +
+          '<div class="sprint-count">' + mods.length + ' items</div>' +
+          '</div>'
+        );
+      }).join('') +
+      '</section>'
+    );
+
+    // Concept grid(只有 concept type 存在时显示)
+    const conceptHtml = conceptCards.length ? (
+      '<section>' +
+      '<h2 class="dash-section-title"><span>核心概念 · concept</span><span class="section-meta">' + conceptCards.length + ' 项</span></h2>' +
+      '<div class="concept-grid">' +
+      conceptCards.map(c => (
+        '<div class="concept-chip" data-slug="' + escapeHtml(c.slug) + '">' +
+          '<div class="cc-id"><span>' + escapeHtml(c.id) + '</span><span class="cc-sprint">' + escapeHtml(c.sprint || 'TBD') + '</span></div>' +
+          '<div class="cc-title"><span class="cc-status s-' + c.status + '"></span>' + escapeHtml(c.title) + '</div>' +
+          '<div class="progress-track"><div class="progress-fill" style="width:' + (c.progress || 0) + '%; background:' + STATUS_COLOR[c.status] + ';"></div></div>' +
+          '<div class="cc-pct">' + (c.progress || 0) + '%</div>' +
+        '</div>'
+      )).join('') +
+      '</div>' +
+      '</section>'
+    ) : '';
+
+    root.innerHTML = heroHtml + kpiHtml + kanbanHtml + sprintHtml + conceptHtml;
+
+    root.querySelectorAll('[data-slug]').forEach(el => {
+      el.addEventListener('click', () => navigate(el.dataset.slug));
+    });
+  }
+
+  // 视图切换按钮
+  document.querySelectorAll('#view-toggle button').forEach(btn => {
+    btn.addEventListener('click', () => switchView(btn.dataset.view));
+  });
+
+  // 搜索
+  let searchTimer = null;
+  document.getElementById('search-input').addEventListener('input', (e) => {
+    if (searchTimer) clearTimeout(searchTimer);
+    searchTimer = setTimeout(() => renderSidebar(e.target.value), 80);
+  });
+
+  // 回顶部
+  const scrollBtn = document.getElementById('scroll-top');
+  scrollBtn.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
+  window.addEventListener('scroll', () => {
+    scrollBtn.classList.toggle('visible', window.scrollY > 400);
+  });
+
+  // 初始化
+  function init() {
+    if (!setupMarked()) {
+      document.getElementById('empty-loading').innerHTML =
+        '<div class="banner danger">marked.js 未加载 · 显示原始 MD 文本</div>';
+      window.marked = { parse: (s) => '<pre>' + escapeHtml(s) + '</pre>' };
+    }
+
+    renderSidebar('');
+    renderDashboard();
+
+    // 入口决策:URL hash > localStorage > 默认(看板若启用,否则文档)
+    const hashSlug = location.hash.replace(/^#/, '').split('__')[0];
+    let initialView = KANBAN_ENABLED ? 'dashboard' : 'document';
+    if (hashSlug && docIndex[hashSlug]) {
+      initialView = 'document';
+      renderDoc(hashSlug);
+    } else {
+      try {
+        const lastView = localStorage.getItem(STORAGE_PREFIX + '-last-view');
+        if (lastView === 'document') {
+          const lastSlug = localStorage.getItem(STORAGE_PREFIX + '-last-slug');
+          if (lastSlug && docIndex[lastSlug]) {
+            initialView = 'document';
+            renderDoc(lastSlug);
+          }
+        }
+      } catch (e) {}
+    }
+    // 没有看板时把 toggle 隐藏
+    if (!KANBAN_ENABLED) {
+      const toggle = document.getElementById('view-toggle');
+      if (toggle) toggle.style.display = 'none';
+      // 没指定文档就提示从侧边栏选
+      if (initialView === 'document' && !window._currentSlug) {
+        document.getElementById('empty-loading').innerHTML =
+          '<p>从左侧选择一篇文档</p>';
+        document.getElementById('empty-loading').style.display = 'block';
+      }
+    }
+    switchView(initialView);
+
+    window.addEventListener('hashchange', handleHashChange);
+    console.log('[docs-cockpit] groups:', groups.length, '· docs:', totalDocs, '· missing:', missingDocs, '· cards:', cards.length);
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,35 @@
+# docs-cockpit · 最小可行配置
+#
+# 用途:把一个 docs/ 目录下所有 MD 文件汇总到单文件 HTML。
+# 没启用看板 · 只有侧边栏 + 文档视图。
+#
+# 跑:
+#   python -m docs_cockpit build --config docs-cockpit.yaml
+#
+# 输出:docs/index.html · 用浏览器 file:// 打开。
+
+project:
+  name: MyProject
+  subtitle: Docs preview
+  glyph: M
+  description: My project documentation preview
+  output: docs/index.html
+
+groups:
+  - name: Overview
+    icon: O
+    color: primary
+    files:
+      - { title: README, path: "{repo}/README.md" }
+
+  - name: Docs
+    icon: D
+    color: graphite
+    scan:
+      dir: "{repo}/docs"
+      recursive: true
+      # title_transform 默认在 recursive=true 时是 path-slash
+      # 即 subdir/foo.md → "subdir / foo"
+
+# frontmatter / kanban 未开 · 留空即可
+# 想试看板:看 examples/sourcery.yaml
