@@ -12,7 +12,7 @@
 - **可选项目看板** · MD 文件加 YAML frontmatter(`status: in-progress` / `progress: 60` / `sprint: M1.2`)就自动出 KPI / 模块 Kanban / Sprint Timeline
 - **机器可读的 `state.json`** · 每次 build 在 `index.html` 旁同步写一份 sidecar JSON · 让其他工具 / sibling status skill 不解析 HTML 就能回答"哪些卡 blocked / sprint 进度 / 周报"
 - **跨平台** · 纯 Python 3.10+ + pyyaml · Windows / macOS / Linux 同一份 yaml 跑
-- **以 Claude Code plugin 形式发布 · 含两个 skill** · `docs-cockpit`(设置 + 维护 cockpit)和 `docs-cockpit-status`(读 state.json 产出状态 / 进度 / 周报)· 根据问句形态自动触发对应那个
+- **以 Claude Code plugin 形式发布 · 含三个 skill** · `docs-cockpit`(设置 + 维护)、`docs-cockpit-status`(读 `state.json` 产出状态 / 进度 / 周报)、`docs-cockpit-update`(本地 CLI 落后 GitHub 时自动升级)· 三个 skill 根据问句形态自动触发
 
 ---
 
@@ -104,6 +104,7 @@ Claude Code 用户推荐这条路。装完后 Claude 会根据问句形态自动
 
 - **`docs-cockpit`**(操作型)· 触发于 "把 docs 做成 dashboard"、"给我 cockpit 加一个 group"、"写个 pre-commit 让 HTML 不腐烂"、"改下 cockpit 的配色"、"build 跑不起来"
 - **`docs-cockpit-status`**(只读状态)· 触发于 "哪些 module 卡了"、"sprint M1.3 进度多少"、"给我生成一份周报"、"哪些 doc 太久没改"、"这周 cockpit 状态有啥变化"
+- **`docs-cockpit-update`**(自动升级)· 触发于 "升级 docs-cockpit"、"update docs-cockpit",或者一次 build 跑出 `[!] docs-cockpit X.Y.Z available (current: ...)` 这条 banner 时自动接手。一次走完 pip --upgrade + plugin 重 fetch 两层。
 
 按你 Claude Code 版本走两条路:
 
@@ -356,6 +357,7 @@ cd docs-cockpit && git pull
 
 - **`skills/docs-cockpit/SKILL.md`** — 操作型 skill · 含 setup + 维护 workflow + 每步该读哪个 reference
 - **`skills/docs-cockpit-status/SKILL.md`** — 读状态 skill · 怎么解读 `docs/state.json` 回答 blockers / sprint 进度 / 周报
+- **`skills/docs-cockpit-update/SKILL.md`** — 自动升级 skill · CLI + plugin 两层升级流程
 - **`references/config_reference.md`** — `docs-cockpit.yaml` 全字段 schema · 必备
 - **`references/frontmatter_conventions.md`** — YAML frontmatter 字段约定 + status × progress 校验
 - **`references/design_tokens.md`** — CSS token / 品牌色 / 字体 / 暗色模式 / 离线 vendor

@@ -12,13 +12,15 @@ description: |
 
 > Turn a folder of Markdown into a single-file project cockpit you can open with `file://`.
 
-## Scope · what's in this skill vs the sibling
+## Scope · what's in this skill vs the siblings
 
 **This skill** (`docs-cockpit`) — **writes/edits** project files. Setup, add groups, build, wire frontmatter, tweak design, debug. If your action ends with the user's repo gaining or changing a yaml / MD / HTML / hook, you're in this skill.
 
-**Sibling skill** (`docs-cockpit-status`) — **reads only**. Answers questions about an existing cockpit's state: "what's blocked", "sprint M1.3 progress", "weekly status report", "which docs are stale". If your action ends with a narrative summary back to the user and no files change, you're in that one.
+**Sibling `docs-cockpit-status`** — **reads only**. Answers questions about an existing cockpit's state: "what's blocked", "sprint M1.3 progress", "weekly status report", "which docs are stale". If your action ends with a narrative summary back to the user and no files change, hand off.
 
-Hand off to the sibling whenever the user shifts from "I want this cockpit set up" to "tell me what's in the cockpit". Don't try to do both in this skill.
+**Sibling `docs-cockpit-update`** — **handles upgrades**. Triggers when the user asks to update/upgrade docs-cockpit, OR when a `docs-cockpit build` run prints a banner like `[!] docs-cockpit X.Y.Z available (current: …)`, OR when something in this skill fails because the user's CLI is too old (e.g. they're missing `state.json` output because their CLI predates 0.1.1). **If you see such a banner in build output, surface it to the user and hand off** — don't try to limp along with a stale install.
+
+Hand off explicitly: *"That's a status question — switching to `docs-cockpit-status`"* or *"Your CLI looks outdated — switching to `docs-cockpit-update`"*. Don't try to do all three jobs in this skill.
 
 ## What this skill is for
 

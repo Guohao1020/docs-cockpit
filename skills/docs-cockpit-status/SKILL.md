@@ -12,13 +12,15 @@ description: |
 
 > Read the cockpit. Tell the user what's going on. No file writes — narrative only.
 
-## Scope · what's in this skill vs the sibling
+## Scope · what's in this skill vs the siblings
 
 **This skill** (`docs-cockpit-status`) — **reads only**. Answers questions about a cockpit's current state. Outputs are tables, prose, bullet lists. **No project files change.**
 
-**Sibling skill** (`docs-cockpit`) — **writes/edits**. Setup, add doc sources, build, frontmatter wiring, design tweaks, debug. If the user wants to *change* the cockpit, hand off.
+**Sibling `docs-cockpit`** — **writes/edits**. Setup, add doc sources, build, frontmatter wiring, design tweaks, debug. If the user wants to *change* the cockpit, hand off.
 
-If the user shifts mid-conversation from "what's going on" → "fix this", hand off explicitly: *"That's a setup/maintenance change — switching to the `docs-cockpit` skill for that."*
+**Sibling `docs-cockpit-update`** — **handles upgrades**. If you go to read `docs/state.json` and find it **missing**, or it's present but missing fields (e.g. no `cards` array when kanban is enabled), or the build_time is from before features you depend on existed — the user's docs-cockpit CLI is probably stale. Hand off to `docs-cockpit-update` rather than telling them "state.json is missing, run build" (their build wouldn't produce state.json on the old CLI anyway).
+
+Hand off explicitly: *"That's a setup change — switching to `docs-cockpit`"* or *"state.json looks like an older format — switching to `docs-cockpit-update` first"*.
 
 ## Data source: `docs/state.json`
 

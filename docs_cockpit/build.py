@@ -409,7 +409,90 @@ def _safe_print(msg: str) -> None:
         print(msg.encode("ascii", errors="replace").decode("ascii"))
 
 
+# ── 版本检测(best-effort · 24h 缓存 · 网络失败静默) ───────────────
+_VERSION_CHECK_URL = (
+    "https://raw.githubusercontent.com/Guohao1020/docs-cockpit/main/"
+    ".claude-plugin/plugin.json"
+)
+
+
+def _semver_parts(v: str) -> tuple[int, ...]:
+    """把 "0.1.2" 拆成 (0,1,2) · 不规则的段返回空元组."""
+    try:
+        return tuple(int(p) for p in v.split(".") if p.isdigit())
+    except (ValueError, AttributeError):
+        return ()
+
+
+def _check_for_updates(no_check: bool = False) -> None:
+    """Best-effort 检查 GitHub main 上是否有更新版本.
+
+    缓存 24h 在 ~/.cache/docs-cockpit/version-check.json。
+    网络失败 / 解析失败一律静默 · 永远不阻塞 build。
+    """
+    if no_check or os.environ.get("DOCS_COCKPIT_NO_VERSION_CHECK"):
+        return
+
+    from . import __version__ as local_version
+
+    cache_dir = pathlib.Path.home() / ".cache" / "docs-cockpit"
+    cache_path = cache_dir / "version-check.json"
+    now = _dt.datetime.now()
+    remote_version: str | None = None
+
+    # 1) 读缓存(24h TTL)
+    if cache_path.exists():
+        try:
+            cached = json.loads(cache_path.read_text(encoding="utf-8"))
+            checked_at = _dt.datetime.fromisoformat(cached["checked_at"])
+            if (now - checked_at).total_seconds() < 86400:
+                remote_version = cached.get("remote_version")
+        except (json.JSONDecodeError, KeyError, ValueError, OSError):
+            pass
+
+    # 2) 缓存 miss / stale → fetch
+    if remote_version is None:
+        try:
+            import urllib.request
+            req = urllib.request.Request(
+                _VERSION_CHECK_URL,
+                headers={"User-Agent": f"docs-cockpit/{local_version}"},
+            )
+            with urllib.request.urlopen(req, timeout=3) as resp:
+                data = json.loads(resp.read())
+                remote_version = data.get("version")
+            cache_dir.mkdir(parents=True, exist_ok=True)
+            cache_path.write_text(
+                json.dumps({
+                    "checked_at": now.isoformat(),
+                    "remote_version": remote_version,
+                }),
+                encoding="utf-8",
+            )
+        except Exception:
+            return  # 静默
+
+    # 3) 比较 · 只在 remote > local 时报
+    if not remote_version:
+        return
+    if _semver_parts(remote_version) > _semver_parts(local_version):
+        _safe_print(
+            f"[!] docs-cockpit {remote_version} available "
+            f"(current: {local_version})."
+        )
+        _safe_print(
+            "    Update: pip install --upgrade "
+            "git+https://github.com/Guohao1020/docs-cockpit.git"
+        )
+        _safe_print(
+            "    Or ask Claude: \"update docs-cockpit\" "
+            "(invokes docs-cockpit-update skill)."
+        )
+
+
 def cmd_build(args: argparse.Namespace) -> int:
+    _check_for_updates(no_check=getattr(args, "no_version_check", False))
+
     config_path = pathlib.Path(args.config).resolve()
     if not config_path.exists():
         _safe_print(f"[ERR] config not found: {config_path}")
@@ -566,6 +649,8 @@ def main(argv: list[str] | None = None) -> int:
                         help="YAML 配置文件路径(默认:当前目录 docs-cockpit.yaml)")
     build_p.add_argument("--debug", action="store_true",
                         help="打印解析后的路径变量与每条 entry 的绝对路径")
+    build_p.add_argument("--no-version-check", action="store_true",
+                        help="跳过新版本检测(也可设 DOCS_COCKPIT_NO_VERSION_CHECK=1)")
     build_p.set_defaults(func=cmd_build)
 
     init_p = sub.add_parser("init", help="生成最小可用配置模板")
