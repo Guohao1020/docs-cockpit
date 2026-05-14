@@ -104,13 +104,7 @@ groups:
     files:
       - { title: CLAUDE.md, path: "{repo}/CLAUDE.md" }
 
-  # ── 10. 外部 plans + memory ────────────────────────────
-  - name: External Plans
-    icon: P
-    color: graphite
-    glob:
-      - "{external_plans}/m1-to-m3-roadmap/*.md"
-
+  # ── 10. Session Memory ─────────────────────────────────
   - name: Session Memory
     icon: M
     color: bloom-deep
@@ -129,8 +123,8 @@ frontmatter:
     deferred: [0, 100]
   kanban:
     enabled: true
-    # 只把这两类 type 进卡 · rfc 等只在侧边栏
-    card_types: [module, concept]
+    # card_types 留空 · 把所有有 id 的文档都做成卡(module/concept/plan/task/rfc/spec/meta 等)
+    # kpi_type: module 表示 KPI bar + Kanban + Sprint Timeline 只统计 module · 其他 type 进底部 Concept Grid
     kpi_type: module
     sprint_order:
       - M0
