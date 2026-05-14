@@ -12,7 +12,7 @@ Highlights:
 - **Optional project kanban** — add YAML frontmatter (`status: in-progress` / `progress: 60` / `sprint: M1.2`) to any MD and you get a KPI bar / module kanban / sprint timeline for free
 - **Machine-readable `state.json`** — each build emits a sidecar JSON next to `index.html` so other tools (and the sibling status skill) can answer "what's blocked / sprint progress / standup" without re-parsing the HTML
 - **Cross-platform** — pure Python 3.10+ + pyyaml; the same YAML runs on Windows / macOS / Linux
-- **Ships as a Claude Code plugin with three skills** — `docs-cockpit` (set up & maintain), `docs-cockpit-status` (read `state.json` and produce status / progress / standup reports), and `docs-cockpit-update` (auto-upgrade when the local CLI is behind GitHub HEAD). All three trigger automatically based on what you ask.
+- **Ships as a Claude Code plugin** — three auto-triggered skills (`docs-cockpit` / `docs-cockpit-status` / `docs-cockpit-update`) for natural-language usage, plus three slash commands (`/docs-cockpit:build` / `:status` / `:update`) for explicit invocation with tab-completion
 
 ---
 
@@ -100,11 +100,21 @@ For trying it once, or if you don't want to touch site-packages.
 
 ### D. Install as a Claude Code plugin — let Claude invoke it
 
-This is the recommended path for Claude Code users. Once installed, Claude auto-detects the right sub-skill based on what you ask:
+This is the recommended path for Claude Code users. The plugin ships two ways to invoke each capability — natural-language **skills** (auto-triggered) AND explicit **slash commands** (typed):
+
+**Skills — auto-triggered when you describe what you want:**
 
 - **`docs-cockpit`** (operational) — triggers on "bundle my docs into a dashboard", "add a new group to my cockpit", "wire pre-commit so HTML stays fresh", "change the cockpit's color scheme", "build is failing"
 - **`docs-cockpit-status`** (read-only status) — triggers on "what's blocked", "sprint M1.3 progress", "generate a weekly standup from docs", "which modules haven't moved", "what changed in the cockpit this week"
-- **`docs-cockpit-update`** (auto-upgrade) — triggers on "update docs-cockpit", "升级 docs-cockpit", OR automatically when a build prints `[!] docs-cockpit X.Y.Z available (current: ...)`. Handles pip --upgrade + plugin re-fetch in one workflow.
+- **`docs-cockpit-update`** (auto-upgrade) — triggers on "update docs-cockpit", "升级 docs-cockpit", OR automatically when a build prints `[!] docs-cockpit X.Y.Z available (current: ...)`
+
+**Slash commands — explicit invocation with tab-completion:**
+
+- **`/docs-cockpit:build`** — run a build now (optional config path arg)
+- **`/docs-cockpit:status [question]`** — quick status query (e.g. `/docs-cockpit:status weekly`, `/docs-cockpit:status sprint M1.2`, `/docs-cockpit:status blockers`)
+- **`/docs-cockpit:update`** — explicit upgrade trigger
+
+Use whichever you prefer. Slash commands are faster for power users who remember the names; skills work for everyone else by just saying what you want.
 
 Two install paths depending on your Claude Code version:
 
@@ -358,6 +368,7 @@ Deeper debugging in the "Common failure modes" section at the end of `SKILL.md`.
 - **`skills/docs-cockpit/SKILL.md`** — operational skill · setup + maintain workflows + which reference to read for each step
 - **`skills/docs-cockpit-status/SKILL.md`** — status-reading skill · how to interpret `docs/state.json` for blockers / sprint progress / standup reports
 - **`skills/docs-cockpit-update/SKILL.md`** — auto-upgrade skill · CLI + plugin two-layer upgrade workflow
+- **`commands/build.md` / `status.md` / `update.md`** — slash command definitions for `/docs-cockpit:build|status|update`
 - **`references/config_reference.md`** — full field schema for `docs-cockpit.yaml` · essential
 - **`references/frontmatter_conventions.md`** — YAML frontmatter conventions + status × progress validation
 - **`references/design_tokens.md`** — CSS tokens, brand colors, fonts, dark mode, offline vendoring

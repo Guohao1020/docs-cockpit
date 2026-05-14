@@ -4,6 +4,26 @@
 
 ## [Unreleased]
 
+## [0.1.3] · 2026-05-14
+
+加 3 个 slash command 作为 skill 的显式调用入口 · 给 power user 一条快速通道。
+
+### Added
+
+- **`commands/build.md`** → 用户输入 `/docs-cockpit:build` 触发 · 显式跑一次 build · 支持 `/docs-cockpit:build configs/preview.yaml` 传配置路径 · 无 config 自动 hand off 给 docs-cockpit skill bootstrap workflow。
+- **`commands/status.md`** → 用户输入 `/docs-cockpit:status [问题]` 触发 · 比如 `/docs-cockpit:status weekly` / `:status sprint M1.2` / `:status blockers` · 直接读 state.json 输出叙述。
+- **`commands/update.md`** → 用户输入 `/docs-cockpit:update` 触发 · 走完 7 步两层升级。
+
+### Changed
+
+- `plugin.json` / `marketplace.json` 描述显式说明含 3 skill + 3 slash command 两套入口。
+- 双入口设计:**skill** 处理自然语言("把 docs 做成 dashboard")· **slash command** 给 tab 补全 + 快速触发("/docs-cockpit:status weekly")。
+
+### Notes
+
+- Skill 和 slash command 共享底层 workflow · slash command 只是 "fast path entry" · skill 是 "natural language entry"。维护时改 SKILL.md 是真理之源 · command 文件只是路由层。
+- 升级到本版本需要重启 Claude Code · plugin 才能 re-fetch 新的 `commands/` 目录。
+
 ## [0.1.2] · 2026-05-14
 
 让 plugin 自己感知版本过期 + 提供升级路径。三 skill 结构。
@@ -56,7 +76,8 @@
 - Python 依赖只有 `pyyaml`,装 plugin 后仍需 `pip install git+https://github.com/Guohao1020/docs-cockpit.git` 让 `docs-cockpit` CLI 进 PATH。
 - 离线 mode(CDN 拉不到 marked.js)目前需手工 vendor `_assets/` · 见 `references/design_tokens.md` "Offline mode" 节。
 
-[Unreleased]: https://github.com/Guohao1020/docs-cockpit/compare/v0.1.2...HEAD
+[Unreleased]: https://github.com/Guohao1020/docs-cockpit/compare/v0.1.3...HEAD
+[0.1.3]: https://github.com/Guohao1020/docs-cockpit/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/Guohao1020/docs-cockpit/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/Guohao1020/docs-cockpit/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/Guohao1020/docs-cockpit/releases/tag/v0.1.0

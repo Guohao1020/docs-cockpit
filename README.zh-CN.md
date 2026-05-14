@@ -12,7 +12,7 @@
 - **可选项目看板** · MD 文件加 YAML frontmatter(`status: in-progress` / `progress: 60` / `sprint: M1.2`)就自动出 KPI / 模块 Kanban / Sprint Timeline
 - **机器可读的 `state.json`** · 每次 build 在 `index.html` 旁同步写一份 sidecar JSON · 让其他工具 / sibling status skill 不解析 HTML 就能回答"哪些卡 blocked / sprint 进度 / 周报"
 - **跨平台** · 纯 Python 3.10+ + pyyaml · Windows / macOS / Linux 同一份 yaml 跑
-- **以 Claude Code plugin 形式发布 · 含三个 skill** · `docs-cockpit`(设置 + 维护)、`docs-cockpit-status`(读 `state.json` 产出状态 / 进度 / 周报)、`docs-cockpit-update`(本地 CLI 落后 GitHub 时自动升级)· 三个 skill 根据问句形态自动触发
+- **以 Claude Code plugin 形式发布** · 三个 skill 自动触发(`docs-cockpit` / `docs-cockpit-status` / `docs-cockpit-update`)+ 三个 slash command 显式调用(`/docs-cockpit:build` / `:status` / `:update`)· 两套入口任你挑
 
 ---
 
@@ -100,11 +100,21 @@ PYTHONPATH=/some/where python -m docs_cockpit build
 
 ### D. 装为 Claude Code plugin · 让 Claude 主动用
 
-Claude Code 用户推荐这条路。装完后 Claude 会根据问句形态自动选对应 skill:
+Claude Code 用户推荐这条路。Plugin 同时给两种调用入口 · **skill 自然语言自动触发** + **slash command 显式调用**:
+
+**Skill · 说人话自动触发**:
 
 - **`docs-cockpit`**(操作型)· 触发于 "把 docs 做成 dashboard"、"给我 cockpit 加一个 group"、"写个 pre-commit 让 HTML 不腐烂"、"改下 cockpit 的配色"、"build 跑不起来"
 - **`docs-cockpit-status`**(只读状态)· 触发于 "哪些 module 卡了"、"sprint M1.3 进度多少"、"给我生成一份周报"、"哪些 doc 太久没改"、"这周 cockpit 状态有啥变化"
-- **`docs-cockpit-update`**(自动升级)· 触发于 "升级 docs-cockpit"、"update docs-cockpit",或者一次 build 跑出 `[!] docs-cockpit X.Y.Z available (current: ...)` 这条 banner 时自动接手。一次走完 pip --upgrade + plugin 重 fetch 两层。
+- **`docs-cockpit-update`**(自动升级)· 触发于 "升级 docs-cockpit"、"update docs-cockpit",或者一次 build 跑出 `[!] docs-cockpit X.Y.Z available (current: ...)` 这条 banner 时自动接手
+
+**Slash command · tab 补全 / 快速触发**:
+
+- **`/docs-cockpit:build`** · 立刻跑一次 build(可选参数:配置路径)
+- **`/docs-cockpit:status [问题]`** · 快速查询(如 `/docs-cockpit:status weekly` / `:status sprint M1.2` / `:status blockers`)
+- **`/docs-cockpit:update`** · 显式触发升级
+
+两套入口任选 · slash command 适合记住名字的 power user · skill 适合说人话的所有人。
 
 按你 Claude Code 版本走两条路:
 
@@ -358,6 +368,7 @@ cd docs-cockpit && git pull
 - **`skills/docs-cockpit/SKILL.md`** — 操作型 skill · 含 setup + 维护 workflow + 每步该读哪个 reference
 - **`skills/docs-cockpit-status/SKILL.md`** — 读状态 skill · 怎么解读 `docs/state.json` 回答 blockers / sprint 进度 / 周报
 - **`skills/docs-cockpit-update/SKILL.md`** — 自动升级 skill · CLI + plugin 两层升级流程
+- **`commands/build.md` / `status.md` / `update.md`** — slash command 定义 · 对应 `/docs-cockpit:build|status|update`
 - **`references/config_reference.md`** — `docs-cockpit.yaml` 全字段 schema · 必备
 - **`references/frontmatter_conventions.md`** — YAML frontmatter 字段约定 + status × progress 校验
 - **`references/design_tokens.md`** — CSS token / 品牌色 / 字体 / 暗色模式 / 离线 vendor

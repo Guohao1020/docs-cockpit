@@ -11,8 +11,8 @@
         "source": "github",
         "repo": "Guohao1020/docs-cockpit"
       },
-      "description": "Bundle a project's Markdown docs into a single-file HTML cockpit with sidebar nav, kanban, KPI dashboard, read docs/state.json to generate status / progress / standup reports, AND auto-upgrade itself when CLI is out of date.",
-      "version": "0.1.2"
+      "description": "Bundle a project's Markdown docs into a single-file HTML cockpit with sidebar nav, kanban, KPI dashboard, read docs/state.json to generate status / progress / standup reports, auto-upgrade itself when CLI is out of date, AND expose /docs-cockpit:build /docs-cockpit:status /docs-cockpit:update slash commands for explicit invocation.",
+      "version": "0.1.3"
     }
   ]
 }
