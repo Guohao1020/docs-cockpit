@@ -1145,6 +1145,10 @@ def main(argv: list[str] | None = None) -> int:
     from . import browse as _browse_mod
     browse_p.set_defaults(func=_browse_mod.cmd_browse)
 
+    # 0.10.0:portfolio · 多项目注册表 + 周快照
+    from . import portfolio as _portfolio_mod
+    _portfolio_mod.add_portfolio_parser(sub)
+
     up_p = sub.add_parser(
         "upgrade",
         help="一条命令升级 CLI + plugin (auto-detect backend · 智能判断要不要重启)",

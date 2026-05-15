@@ -16,7 +16,9 @@ description: |
 
 ## Scope · what's in this skill vs the siblings
 
-**This skill** (`docs-cockpit-standup`) — **reads only**. Answers questions about a cockpit's current state. Outputs are tables, prose, bullet lists, paste-ready standup reports. **No project files change.**
+**This skill** (`docs-cockpit-standup`) — **reads ONE cockpit's state.json**. Single-project narrative answers: what's blocked, sprint progress, blockers, weekly standup, lint summary, stale docs. **No project files change.**
+
+**Sibling `docs-cockpit-portfolio`** (NEW in 0.10.0) — **reads MULTIPLE projects' state.json** via the user's portfolio registry (`~/.docs-cockpit/projects.yaml`). Composes cross-project weekly reports with week-over-week diffs from snapshots. **If the user asks for "周报" / "weekly report" without naming a project, or asks about progress across multiple projects, hand off to portfolio — this skill is single-project only.**
 
 **Sibling `docs-cockpit`** — **writes/edits at the cockpit level**. Setup, extend modules / concepts list, build, wire `docs-cockpit.yaml`, debug. If the user wants to *change what the cockpit scans*, hand off.
 

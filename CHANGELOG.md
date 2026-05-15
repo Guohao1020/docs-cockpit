@@ -4,6 +4,103 @@
 
 ## [Unreleased]
 
+## [0.10.0] · 2026-05-15
+
+跨项目周报。引入"用户级 portfolio 注册表"概念 · 新 skill +
+CLI 子命令组 + 周快照机制 · 解决"同时跑多个 docs-cockpit 项目时,
+怎么出一份统一周报"这个问题。
+
+### Why
+
+用户实测场景:同时维护 Sourcery + Bastion 两个 docs-cockpit 项目,
+每周想要一份覆盖两个的周报。0.9.x 的 `docs-cockpit-standup` 是
+单项目设计 —— 读一个 `state.json` 出叙事。要跨项目得手工跑两遍
++ 自己拼接 · 周差异(本周新 done / 新 blocker)也算不出来 ·
+因为没有快照机制。
+
+### Added · `docs-cockpit portfolio` CLI 子命令组
+
+`docs_cockpit/portfolio.py` ~280 行 · 含:
+
+```bash
+docs-cockpit portfolio add [path]    # 把当前目录或指定路径加进注册表
+docs-cockpit portfolio list          # 表格展示 · 含 state.json mtime · stale 警告
+docs-cockpit portfolio remove <name> # 移除(snapshot 保留)
+docs-cockpit portfolio tag <name> +work -archived  # 加/减标签
+docs-cockpit portfolio snapshot      # 给每个项目的 state.json 存今日快照
+```
+
+注册表路径: `~/.docs-cockpit/projects.yaml`(跟 Claude Code 路径解耦
+· standalone CLI 也能用)。快照路径: `~/.docs-cockpit/snapshots/
+<project>/<YYYY-MM-DD>.json`。
+
+注册表 schema:
+
+```yaml
+projects:
+  - name: Sourcery
+    state: D:/harvey_work/Sourcery/docs/state.json
+    repo:  D:/harvey_work/Sourcery
+    tags:  [active, work]
+    added: 2026-05-15
+```
+
+`add` 命令自动从 CWD 推断 `state.json` 位置(优先读 `docs-cockpit.yaml`
+里的 `project.output` · 退回 `docs/state.json` · 再退回 `state.json`)。
+重复 add 同名项目走更新路径 · 不报错 · 方便 CI / script。
+
+### Added · `docs-cockpit-portfolio` skill
+
+`skills/docs-cockpit-portfolio/SKILL.md` ~250 行 · 按 skill-creator 写法:
+
+- **Trigger 设计 pushy**:任何"周报 / weekly report / 多项目状态"
+  意图 · 即使用户没显式说"portfolio" · 即使用户在 CWD 没 docs-cockpit.yaml
+  下问状态(说明他不在某个具体项目里)
+- **跟 standup 的边界**:standup 是单项目 · portfolio 是多项目 ·
+  description 里写清 discriminator
+- **Workflow**:`docs-cockpit portfolio list` → 编号清单挑选 →
+  各项目 load state.json + 找最近的 5-14 天前快照 → 跨快照算 diff
+  → 拼装多项目 Markdown 周报
+- **报告模板固化**: `🚀 Wins this week` / `🔥 Blockers` / `📋 In flight`
+  / `📈 Progress this week` / `🆕 Added this week` / `🥶 Stale` /
+  `⚠️ Frontmatter issues` 七节 · 加 cross-project highlights
+- **diff 计算规则**(skill body §4):newly-done / newly-blocked /
+  newly-added / progress jumps(≥15 点 · 过滤噪音)/ sprint move /
+  subtask shifts
+
+### Added · `/docs-cockpit:weekly` slash command
+
+`commands/weekly.md` · 显式入口 · 支持参数: `/docs-cockpit:weekly`
+(交互式)· `/docs-cockpit:weekly all` · `/docs-cockpit:weekly active`
+· `/docs-cockpit:weekly Sourcery,Bastion`。
+
+### Changed · `docs-cockpit-standup` description 加 discriminator
+
+明示"如果用户问周报不限定项目 → 给 portfolio · 这个 skill 只管单项目"。
+避免两个 skill 抢同一类问题。
+
+### Changed · 主 skill `docs-cockpit/SKILL.md` 注册表 sibling
+
+Scope 段从"3 skills"改成"4 skills"(0.10.0 后 portfolio 加入兄弟链):
+- `docs-cockpit` (写 cockpit-level)
+- `docs-cockpit-standup` (读单项目)
+- `docs-cockpit-portfolio` (读多项目 · 新)
+- `docs-cockpit-author` (写单个 doc)
+
+### Notes
+
+- portfolio 注册表是**用户级**(`~/.docs-cockpit/`)· 不进任何项目仓库 ·
+  这样一个用户多套 docs-cockpit 项目共享一份 portfolio
+- snapshot 没有自动 prune · 一项目一年 52 张快照 ≈ 几 MB · 用户级
+  目录扛得住 · 日后可加 `--prune --keep N`
+- 第一次跑没有 5-14 天前 snapshot → 退化成"只看现状"模式 +
+  提醒用户每周跑 `docs-cockpit portfolio snapshot`
+- 跨项目 diff 只算 `modules[].id` 主键 · `concepts[]` 暂不参与
+  diff(变化频率低 · 噪音大)
+- 想让 snapshot 自动化:cron / Task Scheduler / pre-commit hook 跑
+  `docs-cockpit portfolio snapshot` 即可(等价 idempotent · 一天多次
+  跑同样结果)
+
 ## [0.9.0] · 2026-05-15
 
 把"怎么写出能被看板接住的文档"从口耳相传/反复试错变成**一套被代码强制的统

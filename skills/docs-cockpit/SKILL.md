@@ -14,13 +14,15 @@ description: |
 
 ## Scope · what's in this skill vs the siblings (0.9.0)
 
-The plugin ships **3 skills** as of 0.9.0 (was 3 differently-named in 0.8.x, renamed for clarity · no separate `docs-cockpit-update` anymore — the CLI absorbed it):
+The plugin ships **4 skills** as of 0.10.0 (renamed + reorganized through 0.8→0.10):
 
-**This skill** (`docs-cockpit`) — **writes/edits cockpit-level files + runs CLI**. Setup, extend the `docs-cockpit.yaml` config, curate `system_docs`, run `build` / `migrate` / `browse` / `lint`, **run `docs-cockpit upgrade`** for self-upgrade. If your action ends with the user's repo gaining or changing a yaml / HTML / hook, or you're invoking the CLI directly, you're in this skill.
+**This skill** (`docs-cockpit`) — **writes/edits cockpit-level files + runs CLI**. Setup, extend the `docs-cockpit.yaml` config, curate `system_docs`, run `build` / `migrate` / `browse` / `lint` / `portfolio`, **run `docs-cockpit upgrade`** for self-upgrade. If your action ends with the user's repo gaining or changing a yaml / HTML / hook, or you're invoking the CLI directly, you're in this skill.
 
-**Sibling `docs-cockpit-standup`** — **reads only**. Answers narrative questions about an existing cockpit's state: "what's blocked", "sprint M1.3 progress", "weekly standup", "which modules are stale", "lint output summary". If your action ends with a narrative summary back to the user and no files change, hand off.
+**Sibling `docs-cockpit-standup`** — **reads ONE cockpit's state.json**. Answers narrative questions about a SINGLE project's state: "what's blocked", "sprint M1.3 progress", "standup for this project", "which modules are stale". If your action ends with a narrative summary about ONE project and no files change, hand off.
 
-**Sibling `docs-cockpit-author`** (NEW in 0.9.0) — **writes individual project docs per the unified frontmatter spec**. Plans, RFCs, specs, individual module/concept MDs. The canonical source for frontmatter schema + body conventions + file naming + cross-doc reference rules. If `docs-cockpit lint` reported issues OR the user asks to write a new plan/RFC/spec/module MD, hand off.
+**Sibling `docs-cockpit-portfolio`** (NEW in 0.10.0) — **reads MULTIPLE projects' state.json via the user's portfolio registry**. Composes multi-project weekly reports with week-over-week diffs from snapshots. If the user asks for "周报" / "weekly report" / "across all my projects" / wants to add or manage the registry, hand off.
+
+**Sibling `docs-cockpit-author`** — **writes individual project docs per the unified frontmatter spec**. Plans, RFCs, specs, individual module/concept MDs. The canonical source for frontmatter schema + body conventions + file naming + cross-doc reference rules. If `docs-cockpit lint` reported issues OR the user asks to write a new plan/RFC/spec/module MD, hand off.
 
 ## Upgrading docs-cockpit itself (folded in from old `docs-cockpit-update` skill)
 
