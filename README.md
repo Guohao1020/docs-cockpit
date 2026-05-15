@@ -157,7 +157,7 @@ concepts:       { files / scan / glob }                    # simpler grid cards
 frontmatter:    { enabled, status_progress_ranges }
 ```
 
-See [`examples/full.yaml`](examples/full.yaml) for a complete reference config (6 system_docs + module scan + concept scan + frontmatter governance). See [`references/config_reference.md`](references/config_reference.md) for every field's semantics and defaults. See [`references/frontmatter_conventions.md`](references/frontmatter_conventions.md) for the module / concept frontmatter spec (status × progress validation, subtask auto-progress derivation, etc.).
+See [`docs_cockpit/examples/full.yaml`](docs_cockpit/examples/full.yaml) for a complete reference config (6 system_docs + module scan + concept scan + frontmatter governance). See [`references/config_reference.md`](references/config_reference.md) for every field's semantics and defaults. See [`references/frontmatter_conventions.md`](references/frontmatter_conventions.md) for the module / concept frontmatter spec (status × progress validation, subtask auto-progress derivation, etc.).
 
 ---
 
@@ -253,8 +253,8 @@ Deeper debugging in the "Common failure modes" section at the end of `SKILL.md`.
 - **`references/config_reference.md`** — full field schema for `docs-cockpit.yaml` · essential
 - **`references/frontmatter_conventions.md`** — YAML frontmatter conventions + status × progress validation
 - **`references/design_tokens.md`** — CSS tokens, brand colors, fonts, dark mode, offline vendoring
-- **`examples/minimal.yaml`** — minimal working config
-- **`examples/full.yaml`** — comprehensive reference · 10 groups + kanban
+- **`docs_cockpit/examples/minimal.yaml`** — minimal working config
+- **`docs_cockpit/examples/full.yaml`** — comprehensive reference (bundled inside the package so `docs-cockpit init` finds it after pip install)
 - **`CHANGELOG.md`** — release history
 - **`README.zh-CN.md`** — 中文 README
 

@@ -593,20 +593,18 @@ def cmd_build(args: argparse.Namespace) -> int:
 
 
 def cmd_init(args: argparse.Namespace) -> int:
-    """从 examples/minimal.yaml 拷一份模板到 ./docs-cockpit.yaml."""
+    """从 docs_cockpit/examples/minimal.yaml 拷一份模板到 ./docs-cockpit.yaml."""
     target = pathlib.Path(args.output).resolve()
     if target.exists() and not args.force:
         _safe_print(f"[ERR] {target} 已存在 · 加 --force 覆盖")
         return 1
-    template_yaml = (
-        pathlib.Path(__file__).parent.parent / "examples" / "minimal.yaml"
-    )
+    template_yaml = pathlib.Path(__file__).parent / "examples" / "minimal.yaml"
     if not template_yaml.exists():
         _safe_print(f"[ERR] template missing: {template_yaml}")
         return 2
     target.write_text(template_yaml.read_text(encoding="utf-8"), encoding="utf-8")
     _safe_print(f"[OK] wrote {target}")
-    _safe_print("     edit, then run: python -m docs_cockpit build")
+    _safe_print("     edit, then run: docs-cockpit build")
     return 0
 
 

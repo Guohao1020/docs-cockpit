@@ -4,17 +4,29 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "docs-cockpit"
-version = "0.1.0"
-description = "Aggregate a project's Markdown into a single-file HTML cockpit (sidebar + kanban dashboard)"
+dynamic = ["version"]
+description = "Single-file project module/sprint/progress dashboard (Kanban + Sprint + KPI) from YAML frontmatter. Ships as a Claude Code plugin."
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
 authors = [
-  { name = "Harvey" }
+  { name = "Guohao1020" }
 ]
-keywords = ["docs", "dashboard", "markdown", "static-site", "project-management"]
+keywords = [
+  "claude-code",
+  "claude-code-plugin",
+  "claude-skill",
+  "dashboard",
+  "kanban",
+  "sprint-tracking",
+  "project-management",
+  "yaml",
+  "frontmatter",
+  "markdown",
+  "single-file-html",
+]
 classifiers = [
-  "Development Status :: 3 - Alpha",
+  "Development Status :: 4 - Beta",
   "Environment :: Console",
   "Intended Audience :: Developers",
   "License :: OSI Approved :: MIT License",
@@ -22,6 +34,7 @@ classifiers = [
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
   "Topic :: Documentation",
   "Topic :: Software Development :: Documentation",
 ]
@@ -33,11 +46,19 @@ dependencies = [
 docs-cockpit = "docs_cockpit.build:main"
 
 [project.urls]
-Homepage = "https://github.com/harvey/docs-cockpit"
-Repository = "https://github.com/harvey/docs-cockpit"
+Homepage = "https://github.com/Guohao1020/docs-cockpit"
+Repository = "https://github.com/Guohao1020/docs-cockpit"
+Issues = "https://github.com/Guohao1020/docs-cockpit/issues"
+Changelog = "https://github.com/Guohao1020/docs-cockpit/blob/main/CHANGELOG.md"
+
+[tool.setuptools.dynamic]
+version = { attr = "docs_cockpit.__version__" }
 
 [tool.setuptools.packages.find]
 include = ["docs_cockpit*"]
 
 [tool.setuptools.package-data]
-docs_cockpit = ["templates/*.tmpl"]
+docs_cockpit = [
+  "templates/*.tmpl",
+  "examples/*.yaml",
+]

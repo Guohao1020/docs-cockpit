@@ -4,6 +4,44 @@
 
 ## [Unreleased]
 
+## [0.2.1] · 2026-05-15
+
+打包修复 + metadata 同步 · 让 `pip install`(以及 `uv tool install`)装出来的
+docs-cockpit 真正能用 `docs-cockpit init` 起 yaml(0.2.0 之前漏 bundle examples)。
+
+### Fixed
+
+- **`examples/` 现在打包进 wheel**:`docs_cockpit/` 目录新增 `examples/` 子目录
+  装着 `minimal.yaml` + `full.yaml` · `pyproject.toml` 的 `package-data` 把
+  `examples/*.yaml` 显式包含。0.2.0 之前 `docs-cockpit init` 在 pip 装好的
+  纯 wheel 环境里(没有 repo 源码)会报 `[ERR] template missing`,现修复。
+- **`cmd_init` 路径修正**:从 `<package>/../examples/` 改成 `<package>/examples/`
+  (package-relative · pip 装环境也能读到)。
+
+### Changed
+
+- **pyproject.toml 完整重写**:
+  - `version` 改成 dynamic · 从 `docs_cockpit.__version__` 读 · 以后只改 `__init__.py` 一处
+  - `description` 同步 0.2.0 dashboard 定位(去掉旧 "sidebar + kanban" 措辞)
+  - `keywords` 加 `claude-code` / `claude-code-plugin` / `claude-skill` /
+    `kanban` / `sprint-tracking` 等高信号 tag · 移除老 `static-site`
+  - `authors` / `urls` 用 `Guohao1020` 实际账号(原 `harvey` 占位)
+  - `classifiers` Development Status 从 Alpha 升 Beta · Python 加 3.13
+  - 加 `Issues` / `Changelog` 两个 project.urls
+- **README 文档索引 + skill SKILL.md**:所有指 `examples/*.yaml` 的链接
+  改成 `docs_cockpit/examples/*.yaml`(因为 examples 移到了 package 内)。
+
+### Migration · 0.2.0 → 0.2.1
+
+无 breaking change。配置 schema / frontmatter 字段 / state.json 结构都不变。
+单纯升级即可:
+
+```bash
+pip install --upgrade git+https://github.com/Guohao1020/docs-cockpit.git
+```
+
+Claude Code plugin 用户重启 Claude Code · 自动重 fetch · 即生效。
+
 ## [0.2.0] · 2026-05-15
 
 **🚨 Breaking change · 产品转型版本**:从 "项目 MD 文档预览" 转型为 "项目模块进度 dashboard"。
@@ -156,7 +194,8 @@ manualProgress: false
 - Python 依赖只有 `pyyaml`,装 plugin 后仍需 `pip install git+https://github.com/Guohao1020/docs-cockpit.git` 让 `docs-cockpit` CLI 进 PATH。
 - 离线 mode(CDN 拉不到 marked.js)目前需手工 vendor `_assets/` · 见 `references/design_tokens.md` "Offline mode" 节。
 
-[Unreleased]: https://github.com/Guohao1020/docs-cockpit/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/Guohao1020/docs-cockpit/compare/v0.2.1...HEAD
+[0.2.1]: https://github.com/Guohao1020/docs-cockpit/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/Guohao1020/docs-cockpit/compare/v0.1.3...v0.2.0
 [0.1.3]: https://github.com/Guohao1020/docs-cockpit/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/Guohao1020/docs-cockpit/compare/v0.1.1...v0.1.2

@@ -71,7 +71,7 @@ Decide which workflow you're in and skip to that section.
    - **concepts** (typically `docs/spec/concept/`)
    - **system docs to surface** (CLAUDE.md, README, PRD, DESIGN.md, RFC index, memory dir, roadmap dir)
 2. **Check frontmatter.** Do the module MDs already have `id` + `status` + `sprint` + `progress`? If yes, cards will populate automatically. If no, point user at `references/frontmatter_conventions.md` and offer to seed a few files.
-3. **Author `docs-cockpit.yaml`.** Start from `examples/minimal.yaml` and grow. Use `scan:` blocks for module/concept dirs; hand-list `system_docs:` entries.
+3. **Author `docs-cockpit.yaml`.** Start from `docs_cockpit/examples/minimal.yaml` and grow. Use `scan:` blocks for module/concept dirs; hand-list `system_docs:` entries.
 4. **Run the build.**
    ```bash
    docs-cockpit build --config docs-cockpit.yaml
@@ -181,8 +181,8 @@ Full reference: `references/config_reference.md`. Frontmatter field reference: `
 
 ## Examples — clone-and-edit starting points
 
-- **`examples/minimal.yaml`** — smallest workable 0.2.0 config: project + 1 system_doc + modules scan. Good starting point.
-- **`examples/full.yaml`** — comprehensive reference config: full project meta + multi-entry system_docs + modules + concepts + frontmatter governance.
+- **`docs_cockpit/examples/minimal.yaml`** — smallest workable 0.2.0 config: project + 1 system_doc + modules scan. Good starting point.
+- **`docs_cockpit/examples/full.yaml`** — comprehensive reference config: full project meta + multi-entry system_docs + modules + concepts + frontmatter governance. (Bundled inside the package so `docs-cockpit init` finds it post-pip-install.)
 
 ## The forcing function (worth surfacing to the user)
 

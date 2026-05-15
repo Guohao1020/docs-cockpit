@@ -157,7 +157,7 @@ concepts:       { files / scan / glob }                    # 简化 grid 卡片
 frontmatter:    { enabled, status_progress_ranges }
 ```
 
-完整参考配置 · 见 [`examples/full.yaml`](examples/full.yaml)(6 个 system_docs + 模块扫描 + 概念扫描 + frontmatter 治理)。每个字段语义和默认值 · 见 [`references/config_reference.md`](references/config_reference.md)。模块 / 概念的 frontmatter 字段约定(status × progress 校验 / subtask 自动 progress 推导等)· 见 [`references/frontmatter_conventions.md`](references/frontmatter_conventions.md)。
+完整参考配置 · 见 [`docs_cockpit/examples/full.yaml`](docs_cockpit/examples/full.yaml)(6 个 system_docs + 模块扫描 + 概念扫描 + frontmatter 治理)。每个字段语义和默认值 · 见 [`references/config_reference.md`](references/config_reference.md)。模块 / 概念的 frontmatter 字段约定(status × progress 校验 / subtask 自动 progress 推导等)· 见 [`references/frontmatter_conventions.md`](references/frontmatter_conventions.md)。
 
 ---
 
@@ -253,8 +253,8 @@ cd docs-cockpit && git pull
 - **`references/config_reference.md`** — `docs-cockpit.yaml` 全字段 schema · 必备
 - **`references/frontmatter_conventions.md`** — YAML frontmatter 字段约定 + status × progress 校验
 - **`references/design_tokens.md`** — CSS token / 品牌色 / 字体 / 暗色模式 / 离线 vendor
-- **`examples/minimal.yaml`** — 最小可用配置
-- **`examples/full.yaml`** — 完整配置参考 · 10 groups + 看板
+- **`docs_cockpit/examples/minimal.yaml`** — 最小可用配置
+- **`docs_cockpit/examples/full.yaml`** — 完整配置参考(打包进 wheel · `docs-cockpit init` pip 装完也能用)
 
 ---
 
