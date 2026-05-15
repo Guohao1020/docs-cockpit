@@ -4,6 +4,140 @@
 
 ## [Unreleased]
 
+## [0.7.0] · 2026-05-15
+
+Gstack-inspired upgrade architecture · 新增 `docs-cockpit upgrade` CLI 子命令 ·
+一条命令搞定 CLI + plugin 升级 · 智能判断要不要重启 · 消灭 ghost state。
+
+### Why
+
+用户实测三次升级体验问题:
+- 0.2.x → 0.3.0:plugin autoUpdate 不可靠 · 重启了还是老版本 → 0.3.1 加 cache clear
+- 0.5.x → 0.6.0:cache clear + restart 不重视顺序 · 用户在中间停顿 → 0.6.1 加 atomic 规则
+- 0.6.x → 0.7.0:即使 atomic 规则 · 用户每次都得手工记 cache 路径 + 怎么清 + 立即重启
+
+**根因**:之前的设计让 Claude / 用户去 "记仪式" · 没把仪式自动化进 CLI。
+**gstack 的启发**:它把升级逻辑放进 CLI 自己 · 不依赖 plugin 仪式 · 因为它根本
+不是 plugin。docs-cockpit 仍是 plugin · 但可以把 "判断要不要重启" 的智能挪进
+CLI · 只在 SKILL.md 真改了的时候才动 plugin 层。
+
+### Added · `docs-cockpit upgrade` CLI 子命令
+
+```bash
+docs-cockpit upgrade                # 默认 · 交互
+docs-cockpit upgrade --dry-run      # 只看计划
+docs-cockpit upgrade --yes          # 非交互
+docs-cockpit upgrade --no-clear-cache  # 跳过自动 cache clear
+docs-cockpit upgrade --skip-changelog
+```
+
+`docs_cockpit/upgrade.py` ~250 行 · 含:
+- **`_detect_install_backend()`** · 启发式检测 install 来源(pip / uv / pipx /
+  editable)· 看 `docs_cockpit.__file__` 路径里有没有 `uv/tools/` / `pipx/` 等
+  标记
+- **`_find_plugin_cache_paths()`** · 走 `~/.claude/plugins/cache/` 找含
+  docs-cockpit 的目录 · 1-2 层都试
+- **`_read_local_plugin_version()`** · 读 plugin cache 里的 plugin.json version
+- **`_fetch_remote_version()`** · GitHub raw 拉最新 plugin.json
+- **`_show_changelog_diff()`** · 拉 CHANGELOG · print 从用户版本到最新版本区段
+- **`_run_cli_upgrade()`** · 根据 backend 跑对应升级命令(uv tool upgrade /
+  pipx upgrade / pip install --upgrade / editable 走 git pull)
+- **`_clear_plugin_cache()`** · 安全清缓存目录
+- **`cmd_upgrade()`** · 八步走完整流程
+
+### 智能决策树
+
+```
+比较 local CLI · local plugin · remote 三方版本:
+
+CLI current AND plugin current:
+  → ✓ "Already up to date" · 退出
+
+CLI 落后:
+  → Step 1/2 跑 CLI upgrade 命令(按 backend)
+
+plugin 跟 CLI 同版本 (patch-only 改动):
+  → ✓ "no restart needed" · 完事 · 新 CLI features 已生效
+
+plugin 版本落后 (SKILL.md 真改了):
+  → 自动清 cache(safe rmtree)
+  → 打印 "ATOMIC NEXT STEP" 醒目分隔栏
+  → 告诉用户 30 秒内退 Claude Code · 立即重启
+  → 列 verification checklist
+```
+
+### 关键设计 · 原子性
+
+之前 0.6.1 加了 atomic 规则但只是 SKILL.md 文字说明 · 还是要 Claude 给用户。
+0.7.0 把它**编码进 CLI** · 用户跑命令 · 后台自动清 cache · **立刻**打印"现在
+退 Claude Code"提示 · 中间没有可被截胡的窗口。
+
+### Added · 版本约定
+
+定下 semver 语义:
+- **patch** (0.x.Y → 0.x.Y+1) · 只动 CLI 代码 · 不动 SKILL.md / commands · plugin
+  不需要 restart
+- **minor** (0.X → 0.X+1) · 动了 SKILL.md / commands / 新 skill · plugin 要 restart
+- **major** (X → X+1) · 破坏 config schema · restart + 配置迁移
+
+`docs-cockpit upgrade` 按这个约定比对 plugin.json 版本 · 决定要不要清 cache。
+
+### Updated · SKILL + commands + README
+
+- `skills/docs-cockpit-update/SKILL.md` 完全重写 · 主推 `docs-cockpit upgrade` ·
+  老手动流程作 fallback(pre-0.7.0 用户)· 保留 ghost state recovery 整段
+- `commands/update.md` 同步 · slash command 现在 delegate 给 `docs-cockpit upgrade`
+- README.md + README.zh-CN.md 升级段全部重写 · 把 `docs-cockpit upgrade` 摆为
+  主路径 · 手动作 fallback
+
+### Migration · 0.6.x → 0.7.0
+
+需要手工跑一次老 ritual 才能升上来(0.6.x 还没有 `docs-cockpit upgrade`):
+
+```bash
+# 老 ritual · 一次性
+pip install --upgrade git+https://github.com/Guohao1020/docs-cockpit.git
+# 或: uv tool upgrade docs-cockpit
+
+# 原子 · 清 cache + 立即重启 Claude Code
+rm -rf ~/.claude/plugins/cache/*docs-cockpit*    # POSIX
+# Windows: Remove-Item -Recurse -Force "$env:USERPROFILE\.claude\plugins\cache\*docs-cockpit*"
+# 立即退 Claude Code 完整重开
+```
+
+升上来 0.7.0 之后 · 以后所有升级都跑:
+
+```bash
+docs-cockpit upgrade
+```
+
+一条命令完事。
+
+### 实测 · `docs-cockpit upgrade --dry-run` on docs-cockpit's own editable repo:
+
+```
+docs-cockpit upgrade
+
+Current state:
+  CLI version:    0.6.1
+  Plugin layer:   not detected (editable install · no Claude Code plugin)
+  Install backend: editable
+
+  GitHub latest:  0.7.0
+
+CHANGELOG diff (your 0.6.1 → latest 0.7.0):
+  [...0.7.0 entry...]
+
+Step 1/2 · Upgrading CLI (0.6.1 → 0.7.0) ...
+  Editable install detected · running git pull from project root
+  Would run: git -C /d/harvey_work/docs-cockpit pull  (dry-run)
+
+Step 2/2 · Checking plugin layer ...
+  Plugin layer not detected · skipping
+
+✓ Done. CLI is up to date.
+```
+
 ## [0.6.1] · 2026-05-15
 
 修 update skill 的实战盲点 · "清缓存 + 重启" 之前是两个独立 Step · 用户实测
@@ -545,7 +679,8 @@ manualProgress: false
 - Python 依赖只有 `pyyaml`,装 plugin 后仍需 `pip install git+https://github.com/Guohao1020/docs-cockpit.git` 让 `docs-cockpit` CLI 进 PATH。
 - 离线 mode(CDN 拉不到 marked.js)目前需手工 vendor `_assets/` · 见 `references/design_tokens.md` "Offline mode" 节。
 
-[Unreleased]: https://github.com/Guohao1020/docs-cockpit/compare/v0.6.1...HEAD
+[Unreleased]: https://github.com/Guohao1020/docs-cockpit/compare/v0.7.0...HEAD
+[0.7.0]: https://github.com/Guohao1020/docs-cockpit/compare/v0.6.1...v0.7.0
 [0.6.1]: https://github.com/Guohao1020/docs-cockpit/compare/v0.6.0...v0.6.1
 [0.6.0]: https://github.com/Guohao1020/docs-cockpit/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/Guohao1020/docs-cockpit/compare/v0.4.0...v0.5.0

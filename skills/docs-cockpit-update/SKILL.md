@@ -1,265 +1,144 @@
 ---
 name: docs-cockpit-update
 description: |
-  Upgrade docs-cockpit (both the Python CLI and the Claude Code plugin) when the user is on an older version. Auto-detects the CLI install backend (pip / uv tool / etc) and uses the right upgrade command. **Proactively clears the plugin cache** before restart so the plugin layer reliably picks up the new version (not just relying on Claude Code's `autoUpdate` which can be flaky). Flips `autoUpdate: true` in `~/.claude/settings.json` if not already set.
+  Upgrade docs-cockpit to the latest version. **0.7.0+ recommendation: just run `docs-cockpit upgrade`** — the CLI auto-detects the install backend (pip / uv / pipx / editable), compares CLI + plugin layer versions independently, runs the right upgrade command, and ONLY clears plugin cache + asks for restart if the plugin SKILL.md actually changed. No more "ghost state" risk from separating cache clear from restart in time.
 
   TRIGGER this skill when:
-  (a) the user explicitly asks to update / upgrade docs-cockpit ("update docs-cockpit", "upgrade docs-cockpit", "升级 docs-cockpit", "把 docs-cockpit 升到最新", "我用的 docs-cockpit 是不是过期了");
-  (b) a `docs-cockpit build` run printed a banner like `[!] docs-cockpit X.Y.Z available (current: …)`;
-  (c) one of the sibling skills (`docs-cockpit` or `docs-cockpit-status`) refuses to work because the user's local version doesn't have a feature it needs (e.g. `state.json` missing because their CLI predates 0.1.1, or `/docs-cockpit:migrate` not available because plugin predates 0.3.0).
+  (a) the user explicitly asks to update / upgrade docs-cockpit ("update docs-cockpit", "upgrade docs-cockpit", "升级 docs-cockpit", "把 docs-cockpit 升到最新");
+  (b) a `docs-cockpit build` run printed `[!] docs-cockpit X.Y.Z available (current: …)`;
+  (c) a sibling skill failed because the user's local version doesn't have a needed feature (e.g. `state.json` missing because their CLI predates 0.1.1, or `/docs-cockpit:upgrade` slash command absent because plugin predates 0.7.0).
 
-  Do NOT trigger for: initial install ("how do I install docs-cockpit" → that's just README install instructions, not a skill); arbitrary `pip install --upgrade` of other packages; questions about Claude Code itself updating. The discriminator: the user already HAS docs-cockpit installed at some version and we need to move them to a newer version. If they don't have it yet, point them at README install instructions instead.
+  Do NOT trigger for: initial install ("how do I install docs-cockpit" → README install path, not this skill); arbitrary `pip install --upgrade` of other packages; questions about Claude Code itself updating. Discriminator: user already HAS docs-cockpit installed at some version, and wants to be on the latest.
 ---
 
 # docs-cockpit-update
 
-> Move the user from version X.Y.Z to latest. Two layers: Python CLI (pip / uv tool / etc) + Claude Code plugin (settings.json + cache clear + restart).
+> One command. `docs-cockpit upgrade` does everything that this skill used to walk through manually — version detection, install backend detection, CLI upgrade, plugin cache decision, atomic restart instruction.
 
-## Two layers reminder
+## Primary path (0.7.0+)
 
-docs-cockpit ships in two pieces that update independently:
-
-1. **Python CLI** — provides the `docs-cockpit` command. Installed via `pip install`, `uv tool install`, or similar. Updates require running the same backend's upgrade command.
-2. **Claude Code plugin** (`~/.claude/settings.json` → `extraKnownMarketplaces`) — provides the SKILL.md + commands files Claude reads. Updates via marketplace re-fetch on Claude Code restart, **but `autoUpdate: true` is not always reliable** — sometimes the local plugin cache stays stale even with autoUpdate on. **The fix is to actively clear the plugin cache before restart**.
-
-Both can be out of date independently. **Always check and update both.**
-
-## Workflow
-
-### Step 1 — Check current versions
-
-CLI version (try multiple methods, since installer varies):
+Just run the `docs-cockpit upgrade` CLI command (or invoke via `/docs-cockpit:upgrade` slash command):
 
 ```bash
-# Method 1 · import (works if docs_cockpit is importable from CWD or installed)
-python -c "import docs_cockpit; print(docs_cockpit.__version__)" 2>/dev/null
-
-# Method 2 · docs-cockpit CLI doesn't have --version yet · skip if no_module above
-
-# Method 3 · find install backend
-which docs-cockpit                # POSIX
-where.exe docs-cockpit            # Windows · check this path; uv tool puts at ~/.local/bin/
-
-# If still unknown, run:
-docs-cockpit build --help         # confirms CLI is alive even if version unknown
+docs-cockpit upgrade
 ```
 
-Plugin version: read `~/.claude/plugins/cache/<some-dir-containing-docs-cockpit>/.claude-plugin/plugin.json`. Path naming varies — try `ls ~/.claude/plugins/cache/ | grep docs-cockpit` to find it. Or just plow ahead — re-fetching is idempotent.
+What it does internally (in this order, all in one process):
+1. **Detects** current CLI version (via `__version__`)
+2. **Detects** current plugin layer version (reads `~/.claude/plugins/cache/*docs-cockpit*/.claude-plugin/plugin.json`)
+3. **Detects** install backend (pip / uv / pipx / editable git clone)
+4. **Fetches** latest version from GitHub `raw.githubusercontent.com/.../plugin.json`
+5. **Shows** CHANGELOG diff between local and latest
+6. **Confirms** with user (unless `--yes`)
+7. **Runs** the right CLI upgrade command for the detected backend
+8. **Compares** plugin layer version with new remote version:
+   - If same: prints "✓ no restart needed" — DONE
+   - If different: auto-clears plugin cache, prints **ATOMIC** restart instructions
+9. **Verification checklist** (post-restart)
 
-### Step 2 — Check what's latest on GitHub
+**Flags**:
+- `--dry-run` — print plan, change nothing
+- `--yes` / `-y` — non-interactive, skip "Proceed?" prompt
+- `--no-clear-cache` — skip auto cache clear (let user do manually)
+- `--skip-changelog` — skip CHANGELOG fetch (faster on slow networks)
+
+## What this skill does (when invoked)
+
+1. Run `docs-cockpit upgrade --skip-changelog` (skip the fetch if you've already shown CHANGELOG context) — OR run it with full flags if the user wants to see the CHANGELOG diff
+2. Surface the output to the user as-is
+3. If the command's last output mentions "ATOMIC NEXT STEP", emphasize to the user: **quit Claude Code COMPLETELY in the next 30 seconds**. Don't let them defer.
+4. If the command says "✓ no restart needed", confirm with the user: their CLI is current, plugin didn't need touching, they can keep working.
+
+## Fallback path (if `docs-cockpit upgrade` doesn't exist · user is pre-0.7.0)
+
+If `docs-cockpit upgrade` errors with "unknown subcommand", the user has docs-cockpit <0.7.0 installed. Use the legacy manual flow:
+
+### Step F1 — Check versions
 
 ```bash
-# POSIX:
-curl -s https://raw.githubusercontent.com/Guohao1020/docs-cockpit/main/.claude-plugin/plugin.json | python -c "import json,sys; print(json.load(sys.stdin)['version'])"
-```
-
-```powershell
-# Windows PowerShell:
-(Invoke-RestMethod https://raw.githubusercontent.com/Guohao1020/docs-cockpit/main/.claude-plugin/plugin.json).version
-```
-
-### Step 3 — Read the CHANGELOG diff before upgrading
-
-```bash
-curl -s https://raw.githubusercontent.com/Guohao1020/docs-cockpit/main/CHANGELOG.md
-```
-
-Find the section between the user's current version and the latest. Surface 2-3 bullets so they know what they're getting. Example narrative:
-
-> Upgrading you from 0.2.0 → 0.3.0. New since your version:
-> - 0.2.1: bundled examples · `docs-cockpit init` now works after pip install
-> - 0.3.0: `docs-cockpit migrate` CLI + `/docs-cockpit:migrate` slash command — one-shot bootstrap for legacy projects
-
-### Step 4 — Upgrade the Python CLI (auto-detect backend)
-
-**Detect which backend installed the CLI**, then use that backend's upgrade command. Don't blindly assume pip — many users install via uv tool, especially on Windows with Python 3.9 system default (which can't run docs-cockpit ≥ 0.3.0 anyway).
-
-Detection logic:
-
-```bash
-# 1. Check Python version first · 0.3.0+ requires Python >= 3.10
-python --version       # if shows 3.9 or older, pip path will fail
-
-# 2. Find which binary is on PATH
-which docs-cockpit                     # POSIX
-where.exe docs-cockpit                 # Windows
-
-# 3. Inspect the path:
-#    - ~/.local/bin/docs-cockpit (with nearby uv.exe / python3.12.exe) → uv tool
-#    - <python>/Scripts/docs-cockpit.exe or site-packages → pip
-#    - /usr/local/bin/docs-cockpit on macOS → could be either
-```
-
-**Use the matching upgrade command**:
-
-```bash
-# pip-installed:
-pip install --upgrade git+https://github.com/Guohao1020/docs-cockpit.git
-
-# uv-tool-installed:
-uv tool upgrade docs-cockpit
-
-# pipx-installed:
-pipx upgrade docs-cockpit
-
-# If pip's Python is < 3.10, switch to uv (works regardless of system Python):
-uv tool install --python 3.11 --force git+https://github.com/Guohao1020/docs-cockpit.git
-```
-
-Verify by running:
-
-```bash
-docs-cockpit build --help    # should not error
-# OR
 python -c "import docs_cockpit; print(docs_cockpit.__version__)"
+
+# remote:
+curl -s https://raw.githubusercontent.com/Guohao1020/docs-cockpit/main/.claude-plugin/plugin.json
 ```
 
-### Step 5 — Ensure plugin `autoUpdate: true`
+### Step F2 — Detect install backend, upgrade CLI
 
-Edit `~/.claude/settings.json` (Linux/macOS) or `%USERPROFILE%\.claude\settings.json` (Windows). Find the `extraKnownMarketplaces.docs-cockpit` block and add `"autoUpdate": true`:
+```bash
+# Find the binary first:
+which docs-cockpit          # POSIX
+where.exe docs-cockpit      # Windows
 
-```json
-"docs-cockpit": {
-  "source": { "source": "github", "repo": "Guohao1020/docs-cockpit" },
-  "autoUpdate": true
-}
+# pip:    pip install --upgrade git+https://github.com/Guohao1020/docs-cockpit.git
+# uv:     uv tool upgrade docs-cockpit
+# pipx:   pipx upgrade docs-cockpit
+# Python < 3.10: uv tool install --python 3.11 --force git+https://github.com/Guohao1020/docs-cockpit.git
 ```
 
-If `autoUpdate: true` is already there, skip this step.
+### Step F3 — Plugin cache + restart (ATOMIC)
 
-### Step 6+7 — Cache clear + restart (ATOMIC · do these together)
+> ⚠️ HARD RULE: cache clear and restart must happen as ONE atomic operation. See "Ghost state recovery" if you've already separated them in time.
 
-> ⚠️ **HARD RULE**: cache clear and Claude Code restart must happen as **ONE atomic operation**. Clearing cache without restarting **immediately after** leaves Claude Code in a **ghost state** where the plugin shows as "installed" in Directory but disappears from the sidebar — and re-install attempts fail because the system thinks it's still installed. **Don't tell the user "clear cache, restart whenever convenient"**. Tell them: clear cache, then quit Claude Code in the next 30 seconds.
+Once the user agrees, present these as ONE instruction (not two separate steps):
 
-The reason: Claude Code's in-memory plugin state diverges from disk reality the moment you delete the cache. Sidebar / Directory read different sources. Without a restart, the inconsistency persists.
-
-**Right way to phrase this to the user**:
-
-> Run these two commands together (in order, no pause in between):
+> Run these two commands together, no pause:
 >
-> 1. `Remove-Item -Recurse -Force "$env:USERPROFILE\.claude\plugins\cache\*docs-cockpit*" -ErrorAction SilentlyContinue`
-> 2. **Quit Claude Code completely** (not just the chat window — the whole app / CLI process). Then reopen it.
->
-> On startup it'll pull fresh `.claude-plugin/marketplace.json` + `plugin.json` + SKILL.md + commands from GitHub.
+> 1. (POSIX) `rm -rf ~/.claude/plugins/cache/*docs-cockpit*`
+>    (Windows) `Remove-Item -Recurse -Force "$env:USERPROFILE\.claude\plugins\cache\*docs-cockpit*" -ErrorAction SilentlyContinue`
+> 2. Quit Claude Code completely and reopen.
 
-**Cache-clear command per platform**:
+### Step F4 — Verify
 
-```bash
-# POSIX (Linux/macOS):
-rm -rf ~/.claude/plugins/cache/*docs-cockpit* 2>/dev/null || true
-
-# Windows PowerShell:
-Remove-Item -Recurse -Force "$env:USERPROFILE\.claude\plugins\cache\*docs-cockpit*" -ErrorAction SilentlyContinue
-```
-
-If the cache directory layout is unfamiliar, find it first:
-```bash
-# POSIX:
-find ~/.claude -type d -name "*docs-cockpit*" 2>/dev/null
-# Windows:
-Get-ChildItem "$env:USERPROFILE\.claude" -Recurse -Directory -Name | Select-String "docs-cockpit"
-```
-
-If `/plugin marketplace update docs-cockpit` is available (newer Claude Code versions), prefer that — no cache clear needed, no ghost state risk.
-
-### Step 8 — Verify the upgrade landed (USER ACTION after restart)
-
-Tell the user explicitly what to check **after they restart**:
-
-1. **Open `/plugin` UI** (or the Customize panel from the gear icon). Find `docs-cockpit` and check:
-   - **Version** should be the new one (e.g. `0.3.0`)
-   - **Skills section** should list the right number of slash commands (`/build`, `/status`, `/update`, `/migrate` for 0.3.0+)
-   - If `/docs-cockpit:migrate` is listed → plugin is at 0.3.0 ✓
-2. **Run a sanity build**:
-   ```bash
-   docs-cockpit build
-   ```
-   Output should have no `[!] docs-cockpit X.Y.Z available` banner.
-
-**If after restart the plugin version is STILL the old number**, the cache clear didn't catch the right path. Run this fallback:
-
-```
-# In Claude Code:
-/plugin marketplace remove docs-cockpit
-/plugin marketplace add Guohao1020/docs-cockpit
-/plugin install docs-cockpit@docs-cockpit
-```
-
-This explicitly tells Claude Code's plugin manager to drop and re-add the marketplace, guaranteeing a fresh fetch.
-
-## Common scenarios
-
-### Scenario A: User on 0.2.0, latest is 0.3.0
-
-Full ritual: CHANGELOG diff → upgrade CLI (auto-detect backend, fall back to uv if pip's Python too old) → settings.json autoUpdate → clear plugin cache → restart → verify.
-
-### Scenario B: CLI is current but plugin is behind (common!)
-
-`autoUpdate: true` didn't actually update plugin even after restart. **Skip CLI step**, go straight to:
-1. Clear plugin cache (Step 6)
-2. Restart
-3. Verify version bumped
-
-If still behind, use the `/plugin marketplace remove + add` fallback.
-
-### Scenario C: User wants to pin a specific version
-
-```bash
-# CLI:
-uv tool install --python 3.11 --force git+https://github.com/Guohao1020/docs-cockpit.git@v0.3.0
-# or:
-pip install git+https://github.com/Guohao1020/docs-cockpit.git@v0.3.0
-```
-
-For the plugin side, edit settings.json:
-```json
-"docs-cockpit": {
-  "source": { "source": "github", "repo": "Guohao1020/docs-cockpit", "ref": "v0.3.0" },
-  "autoUpdate": false
-}
-```
-
-(Only do this if the user explicitly asks for pinning — auto-update is the better default.)
-
-### Scenario D: User is offline / behind GFW / GitHub unreachable
-
-Tell them: "I can't reach GitHub from this environment. To upgrade, you'd need a working route to `github.com`. Workarounds: SSH tunnel / use a clone of the repo on your own infra and change the source in settings.json to point there."
-
-## Failure modes
-
-- **`pip install` fails because Python < 3.10** → switch to uv: `uv tool install --python 3.11 --force git+https://github.com/Guohao1020/docs-cockpit.git`. Do NOT try to install Python 3.10+ system-wide — uv handles its own Python.
-- **`pip install` fails with permission error** → suggest `pip install --user --upgrade ...` OR use uv tool instead.
-- **Plugin version doesn't change after restart** → cache clear (Step 6+7) wasn't aggressive enough or path was wrong. Use the `/plugin marketplace remove + add` slash-command fallback in Step 8.
-- **Plugin disappeared from sidebar but Directory says "installed" / Uninstall button** → **GHOST STATE**. User cleared cache without restarting (or restart happened too long after clear). See "Ghost state recovery" below.
-- **Version mismatch between import and CLI binary** → multiple Python environments. Run `which python` and `which docs-cockpit` to see which interpreter the CLI binary uses. Usually the CLI binary's shebang points to the right Python.
-- **uv tool list shows old version but CLI works as new version** → `__version__` in `__init__.py` may be out of sync with pyproject.toml dynamic version. Trust `--version`-style import check over `uv tool list`.
+After restart:
+- `/plugin` UI shows the new version for `docs-cockpit`
+- A new slash command appears in the Skills list — `/docs-cockpit:upgrade` is the 0.7.0 marker
+- `docs-cockpit upgrade` (the new command!) now reports "✓ Already up to date"
 
 ## Ghost state recovery
 
-**Symptom**: After running cache clear, the user sees:
-- Plugin NOT in `Customize → Personal plugins` sidebar list
-- BUT in `Directory → Plugins` it shows "Docs cockpit" with Uninstall + Manage buttons (treated as installed)
+**Symptom**: After running cache clear (but not immediately restarting), the user sees:
+- Plugin NOT in `Customize → Personal plugins` sidebar
+- BUT `Directory → Plugins` shows "Docs cockpit" with Uninstall + Manage buttons (treated as installed)
 - `/plugin install` reports "already installed"
 
-**Why**: Claude Code's plugin state has two surfaces (in-memory sidebar vs settings.json registry). Clearing the disk cache without an immediate restart makes them diverge. The sidebar reads from in-memory state which got blown away; the Directory reads from settings.json which still says "installed".
+**Why**: Claude Code's plugin state has two surfaces (in-memory sidebar vs settings.json registry). Clearing disk cache without an immediate restart makes them diverge. Sidebar shows "no plugin"; Directory shows "installed".
 
 **Recovery (try in this order)**:
 
-1. **Restart Claude Code first** (full quit · 30% chance fixes by itself). On startup the system re-reconciles state from disk.
+1. **Restart Claude Code first** (full quit). State often re-reconciles from disk on startup. ~30% chance fixes by itself.
 
-2. **If still wrong after restart**: in `Directory → Plugins → Docs cockpit` click **Uninstall**. Then restart again. Then `/plugin marketplace add Guohao1020/docs-cockpit` + `/plugin install docs-cockpit@docs-cockpit`.
+2. **If still wrong after restart**: in `Directory → Plugins → Docs cockpit` click **Uninstall**. Restart again. Then `/plugin marketplace add Guohao1020/docs-cockpit` + `/plugin install docs-cockpit@docs-cockpit` + restart.
 
-3. **If even that fails**: manually edit `~/.claude/settings.json` (Windows: `%USERPROFILE%\.claude\settings.json`):
+3. **Nuclear**: manually edit `~/.claude/settings.json` (Windows: `%USERPROFILE%\.claude\settings.json`):
    - Remove the `docs-cockpit` entry from `extraKnownMarketplaces`
    - Remove the `"docs-cockpit@docs-cockpit": true` entry from `enabledPlugins`
    - Save. Restart Claude Code (state is now clean). Then re-add marketplace fresh.
 
-**Prevent**: The HARD RULE in Step 6+7 — cache clear and restart are ATOMIC. Don't let the user defer the restart. The window between cache-clear and restart is where the ghost state forms.
+**Prevent**: ALWAYS use `docs-cockpit upgrade` (0.7.0+). The CLI handles cache clear + restart prompt as one atomic operation. Don't go back to manual cache-clear-then-restart unless absolutely necessary.
+
+## Versioning convention (since 0.7.0)
+
+This convention determines whether `docs-cockpit upgrade` needs to clear cache + ask for restart:
+
+| Bump | What changes | Plugin restart? |
+|---|---|---|
+| **patch** (0.x.Y → 0.x.Y+1) | CLI code only (build.py / browse.py / etc.) · no SKILL.md or commands/ changes | No |
+| **minor** (0.X → 0.X+1) | Plugin SKILL.md / commands/ changed · new features visible to user | Yes |
+| **major** (X → X+1) | Breaking config schema · users need to migrate yaml | Yes + migrate |
+
+`docs-cockpit upgrade` decides automatically by comparing local plugin.json version with remote.
+
+## Failure modes
+
+- **`docs-cockpit upgrade` not found** → user is on <0.7.0 · use fallback path above
+- **`docs-cockpit upgrade` fails to fetch GitHub** → network / GFW · check `curl https://raw.githubusercontent.com/Guohao1020/docs-cockpit/main/.claude-plugin/plugin.json` manually
+- **`pip install` fails with "requires-python: >=3.10"** → switch to uv: `uv tool install --python 3.11 --force git+...`
+- **Plugin version still shows old after restart** → ghost state (see recovery above) or DNS / cache TTL · wait 5 min and try again
+- **`uv tool list` shows old version, but `__version__` import shows new** → uv tool list is cached metadata · trust `__version__` import
 
 ## Don't do these things
 
-- **Don't separate cache clear from restart in time** — see Step 6+7 HARD RULE. The two are atomic. If you say "clear cache" first and "restart" later in a different message, the user will pause in between → ghost state. Present them as one continuous instruction.
-- **Don't try to update the plugin by editing files under `~/.claude/plugins/cache/` directly** — that's the cache and gets blown away. The fresh content comes from GitHub on next fetch.
-- **Don't run `pip install --upgrade` without showing the user what's changing (CHANGELOG diff)** — surprises break trust.
-- **Don't promise "next time autoUpdate will just work"** without doing Step 6+7 (cache clear + restart) — autoUpdate is unreliable. Cache clear is what actually forces the re-fetch.
-- **Don't skip the verification** in Step 8 — if you don't tell the user what to check post-restart, they don't know if it worked. A new slash command appearing in `/plugin` UI is the easiest "did the plugin update" signal.
+- **Don't recommend manual `pip install --upgrade` if `docs-cockpit upgrade` is available** — the CLI command handles backend detection + plugin layer decision; manual pip is the pre-0.7.0 path.
+- **Don't separate cache clear from restart in time** — if for some reason you must clear cache manually, present cache-clear + restart as ONE atomic instruction (in the same Bash code block, with the restart step right after). Don't say "first clear cache, then later restart".
+- **Don't run `pip install --upgrade` without showing the user what's changing** (CHANGELOG diff) — surprises break trust. `docs-cockpit upgrade` already shows this; if going manual, fetch CHANGELOG yourself.
+- **Don't claim the upgrade is done before verification** — `docs-cockpit upgrade` ends with a clear "✓ done" or "ATOMIC restart" message. Wait for user confirmation post-restart before celebrating.

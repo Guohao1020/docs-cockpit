@@ -274,35 +274,62 @@ fi
 
 ## Upgrade
 
-The `docs-cockpit-update` skill walks the full flow — just ask Claude *"update docs-cockpit"*. Manual steps:
+**0.7.0+ recommendation: one command.**
+
+```bash
+docs-cockpit upgrade
+```
+
+That's it. The CLI auto-detects your install backend (pip / uv / pipx / editable), shows the CHANGELOG diff for what's new, runs the right upgrade command, then decides — based on whether plugin SKILL.md actually changed — if you need to restart Claude Code at all.
+
+- **CLI-only patch releases** (e.g. 0.x.Y → 0.x.Y+1): no restart needed · new features live immediately
+- **Plugin-touching minor releases** (e.g. 0.X → 0.X+1): auto-clears cache + tells you to quit Claude Code in the next 30 seconds (atomic — no ghost-state risk)
+
+You can also invoke it from Claude Code — just say *"update docs-cockpit"* and the `docs-cockpit-update` skill calls this command for you.
+
+### Useful flags
+
+```bash
+docs-cockpit upgrade --dry-run          # print plan · no changes
+docs-cockpit upgrade --yes              # non-interactive
+docs-cockpit upgrade --no-clear-cache   # skip auto cache clear (manual control)
+docs-cockpit upgrade --skip-changelog   # skip CHANGELOG fetch (faster)
+```
+
+### Manual fallback (pre-0.7.0 or if the above fails)
 
 ```bash
 # 1. Upgrade the CLI
 pip install --upgrade git+https://github.com/Guohao1020/docs-cockpit.git
 # Or: uv tool upgrade docs-cockpit
 
-# 2. Force-clear plugin cache (autoUpdate alone is unreliable · 0.3.1 lesson)
+# 2 + 3. ATOMIC · force-clear plugin cache AND immediately restart Claude Code
+#        (run both as one operation · don't leave a gap between)
 rm -rf ~/.claude/plugins/cache/*docs-cockpit*                                # POSIX
 # Windows: Remove-Item -Recurse -Force "$env:USERPROFILE\.claude\plugins\cache\*docs-cockpit*"
-
-# 3. Restart Claude Code so it re-fetches the marketplace
+# → then: quit Claude Code COMPLETELY (whole app, not just chat window) and reopen
 ```
 
-**Verify the upgrade landed** (post-restart):
+### Verify
 
-- `/plugin` UI shows the new version number for `docs-cockpit`
-- Skills list shows 5 slash commands (`/build`, `/browse`, `/migrate`, `/status`, `/update`)
-- `docs-cockpit build` doesn't print a `[!] X.Y.Z available` banner
+After upgrade (and restart if applicable):
 
-**If version still shows old**, run the fallback:
+- `/plugin` UI shows the new version for `docs-cockpit`
+- Skills list shows 6 slash commands (0.7.0+): `/build`, `/browse`, `/migrate`, `/status`, `/update`, `/upgrade`
+- `docs-cockpit upgrade` now reports `✓ Already up to date`
 
-```
-/plugin marketplace remove docs-cockpit
-/plugin marketplace add Guohao1020/docs-cockpit
-/plugin install docs-cockpit@docs-cockpit
-```
+### If you got a "ghost state"
 
-Will an upgrade break your config?
+Plugin shown "installed" in Directory but missing from sidebar? You separated cache-clear from restart in time. Recovery:
+
+1. Restart Claude Code (full quit). State often re-reconciles on startup.
+2. If still wrong: Directory → Plugins → Docs cockpit → **Uninstall**. Restart. Re-add marketplace + install.
+3. Nuclear option: manually edit `~/.claude/settings.json`, remove `docs-cockpit` entries from both `extraKnownMarketplaces` AND `enabledPlugins`, restart, re-add fresh.
+
+**The whole point of `docs-cockpit upgrade` (0.7.0+) is making this situation impossible.** Use it instead.
+
+### Will upgrade break your config?
+
 - `0.x.y` patch / minor releases: backward-compatible unless CHANGELOG says otherwise
 - `0.x → 1.0`: migration paths listed in CHANGELOG when relevant
 - Unknown fields are silently ignored — adding new fields to your config is safe

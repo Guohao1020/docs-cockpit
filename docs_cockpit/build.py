@@ -758,5 +758,28 @@ def main(argv: list[str] | None = None) -> int:
     from . import browse as _browse_mod
     browse_p.set_defaults(func=_browse_mod.cmd_browse)
 
+    up_p = sub.add_parser(
+        "upgrade",
+        help="一条命令升级 CLI + plugin (auto-detect backend · 智能判断要不要重启)",
+    )
+    up_p.add_argument(
+        "--dry-run", action="store_true",
+        help="只 print 升级计划 · 不执行 · 不动文件",
+    )
+    up_p.add_argument(
+        "--yes", "-y", action="store_true",
+        help="非交互模式 · 跳过 'Proceed? [Y/n]' 确认",
+    )
+    up_p.add_argument(
+        "--no-clear-cache", action="store_true",
+        help="不自动清 plugin cache · 让用户手工处理(给老姿势兜底)",
+    )
+    up_p.add_argument(
+        "--skip-changelog", action="store_true",
+        help="不 fetch + 显示 CHANGELOG diff(网络差时加速)",
+    )
+    from . import upgrade as _upgrade_mod
+    up_p.set_defaults(func=_upgrade_mod.cmd_upgrade)
+
     args = parser.parse_args(argv)
     return args.func(args)

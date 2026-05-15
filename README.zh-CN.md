@@ -274,36 +274,62 @@ fi
 
 ## 升级
 
-`docs-cockpit-update` skill 走完整流程 · 跟 Claude 说 *"升级 docs-cockpit"* 即可。手动步骤:
+**0.7.0+ 推荐:一条命令搞定。**
+
+```bash
+docs-cockpit upgrade
+```
+
+就这一条。CLI 自动检测你的 install backend(pip / uv / pipx / editable)· 显示 CHANGELOG diff · 跑对应升级命令 · 然后**根据 plugin SKILL.md 是否真改了**自动决定要不要重启 Claude Code。
+
+- **CLI-only patch 版本**(0.x.Y → 0.x.Y+1):不用重启 · 新功能立即生效
+- **动 plugin 的 minor 版本**(0.X → 0.X+1):自动清 cache + 告诉你 30 秒内退 Claude Code(原子操作 · 没有 ghost-state 风险)
+
+在 Claude Code 里 · 跟 Claude 说 *"升级 docs-cockpit"* · `docs-cockpit-update` skill 帮你跑这条命令。
+
+### 可用 flag
+
+```bash
+docs-cockpit upgrade --dry-run          # 只 print 计划 · 不动
+docs-cockpit upgrade --yes              # 非交互
+docs-cockpit upgrade --no-clear-cache   # 不自动清 cache(手工控制)
+docs-cockpit upgrade --skip-changelog   # 不 fetch CHANGELOG(网络慢时加速)
+```
+
+### 手动兜底(pre-0.7.0 或上面失败)
 
 ```bash
 # 1. CLI 升
 pip install --upgrade git+https://github.com/Guohao1020/docs-cockpit.git
 # 或: uv tool upgrade docs-cockpit
 
-# 2. 强清 plugin 缓存(autoUpdate 不可靠 · 0.3.1 教训)
+# 2 + 3. 原子操作 · 清 plugin cache + 立即重启 Claude Code(两步不能分开)
 rm -rf ~/.claude/plugins/cache/*docs-cockpit*                                # POSIX
 # Windows: Remove-Item -Recurse -Force "$env:USERPROFILE\.claude\plugins\cache\*docs-cockpit*"
-
-# 3. 重启 Claude Code · 让它重新 fetch marketplace
+# → 跑完立即退 Claude Code 完整重开
 ```
 
-**验证升级到位**(重启后):
+### 验证
+
+升完(必要时重启):
 
 - `/plugin` UI 看 `docs-cockpit` 版本号是新的
-- Skills 列表显示 5 个 slash command(`/build`、`/browse`、`/migrate`、`/status`、`/update`)
-- `docs-cockpit build` 不再打印 `[!] X.Y.Z available` banner
+- Skills 列表显示 6 个 slash command(0.7.0+):`/build`、`/browse`、`/migrate`、`/status`、`/update`、`/upgrade`
+- 再跑一次 `docs-cockpit upgrade` 应该报 `✓ Already up to date`
 
-**如果版本还是老的** · 跑兜底:
+### 如果撞 ghost state
 
-```
-/plugin marketplace remove docs-cockpit
-/plugin marketplace add Guohao1020/docs-cockpit
-/plugin install docs-cockpit@docs-cockpit
-```
+Directory 里有 docs cockpit · 但 sidebar 看不到?你把清 cache 和重启分开做了。恢复方法:
 
-升级会破坏配置吗?
-- `0.x.y` patch / minor 版本:向后兼容(除非 CHANGELOG 标了 breaking)
+1. 完整重启 Claude Code · 30% 概率自动恢复
+2. 不行 → Directory → Plugins → Docs cockpit → **Uninstall** · 重启 · 重 add marketplace · install
+3. 终极 → 手工删 `~/.claude/settings.json` 里 `extraKnownMarketplaces` 和 `enabledPlugins` 的 docs-cockpit 条目 · 重启 · 重 add
+
+**`docs-cockpit upgrade`(0.7.0+)就是为消除这种情况而生**。能用就别走手动。
+
+### 升级会破坏配置吗?
+
+- `0.x.y` patch / minor 版本:向后兼容(除非 CHANGELOG 标 breaking)
 - `0.x → 1.0`:CHANGELOG 列迁移路径
 - 未知字段静默忽略 · 加新字段不破坏老版本
 
