@@ -12,7 +12,7 @@
         "repo": "Guohao1020/docs-cockpit"
       },
       "description": "Project module / sprint / progress dashboard in a single self-contained HTML file. Module Kanban + drawer with subtask checklist + Sprint Timeline + Concept Grid + System Docs drawer. Frontmatter-driven (modules / concepts / system_docs). state.json sidecar feeds the docs-cockpit-status skill for standup queries.",
-      "version": "0.7.1"
+      "version": "0.7.2"
     }
   ]
 }

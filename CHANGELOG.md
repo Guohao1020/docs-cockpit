@@ -4,6 +4,28 @@
 
 ## [Unreleased]
 
+## [0.7.2] · 2026-05-15
+
+0.7.1 实测反馈两个小问题的 follow-up:
+
+### Fixed · drawer 宽度
+
+预览长 MD(尤其带宽表格)时,540px drawer 把表格右侧截断。新增
+`.drawer.wide { width: min(960px, 96vw); }` 类 · `showDocPreview()` 调用
+时 JS 添加 · `openModuleDrawer()` 回模块视图时移除 · `closeDrawer()` 关
+时也清。drawer width 进 transition · 加宽是平滑过渡而非闪一下。
+
+### Fixed · embed 前剥 YAML frontmatter
+
+0.7.1 把整个 MD 文件原样塞给 marked.parse,YAML frontmatter 被当成段落
+渲染成一坨 `id: foo type: bar status: done ...` 文本压在标题上方,观感
+极差。`_resolve_and_embed_docs()` 现在先调 `split_frontmatter()` 切掉
+frontmatter,只 embed body。frontmatter 本身保留在 `entry.meta` 字段
+里(留给后续可能加的"显示元数据摘要"功能用 · 当前前端未消费)。
+
+截断阈值也改成基于 body 字节数而非原文件大小,文件大但 frontmatter 占
+大头的情况下不再误触发截断。
+
 ## [0.7.1] · 2026-05-15
 
 Dashboard 内 docs 路径修复 + 内联 MD 预览 · 点击 `docs:` 链接不再跳出浏览器

@@ -403,17 +403,22 @@ def _resolve_and_embed_docs(
                 ).strftime("%Y-%m-%d %H:%M")
                 # 只内嵌 .md / .markdown · 图片 / PDF 等让浏览器自己处理(走 resolved 路径)
                 if resolved.suffix.lower() in (".md", ".markdown"):
-                    raw_bytes = resolved.read_bytes()
-                    if len(raw_bytes) <= _MAX_EMBED_BYTES:
-                        entry["content"] = raw_bytes.decode("utf-8", errors="replace")
+                    raw_text = resolved.read_text(encoding="utf-8", errors="replace")
+                    # 0.7.2:剥掉 YAML frontmatter · 否则会被 marked 渲染成一坨文本
+                    # 影响预览观感(用户在 0.7.1 实测反馈)
+                    meta, body = split_frontmatter(raw_text)
+                    entry["meta"] = meta  # 留一份给前端做"显示 frontmatter 摘要"用 · 暂未消费
+                    body_bytes = body.encode("utf-8")
+                    if len(body_bytes) <= _MAX_EMBED_BYTES:
+                        entry["content"] = body
                     else:
-                        truncated = raw_bytes[:_MAX_EMBED_BYTES].decode(
+                        truncated = body_bytes[:_MAX_EMBED_BYTES].decode(
                             "utf-8", errors="replace"
                         )
-                        kb = len(raw_bytes) // 1024
+                        kb = len(body_bytes) // 1024
                         entry["content"] = (
                             truncated
-                            + f"\n\n---\n\n*[Content truncated · file is {kb} KB · "
+                            + f"\n\n---\n\n*[Content truncated · body is {kb} KB · "
                             f"embed limit 100 KB. Open the file directly to read the rest.]*\n"
                         )
             except (OSError, UnicodeError):

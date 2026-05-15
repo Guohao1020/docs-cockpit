@@ -596,11 +596,15 @@ a:hover { text-decoration: underline; }
   background: var(--c-paper);
   z-index: 90;
   transform: translateX(100%);
-  transition: transform 0.28s cubic-bezier(0.32, 0.72, 0.24, 1);
+  /* 0.7.2:width 也进 transition · 预览模式下平滑加宽 */
+  transition: transform 0.28s cubic-bezier(0.32, 0.72, 0.24, 1),
+              width 0.22s cubic-bezier(0.32, 0.72, 0.24, 1);
   display: flex; flex-direction: column;
   box-shadow: -16px 0 48px rgba(15, 17, 23, 0.16);
 }
 .drawer.open { transform: translateX(0); }
+/* 0.7.2:doc 预览模式加宽 · 容下 markdown 表格 / 代码块 / 长行 */
+.drawer.wide { width: min(960px, 96vw); }
 
 .drawer-head {
   display: flex; align-items: flex-start; justify-content: space-between;
@@ -1753,6 +1757,9 @@ a:hover { text-decoration: underline; }
     const m = getModule(id);
     if (!m) return;
     _activeModuleId = id;
+    // 0.7.2:从 doc 预览返回模块视图时 · 收回 drawer 宽度
+    const _drawer = document.getElementById('module-drawer');
+    if (_drawer) _drawer.classList.remove('wide');
 
     document.getElementById('md-meta').innerHTML =
       '<span class="dot s-' + m.status + '"></span>' +
@@ -2041,6 +2048,10 @@ a:hover { text-decoration: underline; }
 
     body.innerHTML = headHtml + contentHtml;
 
+    // 0.7.2:预览模式加宽 drawer · 让 MD 表格 / 代码块 / 长行有空间
+    const drawer = document.getElementById('module-drawer');
+    if (drawer) drawer.classList.add('wide');
+
     // 语法高亮
     if (d.content && typeof hljs !== 'undefined' && hljs.highlightElement) {
       body.querySelectorAll('.doc-preview-body pre code').forEach(b => {
@@ -2097,7 +2108,10 @@ a:hover { text-decoration: underline; }
     document.getElementById('scrim').classList.add('open');
   }
   function closeDrawer() {
-    document.querySelectorAll('.drawer').forEach(d => d.classList.remove('open'));
+    document.querySelectorAll('.drawer').forEach(d => {
+      d.classList.remove('open');
+      d.classList.remove('wide');  // 0.7.2:关 drawer 时一并收回 doc-preview 加宽
+    });
     document.getElementById('scrim').classList.remove('open');
     _activeModuleId = null;
   }
