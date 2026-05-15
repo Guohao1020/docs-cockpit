@@ -484,6 +484,16 @@ def _build_card(
         # 额外 metadata · status skill 读 state.json 时也能拿到
         card["path"] = str(path)
         card["mtime"] = mtime
+        # 0.8.0:body 前 1500 字摘要 · 给 "Copy prompt to write docs" 功能用
+        # 让 AI 编辑器(Claude Code / Cursor / Codex)收到提示词时有足够上下文
+        # 知道这个 module 在做什么 · 不至于盲目编 spec/plan
+        if body:
+            stripped = body.strip()
+            card["bodyExcerpt"] = (
+                stripped[:1500] + ("…" if len(stripped) > 1500 else "")
+            )
+        else:
+            card["bodyExcerpt"] = ""
         card["owner"] = meta.get("owner") or ""
         card["prd_ref"] = meta.get("prd_ref") or ""
         card["depends_on"] = meta.get("depends_on") or []

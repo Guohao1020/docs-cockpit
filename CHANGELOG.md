@@ -4,6 +4,93 @@
 
 ## [Unreleased]
 
+## [0.8.0] · 2026-05-15
+
+把"build 后无 docs:"从一个静默缺失变成可操作 UX:active 模块在 kanban
+上挂醒目 chip · drawer 内一键复制提示词丢给 AI 编辑器自动生成 plan /
+RFC / spec · 中英文双语提示词。
+
+### Why
+
+用户在 Sourcery 项目实测 0.7.x:24 个 module · 19 个 frontmatter 没写
+`docs:` 字段 · build 完 dashboard 全是"无关联文档"占位符 · 没有任何提
+示让用户知道这是需要修复的状态。原话:
+
+> "项目build后未关联docs,这是很严重的问题,有任务无 task 需要标记并且
+> 支持在页面一键复制编写建议,如果用户安装了 superpower 或者 gstack,
+> 利用这个 skill 编写 spec 或者 plan,需要加一个复制提示词的功能,
+> 复制给对应的 vibe coding 编辑器,生成对应的文档,提示词也注意要多语言"
+
+### Added · kanban "needs-docs" chip
+
+`docs_cockpit/templates/index.html.tmpl` 的 kanban 卡片渲染:
+
+- 当 `status ∈ {in-progress, planned, blocked}` 且 `docs.length === 0`
+  时,卡片右上角显示黄色 `⚠ docs?` chip(中文环境:"待补")
+- `done` / `not-started` / `deferred` 不显示(已完成或还没启动 · 不催)
+- chip 的 tooltip 解释"该 module 已 active 但未关联文档 · 点开抽屉一键
+  生成提示词"
+- 视觉上比"docs 数量 chip"用更暖的 amber 色调 · 一眼看出"这条要补"
+
+### Added · drawer empty-docs CTA panel
+
+之前 drawer 的 "Linked Docs" 段只在 `docs.length === 0` 时显示一行虚
+线灰字"No linked docs"。0.8.0 改成 amber 渐变背景的 CTA 面板:
+
+- 标题:`No docs linked yet` / `尚未关联任何文档`(配警告图标)
+- 提示:用 `<code>` 高亮的 `docs:` / `## 关联` 两种缺失情况说明
+- **3 个 copy-prompt 按钮**(并排):Plan / RFC / Spec
+- 底部工具兼容说明行:"Works with Claude Code (superpowers / gstack),
+  Cursor, Codex, Continue, Aider"
+
+### Added · `copyDocPrompt(moduleId, kind)` + clipboard fallback
+
+新增 JS 主流程:点击按钮 → 把 module 上下文(id / title / status /
+sprint / progress / path / desc / bodyExcerpt + project name + 今天
+日期 + idLower)填进对应 kind 的提示词模板 → 复制到剪贴板 → 弹 toast。
+
+剪贴板用 `navigator.clipboard.writeText()` 优先 · 失败 fallback 到
+`document.execCommand('copy')`(file:// 上下文 + Firefox 严格策略下
+需要 fallback)。两层都失败时 toast "Copy failed"。
+
+### Added · 3 套 prompt 模板 × 2 语言
+
+每条提示词约 50 行 · 内含:
+
+- 项目 + module 全量上下文(LLM 不用问就知道这是什么模块)
+- 输出文件路径建议:`docs/plans/{date}-{idLower}-plan.md` /
+  `docs/RFC/<NNN>-<slug>.md` / `docs/spec/{idLower}-spec.md`
+- **docs-cockpit 兼容的 frontmatter 模板**(id / type / title / status /
+  sprint / owner / depends_on / blocks 等都按 sourcery 看板的约定写)
+- 正文段落清单(plan 5 段 / RFC 6 段 / spec 6 段),其中 plan 显式
+  要求 `## 待办` / `## TODO` 子段,触发 0.4.0 引入的 body fallback
+- **"After writing"** 段:提醒 AI 写完后回去更新 module frontmatter
+  的 `docs:` 字段把刚写的文件挂上(避免下次 build 又是空)
+- **"Tooling hints"**:superpowers `/plan` `/spec` `/rfc` · gstack 生
+  成器 · Cursor / Codex / Continue / Aider 直接粘贴 chat
+
+中英文模板独立维护(不是机翻)· 中文版用 zh-CN 标点(`·` `:`)· 字段名
+保持英文(machine-facing token 遵守 global CLAUDE.md 约定)。
+
+### Added · `bodyExcerpt` field on module cards
+
+`docs_cockpit/build.py · _build_card()` 给每张 module card 加
+`bodyExcerpt` 字段:剥掉 frontmatter 后的 body 前 1500 字(超长加 `…`)。
+
+当 module 没填 `desc:` 时,这段摘要兜底进 prompt 模板的 `{descOrExcerpt}`
+占位符,保证 LLM 收到 prompt 时有足够上下文知道这个 module 在做什么 ·
+不至于盲目编 spec/plan。
+
+### Notes
+
+- 提示词中 `<NNN>` `<slug>` 是给 LLM 看的占位符 · 不是模板变量 · 不会
+  被前端替换,LLM 自己根据上下文填(扫已有 RFC 编号 + 标题派 slug)
+- HTML 体积:Sourcery 24 个 module · 加 bodyExcerpt 后 state.json
+  增长 ~25-40KB · 可接受
+- 单文件分发不变 · 提示词全在 HTML 里 · 无网络依赖
+- 兼容旧 payload:`bodyExcerpt` 缺省视为空,prompt 模板会用 `desc` 兜底,
+  都没有则给"请手工补上下文"占位符
+
 ## [0.7.2] · 2026-05-15
 
 0.7.1 实测反馈两个小问题的 follow-up:

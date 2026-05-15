@@ -735,6 +735,74 @@ a:hover { text-decoration: underline; }
   font-size: 12px;
   color: var(--c-graphite);
 }
+/* 0.8.0:empty-docs CTA panel · 替换"无关联文档"为可操作 prompt-copy 面板 */
+.docs-empty-cta {
+  border: 1px solid #fbcfe8;
+  background: linear-gradient(180deg, #fff7ed 0%, #ffedd5 100%);
+  border-radius: var(--r-md);
+  padding: 14px 16px 16px;
+}
+.docs-empty-cta .cta-title {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 12.5px; font-weight: 600;
+  color: #9a3412;
+  margin-bottom: 6px;
+}
+.docs-empty-cta .cta-title svg { width: 14px; height: 14px; }
+.docs-empty-cta .cta-hint {
+  font-size: 12px;
+  line-height: 1.55;
+  color: #7c2d12;
+  margin-bottom: 12px;
+}
+.docs-empty-cta .cta-hint code {
+  font-family: var(--f-mono);
+  font-size: 0.92em;
+  background: rgba(124, 45, 18, 0.08);
+  padding: 1px 5px;
+  border-radius: 3px;
+}
+.docs-empty-cta .cta-buttons {
+  display: flex; flex-wrap: wrap; gap: 6px;
+  margin-bottom: 10px;
+}
+.docs-empty-cta .cta-buttons button {
+  background: var(--c-paper);
+  border: 1px solid #fdba74;
+  color: #9a3412;
+  font: 500 11.5px/1 var(--f-sans);
+  padding: 7px 11px;
+  border-radius: var(--r-md);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s;
+  display: inline-flex; align-items: center; gap: 5px;
+}
+.docs-empty-cta .cta-buttons button:hover {
+  background: #fed7aa;
+  border-color: #fb923c;
+  color: #7c2d12;
+}
+.docs-empty-cta .cta-buttons button:active {
+  background: #fdba74;
+  box-shadow: 0 0 0 2px rgba(251, 146, 60, 0.35) inset;
+}
+.docs-empty-cta .cta-tools-hint {
+  font-size: 10.5px;
+  color: #9a3412;
+  opacity: 0.78;
+  letter-spacing: 0.01em;
+}
+
+/* 0.8.0:kanban 卡片上"需要补 docs"指示 chip(in-progress/planned/blocked + 空 docs)*/
+.doc-pill.needs-docs {
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fcd34d;
+}
+.doc-pill.needs-docs:hover {
+  background: #fde68a;
+}
+
 /* 0.7.1:doc-row 状态指示 */
 .doc-list .doc-row.missing {
   background: repeating-linear-gradient(45deg, transparent 0 6px, rgba(220,38,38,0.04) 6px 8px);
@@ -1469,6 +1537,199 @@ a:hover { text-decoration: underline; }
       'drawer.docs_label': 'Linked Docs',
       'drawer.docs_meta_items': '{n} items',
       'drawer.docs_empty': 'No linked docs',
+      'empty_docs.title': 'No docs linked yet',
+      'empty_docs.hint': 'This module has no <code>docs:</code> field in its frontmatter and no <code>## Related</code> / <code>## 关联</code> section in its body. Copy a prompt below and paste it into your AI coding assistant to scaffold a plan / RFC / spec.',
+      'empty_docs.copy_plan': 'Copy Plan prompt',
+      'empty_docs.copy_rfc': 'Copy RFC prompt',
+      'empty_docs.copy_spec': 'Copy Spec prompt',
+      'empty_docs.tools_hint': 'Works with Claude Code (superpowers / gstack), Cursor, Codex, Continue, Aider.',
+      'kanban.needs_docs_chip': 'docs?',
+      'kanban.needs_docs_title': 'This module is active but has no linked docs · open it to copy a prompt-generation snippet.',
+      'toast.prompt_copied_plan': 'Plan prompt copied · paste into your AI coding assistant',
+      'toast.prompt_copied_rfc': 'RFC prompt copied · paste into your AI coding assistant',
+      'toast.prompt_copied_spec': 'Spec prompt copied · paste into your AI coding assistant',
+      'toast.copy_failed': 'Copy failed · check browser clipboard permission',
+      'prompt.no_context_placeholder': '(no description yet · the module file has no body content either · please supply context manually)',
+      'prompt.plan': [
+        'You are drafting an **execution plan** for a module in **{project}**.',
+        '',
+        '## Module',
+        '',
+        '- **ID**: {id}',
+        '- **Title**: {title}',
+        '- **Status**: {status} · **Sprint**: {sprint} · **Progress**: {progress}%',
+        '- **Source file**: {path}',
+        '',
+        '## What we know about this module',
+        '',
+        '{descOrExcerpt}',
+        '',
+        '## Task',
+        '',
+        'Write a single markdown file at `docs/plans/{date}-{idLower}-plan.md` that',
+        'docs-cockpit can pick up. The file MUST start with this frontmatter:',
+        '',
+        '```yaml',
+        '---',
+        'id: {id}-PLAN-{date}',
+        'type: plan',
+        'title: "{title} · execution plan"',
+        'status: planned',
+        'sprint: {sprint}',
+        'owner:',
+        'prd_ref:',
+        '---',
+        '```',
+        '',
+        'Body sections (use these headers verbatim — docs-cockpit body-fallback expects them):',
+        '',
+        '1. **Context** — why this plan now · who depends on it · what it unlocks',
+        '2. **Scope** — in-scope deliverables · explicitly out-of-scope items',
+        '3. **Milestones** — M1 / M2 / M3 with deliverable + estimated days',
+        '4. **Risks + mitigations** — top 3 risks · each with a concrete mitigation',
+        '5. `## TODO` (or `## 待办`) — `- [ ]` checkboxes (auto-extracted as subtasks)',
+        '',
+        '## After writing',
+        '',
+        'Update the module frontmatter at `{path}` to register the link:',
+        '',
+        '```yaml',
+        'docs:',
+        '  - { title: "Execution plan", path: "docs/plans/<your-filename>.md" }',
+        '```',
+        '',
+        '## Tooling hints',
+        '',
+        '- **superpowers** (Claude Code plugin): try `/plan` or `/spec` for scaffolding',
+        '- **gstack**: use its plan generator',
+        '- **Cursor / Codex / Continue / Aider**: paste this entire prompt into chat',
+        '',
+        '---',
+        '_Generated by docs-cockpit · this module had no `docs:` link · please write one._'
+      ].join('\n'),
+      'prompt.rfc': [
+        'You are drafting an **RFC** (Request for Comments · technical design / decision doc)',
+        'for a module in **{project}**.',
+        '',
+        '## Module',
+        '',
+        '- **ID**: {id}',
+        '- **Title**: {title}',
+        '- **Status**: {status} · **Sprint**: {sprint} · **Progress**: {progress}%',
+        '- **Source file**: {path}',
+        '',
+        '## What we know about this module',
+        '',
+        '{descOrExcerpt}',
+        '',
+        '## Task',
+        '',
+        'Write a single markdown file at `docs/RFC/<NNN>-<slug>.md` where `<NNN>` is the',
+        'next sequential RFC number (check existing RFCs in the repo first). The file MUST',
+        'start with this frontmatter:',
+        '',
+        '```yaml',
+        '---',
+        'id: RFC-<NNN>',
+        'type: rfc',
+        'title: "{title} · technical design"',
+        'status: draft         # draft → reviewing → accepted → superseded',
+        'sprint: {sprint}',
+        'prd_ref:',
+        'owner:',
+        'depends_on: []',
+        'blocks: [{id}]',
+        '---',
+        '```',
+        '',
+        'Body sections:',
+        '',
+        '1. **Context** — what problem · why now · who is affected',
+        '2. **Goals + non-goals** — bounded scope',
+        '3. **Considered options** — markdown table: Option / Pros / Cons / Decision rationale',
+        '   (always include "do nothing" as option 0)',
+        '4. **Decision** — the chosen approach · explicit and unambiguous',
+        '5. **Risks** — what could go wrong + mitigations',
+        '6. **Open questions** — items needing review-cycle resolution',
+        '',
+        '## After writing',
+        '',
+        'Update the module frontmatter at `{path}` to register the link:',
+        '',
+        '```yaml',
+        'docs:',
+        '  - { title: "RFC-<NNN> · {title}", path: "docs/RFC/<NNN>-<slug>.md" }',
+        '```',
+        '',
+        '## Tooling hints',
+        '',
+        '- **superpowers** users: try `/rfc` if your skillset has it',
+        '- **gstack** users: use rfc-init or equivalent',
+        '- **Cursor / Codex / Continue / Aider**: paste this entire prompt into chat',
+        '',
+        '---',
+        '_Generated by docs-cockpit · this module had no `docs:` link · please write one._'
+      ].join('\n'),
+      'prompt.spec': [
+        'You are writing a formal **spec** (interface contract · API · data model)',
+        'for a module in **{project}**.',
+        '',
+        '## Module',
+        '',
+        '- **ID**: {id}',
+        '- **Title**: {title}',
+        '- **Status**: {status} · **Sprint**: {sprint} · **Progress**: {progress}%',
+        '- **Source file**: {path}',
+        '',
+        '## What we know about this module',
+        '',
+        '{descOrExcerpt}',
+        '',
+        '## Task',
+        '',
+        'Write a single markdown file at `docs/spec/{idLower}-spec.md` defining the precise',
+        'contract for this module. The file MUST start with this frontmatter:',
+        '',
+        '```yaml',
+        '---',
+        'id: {id}-SPEC',
+        'type: spec',
+        'title: "{title} · interface spec"',
+        'status: draft',
+        'sprint: {sprint}',
+        'owner:',
+        'depends_on:',
+        '---',
+        '```',
+        '',
+        'Body sections:',
+        '',
+        '1. **Purpose** — one paragraph: what this module IS, what guarantees it makes',
+        '2. **Public surface** — exact function signatures / CLI flags / HTTP endpoints',
+        '   (use code blocks · be precise about types, error codes, async behavior)',
+        '3. **Data model** — schemas (Pydantic / TypeScript / SQL DDL etc.), invariants',
+        '4. **Behavior** — for each public operation: input → side-effects → output',
+        '5. **Errors** — every error path, condition, recovery contract',
+        '6. **Versioning** — what is breaking vs non-breaking, deprecation policy',
+        '',
+        '## After writing',
+        '',
+        'Update the module frontmatter at `{path}` to register the link:',
+        '',
+        '```yaml',
+        'docs:',
+        '  - { title: "{id} spec", path: "docs/spec/{idLower}-spec.md" }',
+        '```',
+        '',
+        '## Tooling hints',
+        '',
+        '- **superpowers** users: try `/spec` if your skillset has it',
+        '- **gstack** users: spec-init or equivalent',
+        '- **Cursor / Codex / Continue / Aider**: paste this entire prompt into chat',
+        '',
+        '---',
+        '_Generated by docs-cockpit · this module had no `docs:` link · please write one._'
+      ].join('\n'),
       'drawer.docs_preview': 'Preview',
       'drawer.docs_open': 'Open',
       'drawer.docs_back': '← Back to module',
@@ -1537,6 +1798,196 @@ a:hover { text-decoration: underline; }
       'drawer.docs_label': '关联文档',
       'drawer.docs_meta_items': '{n} 项',
       'drawer.docs_empty': '尚未关联文档',
+      'empty_docs.title': '尚未关联任何文档',
+      'empty_docs.hint': '该 module 的 frontmatter 没有 <code>docs:</code> 字段 · body 里也没有 <code>## 关联</code> / <code>## Related</code> 段落。点下方按钮一键复制提示词,粘贴到 AI 编辑器自动生成 plan / RFC / spec。',
+      'empty_docs.copy_plan': '复制 Plan 提示词',
+      'empty_docs.copy_rfc': '复制 RFC 提示词',
+      'empty_docs.copy_spec': '复制 Spec 提示词',
+      'empty_docs.tools_hint': '兼容 Claude Code(superpowers / gstack)· Cursor · Codex · Continue · Aider。',
+      'kanban.needs_docs_chip': '待补',
+      'kanban.needs_docs_title': '该 module 已在 active 状态但未关联任何文档 · 点开抽屉可一键复制提示词生成 plan/RFC/spec。',
+      'toast.prompt_copied_plan': 'Plan 提示词已复制 · 粘贴到 AI 编辑器即可生成',
+      'toast.prompt_copied_rfc': 'RFC 提示词已复制 · 粘贴到 AI 编辑器即可生成',
+      'toast.prompt_copied_spec': 'Spec 提示词已复制 · 粘贴到 AI 编辑器即可生成',
+      'toast.copy_failed': '复制失败 · 请检查浏览器剪贴板权限',
+      'prompt.no_context_placeholder': '(暂无 desc · 该 module 文件 body 也是空的 · 请手工补上下文)',
+      'prompt.plan': [
+        '你在为 **{project}** 的一个模块起草 **执行计划(Plan)**。',
+        '',
+        '## 模块信息',
+        '',
+        '- **ID**:{id}',
+        '- **标题**:{title}',
+        '- **状态**:{status} · **Sprint**:{sprint} · **进度**:{progress}%',
+        '- **源文件**:{path}',
+        '',
+        '## 现有上下文(取自 module 文件 desc / body 摘要)',
+        '',
+        '{descOrExcerpt}',
+        '',
+        '## 任务',
+        '',
+        '在 `docs/plans/{date}-{idLower}-plan.md` 写一份 markdown 计划文件 · docs-cockpit',
+        '会自动 pick up。**文件必须**以下面这段 frontmatter 开头(字段名要与示例完全一致):',
+        '',
+        '```yaml',
+        '---',
+        'id: {id}-PLAN-{date}',
+        'type: plan',
+        'title: "{title} · 执行计划"',
+        'status: planned',
+        'sprint: {sprint}',
+        'owner:',
+        'prd_ref:',
+        '---',
+        '```',
+        '',
+        '正文段落(标题用以下文案 · docs-cockpit body-fallback 依赖这些 section 名抽 subtasks):',
+        '',
+        '1. **背景(Context)** — 为什么现在做这个 plan · 谁在依赖 · 解锁什么',
+        '2. **范围(Scope)** — 本次包含的 deliverable · 明确排除的内容(留到后续 sprint)',
+        '3. **里程碑(Milestones)** — M1 / M2 / M3 各自的产出 + 估时(天)',
+        '4. **风险 + 缓解(Risks)** — 前 3 个风险 · 每个配具体的缓解措施',
+        '5. `## 待办` 或 `## TODO` — 用 `- [ ]` checkbox 列出子任务(会被自动抽成 subtasks)',
+        '',
+        '## 写完之后',
+        '',
+        '回到模块文件 `{path}` · 更新 frontmatter 注册关联:',
+        '',
+        '```yaml',
+        'docs:',
+        '  - { title: "执行计划", path: "docs/plans/<刚写的文件名>.md" }',
+        '```',
+        '',
+        '## 工具提示',
+        '',
+        '- 用 **superpowers**(Claude Code plugin):试 `/plan` 或 `/spec` 命令做脚手架',
+        '- 用 **gstack**:走它的 plan 生成器',
+        '- **Cursor / Codex / Continue / Aider**:把这整段提示词直接粘贴到 chat',
+        '',
+        '---',
+        '_由 docs-cockpit 生成 · 本 module 未关联 docs · 请补一份。_'
+      ].join('\n'),
+      'prompt.rfc': [
+        '你在为 **{project}** 的一个模块起草 **RFC**(技术决策 / 设计文档)。',
+        '',
+        '## 模块信息',
+        '',
+        '- **ID**:{id}',
+        '- **标题**:{title}',
+        '- **状态**:{status} · **Sprint**:{sprint} · **进度**:{progress}%',
+        '- **源文件**:{path}',
+        '',
+        '## 现有上下文(取自 module 文件 desc / body 摘要)',
+        '',
+        '{descOrExcerpt}',
+        '',
+        '## 任务',
+        '',
+        '在 `docs/RFC/<NNN>-<slug>.md` 写一份 RFC · `<NNN>` 是下一个连续编号(先扫一下',
+        '仓库里已有的 RFC 取最大 + 1)。**文件必须**以下面这段 frontmatter 开头:',
+        '',
+        '```yaml',
+        '---',
+        'id: RFC-<NNN>',
+        'type: rfc',
+        'title: "{title} · 技术设计"',
+        'status: draft         # draft → reviewing → accepted → superseded',
+        'sprint: {sprint}',
+        'prd_ref:',
+        'owner:',
+        'depends_on: []',
+        'blocks: [{id}]',
+        '---',
+        '```',
+        '',
+        '正文段落:',
+        '',
+        '1. **背景(Context)** — 问题是什么 · 为什么现在 · 谁受影响',
+        '2. **目标 + 非目标(Goals + non-goals)** — 边界明确',
+        '3. **候选方案(Considered options)** — 用 markdown 表格:选项 / 优点 / 缺点 / 决策理由',
+        '   (永远把 "什么都不做" 当作 option 0 并比较)',
+        '4. **决策(Decision)** — 选定方案 · 表述要明确不留歧义',
+        '5. **风险(Risks)** — 可能出错的地方 + 缓解措施',
+        '6. **未决问题(Open questions)** — 评审周期需要解决的悬而未决项',
+        '',
+        '## 写完之后',
+        '',
+        '回到模块文件 `{path}` · 更新 frontmatter 注册关联:',
+        '',
+        '```yaml',
+        'docs:',
+        '  - { title: "RFC-<NNN> · {title}", path: "docs/RFC/<NNN>-<slug>.md" }',
+        '```',
+        '',
+        '## 工具提示',
+        '',
+        '- **superpowers** 用户:技能包里如果有就试 `/rfc`',
+        '- **gstack** 用户:走 rfc-init 之类的命令',
+        '- **Cursor / Codex / Continue / Aider**:整段提示词粘贴到 chat',
+        '',
+        '---',
+        '_由 docs-cockpit 生成 · 本 module 未关联 docs · 请补一份。_'
+      ].join('\n'),
+      'prompt.spec': [
+        '你在为 **{project}** 的一个模块写 **接口 spec**(契约 / API / 数据模型)。',
+        '',
+        '## 模块信息',
+        '',
+        '- **ID**:{id}',
+        '- **标题**:{title}',
+        '- **状态**:{status} · **Sprint**:{sprint} · **进度**:{progress}%',
+        '- **源文件**:{path}',
+        '',
+        '## 现有上下文(取自 module 文件 desc / body 摘要)',
+        '',
+        '{descOrExcerpt}',
+        '',
+        '## 任务',
+        '',
+        '在 `docs/spec/{idLower}-spec.md` 写一份 spec 文档 · 定义该模块的精确契约。',
+        '**文件必须**以下面这段 frontmatter 开头:',
+        '',
+        '```yaml',
+        '---',
+        'id: {id}-SPEC',
+        'type: spec',
+        'title: "{title} · 接口规范"',
+        'status: draft',
+        'sprint: {sprint}',
+        'owner:',
+        'depends_on:',
+        '---',
+        '```',
+        '',
+        '正文段落:',
+        '',
+        '1. **用途(Purpose)** — 一段话:这个模块"是什么" · 提供什么保证',
+        '2. **公开接口(Public surface)** — 精确的函数签名 / CLI flag / HTTP endpoint',
+        '   (用 code block · 类型 / 错误码 / 异步行为都要明确)',
+        '3. **数据模型(Data model)** — schema(Pydantic / TypeScript / SQL DDL 等)· 不变式',
+        '4. **行为(Behavior)** — 每个公开操作:输入 → 副作用 → 输出',
+        '5. **错误(Errors)** — 所有 error path · 触发条件 · 恢复契约',
+        '6. **版本策略(Versioning)** — 什么算 breaking · 弃用策略',
+        '',
+        '## 写完之后',
+        '',
+        '回到模块文件 `{path}` · 更新 frontmatter 注册关联:',
+        '',
+        '```yaml',
+        'docs:',
+        '  - { title: "{id} 接口规范", path: "docs/spec/{idLower}-spec.md" }',
+        '```',
+        '',
+        '## 工具提示',
+        '',
+        '- **superpowers** 用户:技能包里有就试 `/spec`',
+        '- **gstack** 用户:走 spec-init 之类的命令',
+        '- **Cursor / Codex / Continue / Aider**:整段提示词粘贴到 chat',
+        '',
+        '---',
+        '_由 docs-cockpit 生成 · 本 module 未关联 docs · 请补一份。_'
+      ].join('\n'),
       'drawer.docs_preview': '预览',
       'drawer.docs_open': '打开',
       'drawer.docs_back': '← 返回模块',
@@ -1668,9 +2119,13 @@ a:hover { text-decoration: underline; }
       } else {
         inner += items.map(m => {
           const hasDocs = (m.docs && m.docs.length) ? m.docs.length : 0;
+          // 0.8.0:active 状态(in-progress/planned/blocked)无 docs → 显示"需要补 docs"chip
+          const isActive = (m.status === 'in-progress' || m.status === 'planned' || m.status === 'blocked');
           const docPill = hasDocs
             ? '<span class="doc-pill" title="' + escapeHtml(t('kanban.doc_count_title', { n: hasDocs })) + '"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2.5h7l3 3V13a.5.5 0 0 1-.5.5h-9A.5.5 0 0 1 3 13V2.5Z"/><path d="M10 2.5V5.5h3"/></svg>' + hasDocs + '</span>'
-            : '';
+            : (isActive
+                ? '<span class="doc-pill needs-docs" title="' + escapeHtml(t('kanban.needs_docs_title')) + '"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6.5"/><line x1="8" y1="5" x2="8" y2="9"/><circle cx="8" cy="11.5" r="0.5" fill="currentColor"/></svg>' + escapeHtml(t('kanban.needs_docs_chip')) + '</span>'
+                : '');
           return '<div class="m-card" data-id="' + escapeHtml(m.id) + '" tabindex="0" role="button" aria-label="' + escapeHtml(m.id + ' ' + m.title) + '">' +
             '<div class="m-id"><span>' + escapeHtml(m.id) + '</span>' + docPill + '</div>' +
             '<div class="m-title">' + escapeHtml(m.title) + '</div>' +
@@ -1812,7 +2267,22 @@ a:hover { text-decoration: underline; }
         );
       }).join('') + '</div>';
     } else {
-      docsHtml = '<div class="doc-list-empty">' + escapeHtml(t('drawer.docs_empty')) + '</div>';
+      // 0.8.0:替换"无关联文档"为可操作 CTA · 三个 copy-prompt 按钮
+      // 让用户一键把当前 module 的上下文做成提示词 · 粘贴到 AI 编辑器写 plan/RFC/spec
+      docsHtml =
+        '<div class="docs-empty-cta">' +
+          '<div class="cta-title">' +
+            '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6.5"/><line x1="8" y1="5" x2="8" y2="9"/><circle cx="8" cy="11.5" r="0.5" fill="currentColor"/></svg>' +
+            '<span>' + escapeHtml(t('empty_docs.title')) + '</span>' +
+          '</div>' +
+          '<div class="cta-hint">' + t('empty_docs.hint') + '</div>' +
+          '<div class="cta-buttons">' +
+            '<button type="button" data-prompt-kind="plan">📋 <span>' + escapeHtml(t('empty_docs.copy_plan')) + '</span></button>' +
+            '<button type="button" data-prompt-kind="rfc">📋 <span>' + escapeHtml(t('empty_docs.copy_rfc')) + '</span></button>' +
+            '<button type="button" data-prompt-kind="spec">📋 <span>' + escapeHtml(t('empty_docs.copy_spec')) + '</span></button>' +
+          '</div>' +
+          '<div class="cta-tools-hint">' + escapeHtml(t('empty_docs.tools_hint')) + '</div>' +
+        '</div>';
     }
 
     // status select
@@ -1981,7 +2451,91 @@ a:hover { text-decoration: underline; }
       });
     });
 
+    // 0.8.0:绑 empty-docs CTA 的 copy-prompt 按钮
+    body.querySelectorAll('.docs-empty-cta .cta-buttons button').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const kind = btn.dataset.promptKind;
+        copyDocPrompt(id, kind);
+      });
+    });
+
     openDrawer('module-drawer');
+  }
+
+  // ── 0.8.0 · prompt 复制(给 vibe-coding 编辑器生成 plan/RFC/spec)──
+  // 把 {key} 占位符替换成 vars[key] 的值 · 支持同一占位符多次出现(replaceAll)
+  function fillTemplate(tmpl, vars) {
+    return String(tmpl == null ? '' : tmpl).replace(/\{(\w+)\}/g, (m, k) => (
+      (vars && Object.prototype.hasOwnProperty.call(vars, k))
+        ? String(vars[k])
+        : m
+    ));
+  }
+
+  // clipboard:首选 navigator.clipboard · 失败 fallback 到 textarea + execCommand
+  // (file:// 上下文 + Firefox 严格策略时需要 fallback)
+  function copyText(text, onSuccess, onError) {
+    function fallback() {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.top = '-9999px';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.focus(); ta.select();
+      let ok = false;
+      try { ok = document.execCommand('copy'); } catch (e) {}
+      document.body.removeChild(ta);
+      if (ok && onSuccess) onSuccess();
+      else if (onError) onError();
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(
+        () => { if (onSuccess) onSuccess(); },
+        () => fallback()
+      );
+    } else {
+      fallback();
+    }
+  }
+
+  // 主流程:把 module 上下文塞进对应 kind 的 prompt 模板 · 复制到剪贴板 · 弹 toast
+  function copyDocPrompt(moduleId, kind) {
+    const m = getModule(moduleId);
+    if (!m) return;
+    const today = new Date().toISOString().slice(0, 10);
+    const desc = (m.desc || '').trim();
+    const excerpt = (m.bodyExcerpt || '').trim();
+    // 描述优先 · 没有就用 body 摘要 · 都没有就给个占位提示
+    const descOrExcerpt = desc.length >= 20
+      ? desc
+      : (excerpt
+          ? excerpt
+          : t('prompt.no_context_placeholder'));
+    const projectName = (RAW.project && RAW.project.name) || 'this project';
+    const tmpl = t('prompt.' + kind);
+    if (!tmpl || tmpl === ('prompt.' + kind)) {
+      // 找不到模板 · 兜底:用 plan
+      toast(t('toast.copy_failed'));
+      return;
+    }
+    const text = fillTemplate(tmpl, {
+      project: projectName,
+      id: m.id,
+      idLower: m.id.toLowerCase(),
+      title: m.title || '',
+      status: m.status || 'not-started',
+      sprint: m.sprint || '—',
+      progress: (m.progress == null ? 0 : m.progress),
+      path: m.path || '',
+      date: today,
+      descOrExcerpt: descOrExcerpt,
+    });
+    copyText(
+      text,
+      () => toast(t('toast.prompt_copied_' + kind)),
+      () => toast(t('toast.copy_failed'))
+    );
   }
 
   // ── 0.7.1 · drawer 内联 MD 预览 ──────────────────────────
