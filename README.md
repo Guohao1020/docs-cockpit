@@ -21,53 +21,42 @@ Highlights:
 
 ---
 
-## Quickstart — 60 seconds
+## Quickstart — for Claude Code users (60 seconds)
 
-In **your project root** (e.g. `D:\projects\myapp\`):
+docs-cockpit is **primarily a Claude Code plugin**. Setup is two commands + telling Claude what you want.
 
 ```bash
-# 1. Install docs-cockpit (any of the methods below)
+# 1. In Claude Code, register the plugin marketplace
+/plugin marketplace add Guohao1020/docs-cockpit
+
+# 2. Install the CLI (Claude invokes it as a subprocess)
 pip install git+https://github.com/Guohao1020/docs-cockpit.git
 
-# 2. Generate the minimal config template
-docs-cockpit init
-
-# 3. Edit the generated docs-cockpit.yaml — 2-3 lines are usually enough
-
-# 4. Build
-docs-cockpit build
-
-# 5. Open
-start docs/index.html      # Windows
-open  docs/index.html      # macOS
-xdg-open docs/index.html   # Linux
+# 3. Restart Claude Code so the plugin loads
 ```
 
-The minimal template looks roughly like this (`docs-cockpit init` writes it for you):
+Then in any project, ask Claude:
 
-```yaml
-project:
-  name: MyProject
-  mark: M
-  tagline: "项目进度概览"
+> 把 `docs/spec/module/` 下的 md 做成 dashboard
 
-system_docs:
-  - { id: readme, title: README, path: "{repo}/README.md", desc: "项目总览", icon: doc }
+Claude auto-triggers the `docs-cockpit` skill, writes a `docs-cockpit.yaml` for you, runs `docs-cockpit build`, and gives you `docs/index.html` ready to open.
 
-modules:
-  scan:
-    dir: "{repo}/docs/spec/module"
-    title_transform: prefix-dot-titlecase
+**That's it.** Three commands total, and **Claude handles the config writing + build for you**.
 
-concepts:
-  scan:
-    dir: "{repo}/docs/spec/concept"
-    title_transform: prefix-dot-titlecase
-```
+> If you're not a Claude Code user (Codex / Cursor / Gemini / standalone Python), jump to the [Install](#install--by-tool) section.
 
-Run it and open `docs/index.html` — you should see the topbar, KPI strip, module Kanban (populated from frontmatter), Sprint Timeline, and concept grid. Click a module card to open the drawer with subtask checklist.
+### What the dashboard looks like
 
-For modules to appear as cards, the MDs need YAML frontmatter:
+After Claude finishes setup, open `docs/index.html` — you'll see:
+
+- **Topbar** with project brand + last build time + "系统文档" drawer button
+- **Hero gauge** with overall % progress
+- **KPI strip** — total / done / in-progress / blocked counts
+- **Module Kanban** — 5 status columns; click a card → drawer with subtask checklist + progress slider
+- **Sprint Timeline** — modules grouped by sprint with avg %
+- **Concept Grid** at the bottom
+
+Module cards come from MDs that have YAML frontmatter:
 
 ```markdown
 ---
@@ -87,78 +76,32 @@ Full frontmatter reference: [references/frontmatter_conventions.md](references/f
 
 ---
 
-## Install — three paths, pick by scenario
+## Install — by tool
 
-### A. Pip install — recommended for "just use it as a tool"
+### A. Claude Code (recommended)
+
+**One-line plugin install + one-line CLI install + restart.**
 
 ```bash
+# In Claude Code:
+/plugin marketplace add Guohao1020/docs-cockpit
+
+# In your shell:
 pip install git+https://github.com/Guohao1020/docs-cockpit.git
 ```
 
-After installation:
-- The `docs-cockpit` command lands on your PATH — run `docs-cockpit build` directly
-- Or `python -m docs_cockpit build` — both are equivalent
+Restart Claude Code → plugin auto-fetches from GitHub → 3 skills (`docs-cockpit` / `docs-cockpit-status` / `docs-cockpit-update`) + 3 slash commands (`/docs-cockpit:build` / `:status` / `:update`) become available.
 
-**Upgrade**: `pip install --upgrade git+https://github.com/Guohao1020/docs-cockpit.git`
+**Auto-update**: add `"autoUpdate": true` to the marketplace entry in `~/.claude/settings.json` (or just ask Claude *"update docs-cockpit"* whenever you want). Plugin layer auto-refreshes on restart; the CLI side still needs an occasional `pip install --upgrade git+https://github.com/Guohao1020/docs-cockpit.git`.
 
-### B. Clone + editable mode — recommended for "I want to fork and tweak the logic"
-
-```bash
-git clone https://github.com/Guohao1020/docs-cockpit.git
-cd docs-cockpit
-pip install -e .
-```
-
-`pip install -e .` makes source edits take effect immediately — no reinstall needed.
-
-### C. No install — temporary PYTHONPATH
-
-```bash
-git clone https://github.com/Guohao1020/docs-cockpit.git /some/where
-# In your own project root:
-PYTHONPATH=/some/where python -m docs_cockpit build
-```
-
-For trying it once, or if you don't want to touch site-packages.
-
-### D. Install as a Claude Code plugin — let Claude invoke it
-
-This is the recommended path for Claude Code users. The plugin ships two ways to invoke each capability — natural-language **skills** (auto-triggered) AND explicit **slash commands** (typed):
-
-**Skills — auto-triggered when you describe what you want:**
-
-- **`docs-cockpit`** (operational) — triggers on "bundle my docs into a dashboard", "add a new group to my cockpit", "wire pre-commit so HTML stays fresh", "change the cockpit's color scheme", "build is failing"
-- **`docs-cockpit-status`** (read-only status) — triggers on "what's blocked", "sprint M1.3 progress", "generate a weekly standup from docs", "which modules haven't moved", "what changed in the cockpit this week"
-- **`docs-cockpit-update`** (auto-upgrade) — triggers on "update docs-cockpit", "升级 docs-cockpit", OR automatically when a build prints `[!] docs-cockpit X.Y.Z available (current: ...)`
-
-**Slash commands — explicit invocation with tab-completion:**
-
-- **`/docs-cockpit:build`** — run a build now (optional config path arg)
-- **`/docs-cockpit:status [question]`** — quick status query (e.g. `/docs-cockpit:status weekly`, `/docs-cockpit:status sprint M1.2`, `/docs-cockpit:status blockers`)
-- **`/docs-cockpit:update`** — explicit upgrade trigger
-
-Use whichever you prefer. Slash commands are faster for power users who remember the names; skills work for everyone else by just saying what you want.
-
-Two install paths depending on your Claude Code version:
-
-**D-1. Via slash command** (newer Claude Code, ~v2.1+):
-
-```
-/plugin marketplace add Guohao1020/docs-cockpit
-/plugin install docs-cockpit@docs-cockpit
-```
-
-If you see `/plugin isn't available in this environment`, your version is too old — use D-2 below (or run `claude --version` and upgrade via `npm install -g @anthropic-ai/claude-code@latest`).
-
-**D-2. Via settings.json** (always works, also the fallback for older Claude Code):
-
-Edit `~/.claude/settings.json` (Linux/macOS) or `%USERPROFILE%\.claude\settings.json` (Windows) and **merge** these two blocks into the existing top-level object (don't replace any other keys):
+**If `/plugin` isn't available** (older Claude Code, e.g. PR-review surface): manually merge into `~/.claude/settings.json`:
 
 ```json
 {
   "extraKnownMarketplaces": {
     "docs-cockpit": {
-      "source": { "source": "github", "repo": "Guohao1020/docs-cockpit" }
+      "source": { "source": "github", "repo": "Guohao1020/docs-cockpit" },
+      "autoUpdate": true
     }
   },
   "enabledPlugins": {
@@ -167,13 +110,60 @@ Edit `~/.claude/settings.json` (Linux/macOS) or `%USERPROFILE%\.claude\settings.
 }
 ```
 
-If `extraKnownMarketplaces` or `enabledPlugins` already exist in your settings, add the new entries **inside** those objects rather than replacing them.
+#### What you can ask Claude (skill auto-triggers)
 
-**After either path, restart Claude Code.** On next startup it fetches `Guohao1020/docs-cockpit` from GitHub, parses `.claude-plugin/marketplace.json` + `plugin.json`, and the skill goes live.
+| You say | Claude triggers |
+|---|---|
+| "把 docs 做成 dashboard" / "bundle docs into a dashboard" | `docs-cockpit` (writes yaml + runs build) |
+| "weekly status from docs" / "哪些 module 卡了" / "sprint M1.2 进度" | `docs-cockpit-status` (reads `state.json`, produces narrative) |
+| "升级 docs-cockpit" / "update docs-cockpit" | `docs-cockpit-update` (pip + plugin re-fetch + autoUpdate flip) |
 
-**Verify it worked**: ask Claude something like *"bundle the markdown under docs/ into a dashboard"* — it should pick up `docs-cockpit` and start the workflow.
+Or use the explicit slash commands: `/docs-cockpit:build`, `/docs-cockpit:status weekly`, `/docs-cockpit:update`.
 
-> ⚠️ **You still need `pip install`** (option A above) so the `docs-cockpit` CLI is on PATH — Claude invokes it as a subprocess. Plugin install + pip install is a combination, not an either/or.
+### B. Other vibe-coding tools — manual skill copy
+
+For **Codex / Cursor / Gemini / OpenCode** (or any tool with `~/.claude/skills/`-style skill loading), copy the SKILL.md files manually:
+
+```bash
+# Clone the repo somewhere
+git clone https://github.com/Guohao1020/docs-cockpit.git ~/.tools/docs-cockpit
+
+# Copy skills into your tool's skill directory
+# (substitute <skills-dir> for your tool's path · e.g. ~/.codex/skills/ / ~/.cursor/skills/)
+cp -r ~/.tools/docs-cockpit/skills/docs-cockpit         <skills-dir>/
+cp -r ~/.tools/docs-cockpit/skills/docs-cockpit-status  <skills-dir>/
+cp -r ~/.tools/docs-cockpit/skills/docs-cockpit-update  <skills-dir>/
+
+# Also install the CLI so the skill can invoke it
+pip install git+https://github.com/Guohao1020/docs-cockpit.git
+```
+
+Restart your tool. The skills should auto-trigger on the same natural-language phrases (Claude-specific path syntax in the skills may need light adaptation).
+
+### C. Standalone Python CLI (no AI tool)
+
+If you just want the CLI and will write `docs-cockpit.yaml` by hand:
+
+```bash
+pip install git+https://github.com/Guohao1020/docs-cockpit.git
+docs-cockpit init                          # generates a starter yaml
+# edit docs-cockpit.yaml
+docs-cockpit build                         # default reads ./docs-cockpit.yaml
+```
+
+For development / forking, use editable mode:
+
+```bash
+git clone https://github.com/Guohao1020/docs-cockpit.git
+cd docs-cockpit
+pip install -e .
+```
+
+**Python ≥ 3.10** required. If your system default is Python 3.9 or older, use [`uv`](https://docs.astral.sh/uv/):
+
+```bash
+uv tool install --python 3.11 git+https://github.com/Guohao1020/docs-cockpit.git
+```
 
 ---
 

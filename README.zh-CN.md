@@ -21,53 +21,42 @@
 
 ---
 
-## Quickstart · 60 秒上手
+## Quickstart · Claude Code 用户(60 秒)
 
-在**你的项目根**(假设 `D:\projects\myapp\`):
+docs-cockpit 是**为 Claude Code 优先设计的 plugin**。装它就两条命令 + 一句话让 Claude 做事。
 
 ```bash
-# 1. 装 docs-cockpit(任选一种,见下方 Install 节)
+# 1. 在 Claude Code 里注册 plugin marketplace
+/plugin marketplace add Guohao1020/docs-cockpit
+
+# 2. 装 CLI(Claude 作为子进程调它)
 pip install git+https://github.com/Guohao1020/docs-cockpit.git
 
-# 2. 生成最小配置模板
-docs-cockpit init
-
-# 3. 编辑生成的 docs-cockpit.yaml · 改两三行就够了
-
-# 4. Build
-docs-cockpit build
-
-# 5. 打开
-start docs/index.html      # Windows
-open  docs/index.html      # macOS
-xdg-open docs/index.html   # Linux
+# 3. 重启 Claude Code · 让 plugin 加载
 ```
 
-最小配置模板大概长这样(`docs-cockpit init` 已经写好):
+然后在任何项目里,跟 Claude 说:
 
-```yaml
-project:
-  name: MyProject
-  mark: M
-  tagline: "项目进度概览"
+> 把 `docs/spec/module/` 下的 md 做成 dashboard
 
-system_docs:
-  - { id: readme, title: README, path: "{repo}/README.md", desc: "项目总览", icon: doc }
+Claude 自动触发 `docs-cockpit` skill,**帮你写 `docs-cockpit.yaml`,跑 `docs-cockpit build`**,产出 `docs/index.html` 可以直接打开。
 
-modules:
-  scan:
-    dir: "{repo}/docs/spec/module"
-    title_transform: prefix-dot-titlecase
+**就这样。三条命令 · 配置和 build 都是 Claude 做。**
 
-concepts:
-  scan:
-    dir: "{repo}/docs/spec/concept"
-    title_transform: prefix-dot-titlecase
-```
+> 不用 Claude Code(Codex / Cursor / Gemini / 单纯 Python CLI)?跳到 [Install · 按工具选](#install--按工具选)。
 
-跑完打开 `docs/index.html` · 应该看到 topbar + KPI strip + 模块 Kanban(frontmatter 驱动)+ Sprint Timeline + 概念 grid。点 Kanban 卡片弹 drawer 含 subtask checkbox。
+### Dashboard 长啥样
 
-模块要进卡板 · MD 顶部需 YAML frontmatter:
+Claude 装完跑完后,打开 `docs/index.html`:
+
+- **Topbar**:项目品牌 + 最后 build 时间 + "系统文档" drawer 按钮
+- **Hero gauge**:总体 % 进度
+- **KPI strip**:总数 / done / in-progress / blocked
+- **模块 Kanban**:5 列状态分布 · 点卡片弹 drawer 含 subtask 勾选 + progress 滑块
+- **Sprint Timeline**:模块按 sprint 分组 + 平均 %
+- **概念 Grid**:底部简化卡片
+
+模块要进 Kanban · MD 顶部需 YAML frontmatter:
 
 ```markdown
 ---
@@ -87,78 +76,32 @@ subtasks:
 
 ---
 
-## Install · 三种装法 · 按场景选
+## Install · 按工具选
 
-### A. 直接 pip install · 推荐给"日常用工具"场景
+### A. Claude Code(推荐 · 主路径)
+
+**一行 plugin install + 一行 CLI install + 重启。**
 
 ```bash
+# 在 Claude Code 里:
+/plugin marketplace add Guohao1020/docs-cockpit
+
+# 在你的 shell 里:
 pip install git+https://github.com/Guohao1020/docs-cockpit.git
 ```
 
-装完后:
-- 命令 `docs-cockpit` 出现在 PATH 里 · 可直接 `docs-cockpit build`
-- 也可以 `python -m docs_cockpit build` · 两种等价
+重启 Claude Code → plugin 自动从 GitHub fetch → 3 个 skill(`docs-cockpit` / `docs-cockpit-status` / `docs-cockpit-update`)+ 3 个 slash command(`/docs-cockpit:build` / `:status` / `:update`)生效。
 
-**升级**:`pip install --upgrade git+https://github.com/Guohao1020/docs-cockpit.git`
+**自动升级**:在 `~/.claude/settings.json` 的 marketplace 条目加 `"autoUpdate": true`(或者直接说 *"升级 docs-cockpit"* · Claude 一气呵成)。Plugin 层重启时自动 re-fetch · CLI 层偶尔需要 `pip install --upgrade git+https://github.com/Guohao1020/docs-cockpit.git`。
 
-### B. Clone + 开发模式 · 推荐给"想 fork 改逻辑"场景
-
-```bash
-git clone https://github.com/Guohao1020/docs-cockpit.git
-cd docs-cockpit
-pip install -e .
-```
-
-`pip install -e .` 让你改源码立即生效 · 不用每次 reinstall。
-
-### C. 不装 · 临时用 PYTHONPATH
-
-```bash
-git clone https://github.com/Guohao1020/docs-cockpit.git /some/where
-# 在你自己项目根:
-PYTHONPATH=/some/where python -m docs_cockpit build
-```
-
-适合只想试一次 · 或不想动 site-packages 的洁癖场景。
-
-### D. 装为 Claude Code plugin · 让 Claude 主动用
-
-Claude Code 用户推荐这条路。Plugin 同时给两种调用入口 · **skill 自然语言自动触发** + **slash command 显式调用**:
-
-**Skill · 说人话自动触发**:
-
-- **`docs-cockpit`**(操作型)· 触发于 "把 docs 做成 dashboard"、"给我 cockpit 加一个 group"、"写个 pre-commit 让 HTML 不腐烂"、"改下 cockpit 的配色"、"build 跑不起来"
-- **`docs-cockpit-status`**(只读状态)· 触发于 "哪些 module 卡了"、"sprint M1.3 进度多少"、"给我生成一份周报"、"哪些 doc 太久没改"、"这周 cockpit 状态有啥变化"
-- **`docs-cockpit-update`**(自动升级)· 触发于 "升级 docs-cockpit"、"update docs-cockpit",或者一次 build 跑出 `[!] docs-cockpit X.Y.Z available (current: ...)` 这条 banner 时自动接手
-
-**Slash command · tab 补全 / 快速触发**:
-
-- **`/docs-cockpit:build`** · 立刻跑一次 build(可选参数:配置路径)
-- **`/docs-cockpit:status [问题]`** · 快速查询(如 `/docs-cockpit:status weekly` / `:status sprint M1.2` / `:status blockers`)
-- **`/docs-cockpit:update`** · 显式触发升级
-
-两套入口任选 · slash command 适合记住名字的 power user · skill 适合说人话的所有人。
-
-按你 Claude Code 版本走两条路:
-
-**D-1 · 用 slash command(较新版本 · 大约 v2.1+)**:
-
-```
-/plugin marketplace add Guohao1020/docs-cockpit
-/plugin install docs-cockpit@docs-cockpit
-```
-
-如果提示 `/plugin isn't available in this environment`,说明版本太老,走下面 D-2 兜底(或者跑 `claude --version` 看版本号,旧的用 `npm install -g @anthropic-ai/claude-code@latest` 升级)。
-
-**D-2 · 改 settings.json(永远能用 · 也是老版本回退路径)**:
-
-编辑 `~/.claude/settings.json`(Linux/macOS)或 `%USERPROFILE%\.claude\settings.json`(Windows),**合并**进这两个 block(不要把其他已有 key 删掉):
+**`/plugin` 不可用**(老版本 Claude Code · PR review 等受限 surface)→ 手工 merge `~/.claude/settings.json`:
 
 ```json
 {
   "extraKnownMarketplaces": {
     "docs-cockpit": {
-      "source": { "source": "github", "repo": "Guohao1020/docs-cockpit" }
+      "source": { "source": "github", "repo": "Guohao1020/docs-cockpit" },
+      "autoUpdate": true
     }
   },
   "enabledPlugins": {
@@ -167,13 +110,60 @@ Claude Code 用户推荐这条路。Plugin 同时给两种调用入口 · **skil
 }
 ```
 
-如果 `extraKnownMarketplaces` 或 `enabledPlugins` 这两个 key 已经存在,把新条目**追加进去** · 不要整段替换。
+#### Claude 听啥触发(skill auto-trigger)
 
-**任选一条路改完后,重启 Claude Code。** 重启时它会从 GitHub fetch `Guohao1020/docs-cockpit`,解析 `.claude-plugin/marketplace.json` + `plugin.json`,skill 就上线了。
+| 你说 | Claude 触发 |
+|---|---|
+| "把 docs 做成 dashboard" / "bundle docs into a dashboard" | `docs-cockpit`(写 yaml + 跑 build) |
+| "这周 sprint M1.2 进度" / "哪些 module 卡了" / "weekly status" | `docs-cockpit-status`(读 state.json · 输出叙述) |
+| "升级 docs-cockpit" / "update docs-cockpit" | `docs-cockpit-update`(pip + plugin re-fetch + autoUpdate 翻 flag) |
 
-**验证**:让 Claude 跑一句 *"把 docs/ 下面所有 md 做成 dashboard"* — 应该自动调起 docs-cockpit 开始工作流。
+或者直接 slash command:`/docs-cockpit:build`、`/docs-cockpit:status weekly`、`/docs-cockpit:update`。
 
-> ⚠️ **仍然需要 `pip install`**(上面选项 A)让 `docs-cockpit` CLI 进 PATH · Claude 是当子进程调用的。Plugin 安装 + pip 安装是组合不是互斥。
+### B. 其他 vibe coding 工具 · 手动复制 skill
+
+**Codex / Cursor / Gemini / OpenCode** 等工具(有 `~/.claude/skills/`-类似的 skill loading 机制)· 手动复制 SKILL.md:
+
+```bash
+# 仓 clone 到本地
+git clone https://github.com/Guohao1020/docs-cockpit.git ~/.tools/docs-cockpit
+
+# 复制 skill 到你工具的 skill 目录
+# (把 <skills-dir> 替换成你工具的路径 · 比如 ~/.codex/skills/ / ~/.cursor/skills/)
+cp -r ~/.tools/docs-cockpit/skills/docs-cockpit         <skills-dir>/
+cp -r ~/.tools/docs-cockpit/skills/docs-cockpit-status  <skills-dir>/
+cp -r ~/.tools/docs-cockpit/skills/docs-cockpit-update  <skills-dir>/
+
+# 还要装 CLI · skill 才能调
+pip install git+https://github.com/Guohao1020/docs-cockpit.git
+```
+
+重启你的工具。skill 会按同样的自然语言短语触发(SKILL.md 里的 Claude-specific 路径语法可能需要微调)。
+
+### C. 单纯 Python CLI(不用 AI 工具)
+
+只想用命令行 · 自己写 `docs-cockpit.yaml`:
+
+```bash
+pip install git+https://github.com/Guohao1020/docs-cockpit.git
+docs-cockpit init                          # 生成起步 yaml
+# 编辑 docs-cockpit.yaml
+docs-cockpit build                         # 默认读 ./docs-cockpit.yaml
+```
+
+开发 / fork 用 editable 模式:
+
+```bash
+git clone https://github.com/Guohao1020/docs-cockpit.git
+cd docs-cockpit
+pip install -e .
+```
+
+**需要 Python ≥ 3.10**。系统默认 Python 是 3.9 或更老 · 用 [`uv`](https://docs.astral.sh/uv/):
+
+```bash
+uv tool install --python 3.11 git+https://github.com/Guohao1020/docs-cockpit.git
+```
 
 ---
 
