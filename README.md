@@ -2,396 +2,254 @@
 
 # docs-cockpit
 
-> Two single-file HTML views of your project's markdown · driven by YAML config + frontmatter · open with `file://`.
->
-> **Dashboard** (Kanban / Sprint Timeline / KPI) for tracked modules · **Browser** (tree sidebar + marked.js render) for raw docs · **EN / 中** language toggle on both.
+Turn a folder of project markdown files into a single-HTML **Kanban dashboard** + **tree-sidebar reader** you can open with `file://`. Frontmatter-driven, schema-validated, AI-editor-friendly. Ships as a standalone Python CLI **and** a Claude Code plugin (3 auto-triggered skills + 6 slash commands).
 
-`docs-cockpit` solves two related problems:
+> Build a docs cockpit for any project in one command. Your modules become a Kanban with sprint timeline, KPI bar, and per-module drawer (status / progress / subtasks / linked docs). The frontmatter validator tells you exactly what's missing and how to fix it. The empty-docs CTA generates a ready-to-paste prompt for your AI coding editor (Claude Code, Cursor, Codex, Continue, Aider, …) to write the plan / RFC / spec for you.
 
-1. **You have module specs with status/progress and need a dashboard** — without standing up Jira / Notion / Linear. → `docs-cockpit build` produces a `docs/index.html` with Module Kanban + Sprint Timeline + KPI bar + drawer-with-subtask-checklist.
-2. **You have a folder full of MDs (ADRs, plans, RFCs) and just want to read them in a browser** — without setting up Sphinx / Docusaurus. → `docs-cockpit browse` produces a `docs/browse.html` with a tree-organized file sidebar + marked.js rendering.
+## Quickstart
 
-## Highlights
+### As a Claude Code plugin (recommended · 60 seconds)
 
-- **Module Kanban** — 5 status columns; click a card → drawer with desc / status select / progress slider / **subtask checklist** (localStorage-persisted overrides)
-- **Sprint Timeline** — modules grouped by sprint with avg %, locale-sorted
+```bash
+# inside Claude Code
+/plugin marketplace add Guohao1020/docs-cockpit
+/plugin install docs-cockpit@docs-cockpit
+```
+
+The 3 skills auto-trigger on natural-language requests. The 6 slash commands give you explicit invocation surfaces:
+
+```
+/docs-cockpit:build     # generate docs/index.html
+/docs-cockpit:browse    # generate docs/browse.html (tree-sidebar MD reader)
+/docs-cockpit:migrate   # one-shot legacy-layout migration
+/docs-cockpit:status    # narrative standup report from state.json
+/docs-cockpit:lint      # validate frontmatter against the author spec
+/docs-cockpit:update    # delegate to `docs-cockpit upgrade` CLI
+```
+
+### As a standalone CLI (no Claude Code)
+
+Pick the install backend you already use (Python 3.10+ required):
+
+```bash
+# uv (recommended · isolates Python version)
+uv tool install --python 3.11 git+https://github.com/Guohao1020/docs-cockpit.git
+
+# pip
+pip install git+https://github.com/Guohao1020/docs-cockpit.git
+
+# pipx
+pipx install git+https://github.com/Guohao1020/docs-cockpit.git
+```
+
+Then:
+
+```bash
+cd your-project
+docs-cockpit init          # writes a minimal docs-cockpit.yaml
+docs-cockpit build         # generates docs/index.html + docs/state.json
+open docs/index.html
+```
+
+## How it works
+
+You point `docs-cockpit` at your project's YAML config and it walks the `modules/` and `concepts/` directories you list. Each markdown file's YAML frontmatter (`id` / `status` / `sprint` / `progress` / `desc` / `subtasks` / `docs:` …) is read and turned into one card. The build serializes everything into a JSON payload, embeds it in an HTML template, and writes a self-contained single file you can open with `file://` — no localhost, no static-site generator, no JS framework, no network call at runtime.
+
+`docs-cockpit build` writes two artifacts side-by-side: `docs/index.html` for humans, `docs/state.json` for tools (skills read it for narrative status answers; CI reads it for invariant checks). The `state.json` also carries `issues[]` from the **frontmatter validator** — every issue points at the exact field, gives a fix suggestion, and references the section of the unified **docs-cockpit-author** spec that defines what's correct.
+
+When a module has no `docs:` linkage yet, the drawer shows a **copy-prompt CTA**: pick `Plan` / `RFC` / `Spec`, see the full prompt rendered inline with your module's id / title / status / sprint / desc / body excerpt all substituted in, then click Copy and paste into your AI coding editor of choice. The prompts reference docs-cockpit-author so the AI writes frontmatter that the dashboard will pick up on the next build.
+
+## The Basic Workflow
+
+1. **Bootstrap** — `docs-cockpit init` or, for legacy projects with `docs/plans/`, `docs/adrs/`, `docs/RFC/` already in flight, `docs-cockpit migrate`. The latter dry-runs first, shows what it'll move where, then `--apply` does `git mv` + injects frontmatter scaffolds.
+
+2. **Author docs** per the **docs-cockpit-author** skill (the canonical schema). Required fields, status enum, status × progress invariants, file naming, the "docs vs subtasks" decision, cross-doc references — all in one place. The author skill auto-triggers when you ask Claude to write a plan / RFC / spec / module-MD.
+
+3. **Build the dashboard** — `docs-cockpit build`. Open `docs/index.html` in the browser. Module Kanban renders, click any card → drawer shows desc / status select / progress slider / subtask checklist / linked docs with **inline MD preview** (marked.js renders the doc inside the drawer · no jumping to file:// raw view).
+
+4. **Track status** by asking Claude natural-language questions ("what's blocked", "sprint M1.2 progress", "give me a weekly standup"). The `docs-cockpit-standup` skill reads `state.json` and produces tables / bullet lists / paste-ready Markdown reports. **Read-only by design** — never edits files.
+
+5. **Lint before commit** — `docs-cockpit lint` runs the validator without rebuilding. Output is structured:
+
+   ```
+   ❌ M07.md · id: missing required field — module won't appear in dashboard
+      💡 fix: add `id: M07` to frontmatter
+      📚 see: docs-cockpit-author · §2.1 required frontmatter
+   ```
+
+   Three severities: `error` (won't render at all), `warn` (renders with broken state), `hint` (polish · adds context for the copy-prompt feature). `--json` for IDE / CI consumption, `--strict-warn` to treat warnings as failures.
+
+6. **Upgrade** — `docs-cockpit upgrade`. One command detects your install backend (pip / uv / pipx / editable), compares CLI + plugin layer versions, fetches CHANGELOG diff, asks confirmation, runs the right upgrade command, and if the plugin SKILL.md changed, atomically clears cache + prompts restart. No more "ghost state" from forgetting to restart.
+
+## What's Inside
+
+### Skills (auto-triggered)
+
+| Skill | Purpose | Read or Write |
+|---|---|---|
+| **`docs-cockpit`** | Setup + maintain the cockpit · run `build` / `migrate` / `browse` / `upgrade` | writes config + HTML + runs CLI |
+| **`docs-cockpit-author`** (new in 0.9.0) | Canonical spec for writing a single module / concept / plan / RFC / spec — frontmatter schema, body conventions, file naming, cross-doc refs | writes individual project docs |
+| **`docs-cockpit-standup`** (renamed from `-status` in 0.9.0) | Read `state.json` and produce narrative status reports, sprint progress, blockers, weekly standup | read-only |
+
+### Slash commands
+
+```
+/docs-cockpit:build       build dashboard from YAML config
+/docs-cockpit:browse      generate tree-sidebar MD reader
+/docs-cockpit:migrate     migrate legacy layout (docs/plans/, docs/adrs/, …) to canonical
+/docs-cockpit:status      narrative status / standup report
+/docs-cockpit:lint        validate frontmatter without building
+/docs-cockpit:update      delegate to `docs-cockpit upgrade` CLI
+```
+
+### CLI subcommands
+
+```
+docs-cockpit init         scaffold docs-cockpit.yaml
+docs-cockpit build        build single-file dashboard + state.json
+docs-cockpit browse       generate tree-sidebar MD reader
+docs-cockpit migrate      migrate legacy layout (dry-run first · --apply commits)
+docs-cockpit lint         validate frontmatter (--json · --strict-warn)
+docs-cockpit upgrade      one-command CLI+plugin upgrade (--dry-run · --yes)
+```
+
+### Dashboard features
+
+- **Module Kanban** — 5 status columns · click a card → drawer with desc / status select / progress slider / subtask checklist / linked docs · localStorage-persisted overrides
+- **Sprint Timeline** — modules grouped by sprint with avg %
 - **Concept Grid** + **System Docs Drawer** — curated entries (CLAUDE.md / PRD / DESIGN / RFC / memory / roadmap) one click away
-- **Auto body extraction** (0.4.0+) — `## 待办` / `## TODO` checklists in MD body **automatically** become subtasks · no frontmatter duplication
-- **Subtask → auto progress** — `manualProgress: false` derives progress from subtask done-ratio
-- **Tree browser** (0.5.0+) — sidebar mirrors actual directory layout · search + collapse + last-viewed memory
-- **Bilingual UI** (0.6.0+) — `[EN] [中]` toggle top-right · default EN · localStorage persists
-- **`migrate` command** (0.3.0+) — one-shot scan + frontmatter injection + canonical-layout migration for legacy projects (`docs/plans/`, `docs/adrs/`, etc)
-- **Machine-readable `state.json`** sidecar — feeds the status skill for "what's blocked / weekly standup" queries · no HTML re-parsing
-- **Cross-platform** — pure Python 3.10+ + `pyyaml`; same YAML runs on Windows / macOS / Linux
-- **Ships as a Claude Code plugin** — 3 auto-triggered skills + 5 slash commands
+- **Auto body extraction** — `## 待办` / `## TODO` checklists become subtasks · `## Related` / `## 关联` link-lists become `docs:` · no frontmatter duplication
+- **Subtask → auto progress** — `manualProgress: false` derives progress from done-ratio
+- **Inline MD preview in drawer** (0.7.1+) — click a linked doc · renders with marked.js + highlight.js inside the drawer · "Back to module" returns to the card view
+- **Empty-docs Copy-Prompt CTA** (0.8.0+ · reworked in 0.9.0) — `Plan` / `RFC` / `Spec` tabs · inline prompt preview · one Copy button · paste into Claude Code / Cursor / Codex / Continue / Aider
+- **needs-docs kanban chip** — active modules without docs are flagged on the card so you can see at a glance what needs filling in
+- **Frontmatter validator** (0.9.0+) — structured `error` / `warn` / `hint` issues with fix suggestions; every issue references a section of `docs-cockpit-author`
+- **Bilingual UI** — `[EN] [中]` toggle in topbar · default EN · localStorage persists
+- **Tree browser** (`docs-cockpit browse`) — sidebar mirrors actual directory layout · search + collapse + last-viewed memory · marked.js + highlight.js render
 
+### Machine-readable sidecar: `state.json`
+
+Every build writes `docs/state.json` next to the HTML. Same payload as the dashboard + `issues[]` from the validator. The `docs-cockpit-standup` skill reads this for narrative answers; CI reads it for invariant checks. Schema is stable across 0.2.0+ (new fields are added, never removed).
+
+## Philosophy
+
+- **Single-file artifacts** — `docs/index.html` is self-contained · no localhost, no build pipeline, no JS framework, no network at runtime. Drop it in a Slack DM or commit it to the repo.
+- **Frontmatter as schema** — every module is a markdown file readable by humans AND machine-parseable from the YAML frontmatter. No proprietary database.
+- **One spec to rule them all** (`docs-cockpit-author`) — the schema lives in a skill that both Claude and humans can read. The validator references it line-by-line. No "ask Claude what frontmatter to use" each time.
+- **Validation is opt-in but actionable** — every `❌` and `⚠️` has a `💡 fix` and a `📚 see` reference. Output is greppable, IDE-consumable, and CI-friendly.
+- **`file://` first** — works without a webserver. Browsers' file:// security model is the deployment target.
+- **Atomic upgrades** — `docs-cockpit upgrade` clears plugin cache and prompts restart in one operation. Ghost state (plugin running old SKILL.md after CLI upgraded) is the failure mode this prevents.
+- **Cross-platform** — pure Python 3.10+ + `pyyaml`. Same YAML runs on Windows / macOS / Linux.
+
+## Anatomy of a docs-cockpit project
+
+```
+your-project/
+├── docs-cockpit.yaml              ← config (you write this; `init` scaffolds it)
+├── docs/
+│   ├── index.html                 ← BUILD ARTIFACT · the dashboard (human-facing)
+│   ├── browse.html                ← BUILD ARTIFACT · tree-sidebar reader (optional)
+│   ├── state.json                 ← BUILD ARTIFACT · machine-readable payload + issues[]
+│   ├── spec/
+│   │   ├── module/M01-*.md        ← module specs (frontmatter → Kanban cards)
+│   │   └── concept/C01-*.md       ← concept specs (frontmatter → Concept Grid)
+│   ├── plans/2026-MM-DD-<id>-plan.md   ← execution plans (linked via `docs:`)
+│   ├── RFC/<NNN>-*.md             ← technical decisions
+│   └── PRD.md                     ← curated as a `system_docs` entry
+├── CLAUDE.md                       ← curated as a `system_docs` entry
+└── .git/
+```
+
+## Minimal `docs-cockpit.yaml`
+
+```yaml
+project:
+  name: MyProject
+  mark: M                          # one-char wordmark
+  tagline: "Module progress + sprint tracking"
+  output: docs/index.html
+
+paths:
+  repo: "."                        # also: {home}, {env:VAR}, {main_repo} are available
+
+system_docs:
+  - { id: claude-md, title: CLAUDE.md, path: "{repo}/CLAUDE.md",  desc: "AI collab conventions", icon: memory }
+  - { id: prd,       title: PRD.md,    path: "{repo}/docs/PRD.md", desc: "Product requirements",  icon: doc }
+
+modules:
+  scan:
+    dir: "{repo}/docs/spec/module"
+    title_transform: prefix-dot-titlecase
+
+concepts:
+  scan:
+    dir: "{repo}/docs/spec/concept"
+    title_transform: prefix-dot-titlecase
+```
+
+## Frontmatter (the part the dashboard reads)
+
+```yaml
 ---
-
-## Quickstart — for Claude Code users (60 seconds)
-
-docs-cockpit is **primarily a Claude Code plugin**. Setup is two commands + asking Claude.
-
-```bash
-# 1. In Claude Code, register the plugin marketplace
-/plugin marketplace add Guohao1020/docs-cockpit
-
-# 2. Install the CLI (Claude invokes it as a subprocess)
-pip install git+https://github.com/Guohao1020/docs-cockpit.git
-# Or for Python <3.10 systems / uv users:
-# uv tool install --python 3.11 git+https://github.com/Guohao1020/docs-cockpit.git
-
-# 3. Restart Claude Code so the plugin loads
-```
-
-Then in any project, ask Claude one of:
-
-> "Build me a dashboard from `docs/spec/module/`" — or — "Browse all the markdown in this project" — or — "Migrate this legacy doc layout to docs-cockpit"
-
-Claude picks the right skill, writes the config, runs the build. **That's it.**
-
-> Not on Claude Code? See the [Install](#install--by-tool) section for Codex / Cursor / Gemini / OpenCode (manual skill copy).
-
-### What you get
-
-```
-docs-cockpit build     →  docs/index.html   (Module Kanban + Sprint + KPI dashboard)
-                          docs/state.json   (sidecar JSON for the status skill)
-
-docs-cockpit browse    →  docs/browse.html  (tree-sidebar markdown browser)
-
-docs-cockpit migrate   →  reorganizes legacy layout into docs/spec/module/M{NN}-*.md
-                          + writes a tailored docs-cockpit.yaml
-```
-
-All HTML files have a `[EN] [中]` toggle in the top-right corner — defaults to English, switches to Chinese on click (localStorage-persisted).
-
-### Module frontmatter (for dashboard cards)
-
-For a module to appear as a Kanban card, the MD needs YAML frontmatter:
-
-```markdown
----
-id: M07
-title: Job FSM
-status: in-progress
+id: M07                              # REQUIRED · without this the doc is dropped
+type: module                         # module | concept | plan | rfc | spec
+title: "Job / Task FSM"
+status: in-progress                  # not-started | planned | in-progress | blocked | done | deferred
 sprint: M1.2
-progress: 45
-desc: "12-class FSM with field validation"
-subtasks:
-  - { title: "Core entity definitions", done: true }
-  - { title: "Field validation", done: false }
----
-```
-
-Or — **just write `## TODO` / `## 待办` in the body** with checkbox items, docs-cockpit will auto-extract them as subtasks (0.4.0+):
-
-```markdown
----
-id: M07
-title: Job FSM
-status: in-progress
+progress: 60                         # 0-100 · validated against status invariants
+desc: "Job lifecycle state machine · drives worker scheduling"
+owner: harvey
+prd_ref: "§7.4.1"
+docs:                                # links to plans / RFCs / specs
+  - { title: "Execution plan", path: "docs/plans/2026-05-03-m07-fsm-plan.md" }
+depends_on: [M06]
+blocks: [M08, M09]
+subtasks:                            # OR write `## TODO` in body — both work
+  - { title: "wire FSM enum to Pydantic", done: true }
+  - { title: "worker pulls next state from queue", done: false }
 ---
 
-# M07 · Job FSM
-
-## TODO
-- [ ] Core entity definitions
-- [x] Field validation
-- [ ] Cross-model reference constraints
+# Module body — anything below frontmatter
 ```
 
-Full reference: [references/frontmatter_conventions.md](references/frontmatter_conventions.md).
+See the `docs-cockpit-author` skill for the full spec including the "docs vs subtasks" decision, file naming conventions, status × progress invariants, and cross-doc reference rules.
 
----
-
-## Install — by tool
-
-### A. Claude Code (recommended)
-
-**One-line plugin install + one-line CLI install + restart.**
-
-```bash
-# In Claude Code:
-/plugin marketplace add Guohao1020/docs-cockpit
-
-# In your shell:
-pip install git+https://github.com/Guohao1020/docs-cockpit.git
-```
-
-Restart Claude Code → plugin auto-fetches from GitHub → 3 skills + 5 slash commands appear.
-
-**Auto-update**: add `"autoUpdate": true` to the `extraKnownMarketplaces.docs-cockpit` entry in `~/.claude/settings.json`. Or ask Claude *"update docs-cockpit"* — the update skill walks the whole flow (pip upgrade + plugin cache clear + restart prompt). Cache clearing matters: `autoUpdate: true` alone is unreliable in current Claude Code (0.3.1+ flow handles this).
-
-**If `/plugin` isn't available** (older Claude Code, PR-review surface): manually merge into `~/.claude/settings.json`:
-
-```json
-{
-  "extraKnownMarketplaces": {
-    "docs-cockpit": {
-      "source": { "source": "github", "repo": "Guohao1020/docs-cockpit" },
-      "autoUpdate": true
-    }
-  },
-  "enabledPlugins": {
-    "docs-cockpit@docs-cockpit": true
-  }
-}
-```
-
-#### Natural-language triggers (skills auto-fire)
-
-| You say | Claude triggers |
-|---|---|
-| "Bundle docs into a dashboard" / "Make a project Kanban" | `docs-cockpit` → writes yaml + runs `build` |
-| "Browse the markdown in this project" / "Read all our ADRs" | `docs-cockpit` → runs `browse` |
-| "Migrate this legacy layout to docs-cockpit" / "我项目用 docs/plans/, 帮我迁" | `docs-cockpit` → runs `migrate` (dry-run first, then `--apply`) |
-| "What's blocked" / "Sprint M1.2 progress" / "Weekly standup from docs" | `docs-cockpit-status` → reads `state.json`, narrative output |
-| "Update docs-cockpit" / "升级 docs-cockpit" | `docs-cockpit-update` → pip upgrade + plugin cache clear + restart prompt |
-
-#### Explicit slash commands
-
-- `/docs-cockpit:build` — Dashboard build → `docs/index.html` + `docs/state.json`
-- `/docs-cockpit:browse [--dir <path>]` — Markdown browser → `docs/browse.html`
-- `/docs-cockpit:migrate [--apply]` — Legacy layout migration (dry-run unless `--apply`)
-- `/docs-cockpit:status [question]` — Read state.json, answer status / standup query
-- `/docs-cockpit:update` — Two-layer upgrade workflow
-
-### B. Other vibe-coding tools — manual skill copy
-
-For **Codex / Cursor / Gemini / OpenCode** (or any tool with `~/.claude/skills/`-style skill loading):
-
-```bash
-# Clone the repo somewhere
-git clone https://github.com/Guohao1020/docs-cockpit.git ~/.tools/docs-cockpit
-
-# Copy skills into your tool's skill directory
-# (substitute <skills-dir> for your tool's path · e.g. ~/.codex/skills/, ~/.cursor/skills/)
-cp -r ~/.tools/docs-cockpit/skills/docs-cockpit         <skills-dir>/
-cp -r ~/.tools/docs-cockpit/skills/docs-cockpit-status  <skills-dir>/
-cp -r ~/.tools/docs-cockpit/skills/docs-cockpit-update  <skills-dir>/
-
-# Install the CLI so the skill can invoke it
-pip install git+https://github.com/Guohao1020/docs-cockpit.git
-```
-
-Restart your tool. The skills auto-trigger on the same natural-language phrases (Claude-specific path syntax in SKILL.md may need light adaptation).
-
-> **Python ≥ 3.10 required.** Older system default? Use [`uv`](https://docs.astral.sh/uv/): `uv tool install --python 3.11 git+https://github.com/Guohao1020/docs-cockpit.git`.
-
----
-
-## Configuration (for `docs-cockpit build`)
-
-The dashboard's `docs-cockpit.yaml` has 4 top-level data blocks:
-
-```yaml
-project:        { name, mark, tagline, eyebrow, output }
-paths:          { repo, ... custom-named vars }
-system_docs:    [ { id, title, path, desc, icon } ... ]   # hand-curated drawer entries
-modules:        { files / scan / glob }                    # frontmatter-driven dashboard cards
-concepts:       { files / scan / glob }                    # simpler grid cards
-frontmatter:    { enabled, status_progress_ranges }
-```
-
-`docs-cockpit browse` doesn't need any yaml — it scans the project + `~/.claude/{plans,projects}/<project>/` by default. Override with `--dir`.
-
-References:
-- [`docs_cockpit/examples/full.yaml`](docs_cockpit/examples/full.yaml) — complete reference config (6 system_docs + module scan + concept scan + frontmatter governance)
-- [`docs_cockpit/examples/minimal.yaml`](docs_cockpit/examples/minimal.yaml) — minimal working config
-- [`references/config_reference.md`](references/config_reference.md) — every field's semantics and defaults
-- [`references/frontmatter_conventions.md`](references/frontmatter_conventions.md) — module / concept frontmatter spec + body fallback rules (`## TODO` → subtasks, etc.)
-
----
-
-## Daily workflow
-
-### Dashboard build
-
-```bash
-docs-cockpit build                          # default reads ./docs-cockpit.yaml
-docs-cockpit build -c configs/preview.yaml  # specify config
-docs-cockpit build --debug                  # print resolved path variables (debug saver)
-```
-
-Each build overwrites `docs/index.html` + `docs/state.json`. `Ctrl+R` in the browser to see new content.
-
-### Markdown browser
-
-```bash
-docs-cockpit browse                              # default: project + ~/.claude scan
-docs-cockpit browse --dir docs/adrs              # limit to one dir
-docs-cockpit browse --output docs/adrs.html      # custom output
-docs-cockpit browse --no-claude                  # skip ~/.claude scanning
-```
-
-Each run regenerates the HTML — no live watch. After editing MDs, re-run + `Ctrl+R`.
-
-### Legacy project migration
-
-```bash
-docs-cockpit migrate                # dry-run · print plan · no file changes
-docs-cockpit migrate --apply        # execute · git mv files + inject frontmatter + write yaml
-docs-cockpit migrate --apply --keep-originals   # copy instead of move
-```
-
-Migrate auto-classifies legacy layouts (`docs/plans/`, `docs/adrs/`, `docs/superpowers/plans/` → modules; `docs/PRD/`, `docs/RFC/`, `docs/architecture/` → system_docs) and generates ID-prefixed frontmatter (`M01-*.md`, `M02-*.md`, ...).
-
-### Wire into git workflow (optional but recommended)
-
-A cockpit is only useful if it stays fresh. Three patterns:
-
-**Pre-commit hook** (zero friction):
-
-```bash
-# .git/hooks/pre-commit
-#!/bin/bash
-if git diff --cached --name-only | grep -E '\.md$|\.yaml$' > /dev/null; then
-  docs-cockpit build
-  git add docs/index.html docs/state.json
-fi
-```
-
-**CI check** (strict):
-
-```yaml
-# .github/workflows/docs.yml
-- run: pip install git+https://github.com/Guohao1020/docs-cockpit.git
-- run: docs-cockpit build
-- run: git diff --exit-code docs/index.html docs/state.json
-```
-
-**CONTRIBUTING convention** (lightest):
-
-> Any PR touching `*.md` must re-run `docs-cockpit build` and commit the regenerated artifacts.
-
-### Commit `docs/index.html` or gitignore it?
-
-**Commit it** — anyone who clones can `start docs/index.html` immediately; good for internal tools / team preview. Makes the `docs/` view on GitHub better too.
-
-**Gitignore it** — keeps the repo lean; everyone has to build locally; good for public projects with binary-averse maintainers.
-
----
-
-## Upgrade
-
-**0.7.0+ recommendation: one command.**
+## Updating
 
 ```bash
 docs-cockpit upgrade
 ```
 
-That's it. The CLI auto-detects your install backend (pip / uv / pipx / editable), shows the CHANGELOG diff for what's new, runs the right upgrade command, then decides — based on whether plugin SKILL.md actually changed — if you need to restart Claude Code at all.
+That's the whole flow (0.7.0+). Backend detection · version compare · CHANGELOG diff · confirmation · atomic cache-clear + restart prompt if the plugin SKILL.md changed. Add `--dry-run` to see the plan, `--yes` for non-interactive.
 
-- **CLI-only patch releases** (e.g. 0.x.Y → 0.x.Y+1): no restart needed · new features live immediately
-- **Plugin-touching minor releases** (e.g. 0.X → 0.X+1): auto-clears cache + tells you to quit Claude Code in the next 30 seconds (atomic — no ghost-state risk)
+## Working with AI coding editors
 
-You can also invoke it from Claude Code — just say *"update docs-cockpit"* and the `docs-cockpit-update` skill calls this command for you.
+The empty-docs CTA generates prompts for the most common editors:
 
-### Useful flags
+- **Claude Code** with **[superpowers](https://github.com/obra/superpowers)** — its `/plan`, `/spec`, `/rfc` skills scaffold; docs-cockpit-author then aligns frontmatter
+- **Claude Code** with **gstack** — its plan/spec/rfc generators integrate the same way
+- **Cursor / Codex / Continue / Aider** — paste the copied prompt into chat; the editor writes the file
 
-```bash
-docs-cockpit upgrade --dry-run          # print plan · no changes
-docs-cockpit upgrade --yes              # non-interactive
-docs-cockpit upgrade --no-clear-cache   # skip auto cache clear (manual control)
-docs-cockpit upgrade --skip-changelog   # skip CHANGELOG fetch (faster)
-```
+In every case, after the AI writes the file, `docs-cockpit lint` is the source of truth for "is this going to render correctly".
 
-### Manual fallback (pre-0.7.0 or if the above fails)
+## Contributing
+
+PRs welcome. The dev loop:
 
 ```bash
-# 1. Upgrade the CLI
-pip install --upgrade git+https://github.com/Guohao1020/docs-cockpit.git
-# Or: uv tool upgrade docs-cockpit
-
-# 2 + 3. ATOMIC · force-clear plugin cache AND immediately restart Claude Code
-#        (run both as one operation · don't leave a gap between)
-rm -rf ~/.claude/plugins/cache/*docs-cockpit*                                # POSIX
-# Windows: Remove-Item -Recurse -Force "$env:USERPROFILE\.claude\plugins\cache\*docs-cockpit*"
-# → then: quit Claude Code COMPLETELY (whole app, not just chat window) and reopen
+git clone https://github.com/Guohao1020/docs-cockpit
+cd docs-cockpit
+pip install -e .              # editable install
+docs-cockpit build -c docs_cockpit/examples/minimal.yaml --debug
 ```
 
-### Verify
-
-After upgrade (and restart if applicable):
-
-- `/plugin` UI shows the new version for `docs-cockpit`
-- Skills list shows 6 slash commands (0.7.0+): `/build`, `/browse`, `/migrate`, `/status`, `/update`, `/upgrade`
-- `docs-cockpit upgrade` now reports `✓ Already up to date`
-
-### If you got a "ghost state"
-
-Plugin shown "installed" in Directory but missing from sidebar? You separated cache-clear from restart in time. Recovery:
-
-1. Restart Claude Code (full quit). State often re-reconciles on startup.
-2. If still wrong: Directory → Plugins → Docs cockpit → **Uninstall**. Restart. Re-add marketplace + install.
-3. Nuclear option: manually edit `~/.claude/settings.json`, remove `docs-cockpit` entries from both `extraKnownMarketplaces` AND `enabledPlugins`, restart, re-add fresh.
-
-**The whole point of `docs-cockpit upgrade` (0.7.0+) is making this situation impossible.** Use it instead.
-
-### Will upgrade break your config?
-
-- `0.x.y` patch / minor releases: backward-compatible unless CHANGELOG says otherwise
-- `0.x → 1.0`: migration paths listed in CHANGELOG when relevant
-- Unknown fields are silently ignored — adding new fields to your config is safe
-
-See [CHANGELOG.md](CHANGELOG.md) for the full version history.
-
----
-
-## Troubleshooting — common issues
-
-| Symptom | Likely cause | Fix |
-|---|---|---|
-| `[WARN] 0 items` after build | `paths.repo` wrong OR no MDs match modules/concepts paths | `docs-cockpit build --debug` to inspect the vars dict |
-| Modules don't appear as Kanban cards | MD missing `id:` frontmatter, OR id is template placeholder (`MXX`) | Add `id: M07` etc. · See `references/frontmatter_conventions.md` |
-| Subtask drawer empty even though MD has `## TODO` | MD body section header doesn't match — must be `## 待办` / `## TODO` / `## Subtasks` / `## Tasks` (with optional number prefix) | See body extraction rules in `references/frontmatter_conventions.md` |
-| Red banner at top of browser | CDN can't reach marked.js / highlight.js | Intranet users: vendor the JS locally — open issue, this is on roadmap |
-| YAML unknown-key error | Typo — config schema is strict | Check spelling in `references/config_reference.md` |
-| Plugin version doesn't update after restart | Plugin cache stale, `autoUpdate` flaky | Force-clear cache: see Upgrade section step 2 above |
-| `pip install` fails with "requires-python: >=3.10" | System Python too old | Switch to `uv tool install --python 3.11 git+...` |
-
-Deeper debugging in the "Common failure modes" section at the end of `skills/docs-cockpit/SKILL.md`.
-
----
-
-## Documentation index
-
-### Skills (Claude auto-trigger)
-- [`skills/docs-cockpit/SKILL.md`](skills/docs-cockpit/SKILL.md) — operational skill (setup / build / browse / migrate workflows)
-- [`skills/docs-cockpit-status/SKILL.md`](skills/docs-cockpit-status/SKILL.md) — status-reading skill (interpret `state.json` for standups)
-- [`skills/docs-cockpit-update/SKILL.md`](skills/docs-cockpit-update/SKILL.md) — auto-upgrade skill (CLI + plugin two-layer)
-
-### Slash commands
-- [`commands/build.md`](commands/build.md) — `/docs-cockpit:build`
-- [`commands/browse.md`](commands/browse.md) — `/docs-cockpit:browse`
-- [`commands/migrate.md`](commands/migrate.md) — `/docs-cockpit:migrate`
-- [`commands/status.md`](commands/status.md) — `/docs-cockpit:status`
-- [`commands/update.md`](commands/update.md) — `/docs-cockpit:update`
-
-### Reference docs
-- [`references/config_reference.md`](references/config_reference.md) — full `docs-cockpit.yaml` field schema
-- [`references/frontmatter_conventions.md`](references/frontmatter_conventions.md) — frontmatter spec + body extraction rules
-- [`references/design_tokens.md`](references/design_tokens.md) — CSS tokens, brand colors, fonts, dark mode
-
-### Examples (bundled into pip wheel)
-- [`docs_cockpit/examples/minimal.yaml`](docs_cockpit/examples/minimal.yaml) — minimal working config
-- [`docs_cockpit/examples/full.yaml`](docs_cockpit/examples/full.yaml) — comprehensive reference
-
-### Code
-- `docs_cockpit/build.py` — dashboard build + state.json + body extraction
-- `docs_cockpit/browse.py` — markdown browser
-- `docs_cockpit/migrate.py` — legacy layout migration
-- `docs_cockpit/templates/index.html.tmpl` — dashboard template (with i18n)
-- `docs_cockpit/templates/browse.html.tmpl` — browser template (with i18n)
-
-### Meta
-- [`CHANGELOG.md`](CHANGELOG.md) — release history with migration notes per version
-- [`README.zh-CN.md`](README.zh-CN.md) — 中文 README
-
-> Note: the SKILL.md and `references/*.md` files are still Chinese-first. README and the generated HTML have full EN/ZH parity (with the topbar toggle).
-
----
+For new skills, follow the conventions in the existing three (`skills/docs-cockpit*/SKILL.md`) — frontmatter `description` is "pushy" (over-triggers rather than under-triggers), bodies explain the **why** rather than dictating **what**.
 
 ## License
 
-MIT
+MIT — see [LICENSE](LICENSE).
+
+## Community
+
+- Issues: <https://github.com/Guohao1020/docs-cockpit/issues>
+- Release notes: [CHANGELOG.md](CHANGELOG.md)

@@ -2,395 +2,254 @@
 
 # docs-cockpit
 
-> 单文件 HTML 看你项目的所有 markdown · YAML 配置 + frontmatter 驱动 · 浏览器 `file://` 直接打开。
->
-> **Dashboard**(Kanban / Sprint Timeline / KPI)看模块进度 · **Browser**(树形侧边栏 + marked.js 渲染)读散落文档 · 两个产出都有 **EN / 中** 切换。
+把一个文件夹的项目 markdown 变成单文件 HTML 的 **Kanban 看板** + **树形侧边栏阅读器**，浏览器 `file://` 直接打开。Frontmatter 驱动 · 自带 schema 校验 · 与 AI 编辑器协同。同时以**独立 Python CLI** 与 **Claude Code 插件**两种形态发布(3 个自动触发的 skill + 6 个 slash 命令)。
 
-`docs-cockpit` 解决两个相关问题:
+> 一条命令为任何项目搭一个 docs cockpit。模块自动汇成 Kanban + Sprint Timeline + KPI 条 + 模块抽屉(状态 / 进度 / 子任务 / 关联文档)。Frontmatter 校验器会精确告诉你缺什么、怎么改。当某模块还没写关联文档时,抽屉里的 CTA 会即时生成一段可直接粘贴给 AI 编辑器(Claude Code / Cursor / Codex / Continue / Aider …)的提示词,让它替你写 plan / RFC / spec。
 
-1. **你有 module spec 写 status/progress · 想要 dashboard** —— 但不想为此装 Jira / Notion / Linear。→ `docs-cockpit build` 产出 `docs/index.html` · 含 Module Kanban + Sprint Timeline + KPI bar + 模块 drawer(含 subtask checklist)。
-2. **你有一堆 MD(ADR、plan、RFC)想在浏览器里读** —— 但不想为此装 Sphinx / Docusaurus。→ `docs-cockpit browse` 产出 `docs/browse.html` · 树形文件侧边栏 + marked.js 渲染。
+## Quickstart
 
-## 亮点
-
-- **模块 Kanban** · 5 列状态 · 点卡片弹 drawer 含 desc / status / progress 滑块 / **subtask checklist** · localStorage 持久化用户覆盖
-- **Sprint Timeline** · 按 sprint 字段分组 · 平均 % · locale 排序
-- **概念 Grid + 系统文档 Drawer** · 手挑入口(CLAUDE.md / PRD / DESIGN / RFC / memory / roadmap)一键打开
-- **自动 body 提取**(0.4.0+) · MD body 的 `## 待办` / `## TODO` checklist **自动**变成 subtasks · 不用 frontmatter 重复维护
-- **Subtask → 自动 progress** · `manualProgress: false` 时按 subtask 完成率算 progress
-- **树形 Browser**(0.5.0+) · 侧边栏镜像项目目录结构 · 搜索 + 折叠 + localStorage 记上次看哪个
-- **双语 UI**(0.6.0+) · 顶部右上 `[EN] [中]` toggle · 默认英文 · localStorage 持久化
-- **`migrate` 命令**(0.3.0+) · 一键扫 legacy 项目散落 MD(`docs/plans/` / `docs/adrs/` 等)+ 自动注入 frontmatter + 物理迁到 canonical `docs/spec/module/` 布局
-- **机器可读 `state.json`** sidecar · 给 status skill 用 · 答 "哪些 module 卡了 / 周报" 不用解析 HTML
-- **跨平台** · 纯 Python 3.10+ + `pyyaml` · Windows / macOS / Linux 同一份 yaml
-- **以 Claude Code plugin 形式发布** · 3 个自动触发 skill + 5 个 slash command
-
----
-
-## Quickstart · Claude Code 用户(60 秒)
-
-docs-cockpit 是**为 Claude Code 优先设计的 plugin**。装它两条命令 + 跟 Claude 说人话。
+### 作为 Claude Code 插件(推荐 · 60 秒)
 
 ```bash
-# 1. 在 Claude Code 里注册 plugin marketplace
+# 在 Claude Code 里
 /plugin marketplace add Guohao1020/docs-cockpit
+/plugin install docs-cockpit@docs-cockpit
+```
 
-# 2. 装 CLI(Claude 作为子进程调它)
+3 个 skill 会按自然语言意图自动触发,6 个 slash 命令提供显式入口:
+
+```
+/docs-cockpit:build     # 生成 docs/index.html
+/docs-cockpit:browse    # 生成 docs/browse.html(树形侧边栏 MD 阅读器)
+/docs-cockpit:migrate   # 一键迁移老布局
+/docs-cockpit:status    # 从 state.json 出叙事性 standup 报告
+/docs-cockpit:lint      # 按 author 规范校验 frontmatter
+/docs-cockpit:update    # 转交给 `docs-cockpit upgrade` CLI
+```
+
+### 作为独立 CLI(不用 Claude Code)
+
+挑你已经在用的安装方式(需 Python 3.10+):
+
+```bash
+# uv(推荐 · 自动隔离 Python 版本)
+uv tool install --python 3.11 git+https://github.com/Guohao1020/docs-cockpit.git
+
+# pip
 pip install git+https://github.com/Guohao1020/docs-cockpit.git
-# 或者 Python <3.10 / uv 用户:
-# uv tool install --python 3.11 git+https://github.com/Guohao1020/docs-cockpit.git
 
-# 3. 重启 Claude Code · 让 plugin 加载
+# pipx
+pipx install git+https://github.com/Guohao1020/docs-cockpit.git
 ```
 
-然后在任何项目里 · 跟 Claude 说其中一句:
+然后:
 
-> "用 docs/spec/module/ 给我做个 dashboard" · 或 · "浏览这项目所有 markdown" · 或 · "把这个 legacy 项目迁到 docs-cockpit"
-
-Claude 自动选对应 skill · 写 yaml · 跑 build。**就这样。**
-
-> 不用 Claude Code?跳到 [Install · 按工具选](#install--按工具选) 看 Codex / Cursor / Gemini / OpenCode 的手动 skill 复制。
-
-### 三种产出
-
-```
-docs-cockpit build     →  docs/index.html   (模块 Kanban + Sprint + KPI dashboard)
-                          docs/state.json   (sidecar JSON · 给 status skill 读)
-
-docs-cockpit browse    →  docs/browse.html  (树形 markdown 浏览器)
-
-docs-cockpit migrate   →  把 legacy 散落 MD 迁到 docs/spec/module/M{NN}-*.md
-                          + 写 tailored docs-cockpit.yaml
+```bash
+cd your-project
+docs-cockpit init          # 写一份最小 docs-cockpit.yaml
+docs-cockpit build         # 生成 docs/index.html + docs/state.json
+open docs/index.html       # Windows 用 start · Linux 用 xdg-open
 ```
 
-所有 HTML 顶部右上都有 `[EN] [中]` toggle · 默认英文 · 点一下切中文(localStorage 记)。
+## 它怎么工作
 
-### 模块 frontmatter(让卡片进 Kanban)
+把 `docs-cockpit` 指向项目里的 YAML 配置,它会遍历你列出的 `modules/` 和 `concepts/` 目录。每个 markdown 文件的 YAML frontmatter(`id` / `status` / `sprint` / `progress` / `desc` / `subtasks` / `docs:` ……)被读出来,渲染成一张卡。Build 把这些数据序列化为 JSON · 嵌入 HTML 模板 · 写出一个独立单文件,浏览器 `file://` 直接打开 —— 不需要 localhost · 不需要静态站点生成器 · 不需要 JS 框架 · 运行时零网络请求。
 
-模块要进卡板 · MD 顶部需 YAML frontmatter:
+`docs-cockpit build` 同时产出两个文件:`docs/index.html` 给人看 · `docs/state.json` 给工具用(skill 用它出叙事状态 · CI 用它做不变式检查)。`state.json` 里还有 **frontmatter 校验器**输出的结构化 `issues[]` —— 每条 issue 精确指向字段名 · 给出修法建议 · 引用统一规范 **docs-cockpit-author** 里的具体段落。
 
-```markdown
+当一个模块还没填 `docs:` 时,抽屉会出一个**复制提示词的 CTA**:在 `Plan` / `RFC` / `Spec` 三个 tab 间切换 · 看清楚替换好 id / title / status / sprint / desc / body 摘要的整段提示词 · 然后一键复制粘贴到你常用的 AI 编辑器。提示词本身引用 docs-cockpit-author 规范,所以 AI 写出来的 frontmatter 下次 build 就会被看板接住。
+
+## 基本工作流
+
+1. **Bootstrap** —— `docs-cockpit init`,或对老项目(`docs/plans/` `docs/adrs/` `docs/RFC/` 已经写了一堆)用 `docs-cockpit migrate`。migrate 默认 dry-run · 把"打算把谁移到哪"先打印出来 · 加 `--apply` 才真 `git mv` + 注入 frontmatter 脚手架。
+
+2. **写文档**遵循 **docs-cockpit-author** skill(规范源头):必填字段 · status enum · status × progress 不变式 · 文件命名 · "docs 与 subtasks 怎么区分" · 跨文档引用规则 —— 都在一处。让 Claude 写 plan / RFC / spec / 模块 MD 时,这个 skill 自动接管。
+
+3. **Build 看板** —— `docs-cockpit build`。浏览器打开 `docs/index.html`。模块 Kanban 渲染出来 · 点任意卡片 → 抽屉显示 desc / status / progress 滑块 / 子任务清单 / 关联文档,关联文档支持**抽屉内联 MD 预览**(marked.js 在抽屉里直接渲染 · 不再跳出去看 file:// 原文)。
+
+4. **跟踪状态** —— 直接问 Claude 自然语言("有什么 blocker" · "M1.2 进度怎么样" · "给我一份周报")。`docs-cockpit-standup` skill 读 `state.json` 出表格 / 列表 / 可直接粘贴的 Markdown 报告。**契约上只读** · 永远不改文件。
+
+5. **Commit 前 lint** —— `docs-cockpit lint` 只校验不重 build。输出是结构化的:
+
+   ```
+   ❌ M07.md · id: missing required field — module won't appear in dashboard
+      💡 fix: add `id: M07` to frontmatter
+      📚 see: docs-cockpit-author · §2.1 required frontmatter
+   ```
+
+   三档 severity:`error`(根本不会渲染)· `warn`(渲染但状态错)· `hint`(锦上添花 · 影响 copy-prompt 上下文质量)。`--json` 给 IDE / CI · `--strict-warn` 把 warn 也升级成 error 退出。
+
+6. **升级** —— `docs-cockpit upgrade`。一条命令检测后端(pip / uv / pipx / editable)· 对比 CLI + plugin 层版本 · 拉 CHANGELOG diff · 让你确认 · 跑对应升级命令 · 如果 plugin SKILL.md 变了 · 原子清缓存 + 提示重启。彻底消除"忘了重启 → ghost state"问题。
+
+## 安装后你拿到了什么
+
+### Skills(自动触发)
+
+| Skill | 作用 | 读 vs 写 |
+|---|---|---|
+| **`docs-cockpit`** | 搭建 + 维护 cockpit · 跑 `build` / `migrate` / `browse` / `upgrade` | 写配置 + HTML + 跑 CLI |
+| **`docs-cockpit-author`** (0.9.0 新增) | 写一份 module / concept / plan / RFC / spec 的规范源头 —— frontmatter schema · body 约定 · 文件命名 · 跨文档引用 | 写单个项目文档 |
+| **`docs-cockpit-standup`** (0.9.0 从 `-status` 重命名) | 读 `state.json` 输出叙事状态报告 · sprint 进度 · blocker · 周报 | 只读 |
+
+### Slash 命令
+
+```
+/docs-cockpit:build       从 YAML 配置 build 看板
+/docs-cockpit:browse      生成树形侧边栏 MD 阅读器
+/docs-cockpit:migrate     迁移老布局(docs/plans/ · docs/adrs/ …)到 canonical
+/docs-cockpit:status      叙事状态 / standup 报告
+/docs-cockpit:lint        只校验 frontmatter 不 build
+/docs-cockpit:update      转交 `docs-cockpit upgrade` CLI
+```
+
+### CLI 子命令
+
+```
+docs-cockpit init         脚手架 docs-cockpit.yaml
+docs-cockpit build        build 单文件看板 + state.json
+docs-cockpit browse       生成树形侧边栏 MD 阅读器
+docs-cockpit migrate      迁移老布局(默认 dry-run · --apply 才真改)
+docs-cockpit lint         校验 frontmatter(--json · --strict-warn)
+docs-cockpit upgrade      一条命令升级 CLI+plugin(--dry-run · --yes)
+```
+
+### 看板功能
+
+- **模块 Kanban** —— 5 列状态 · 点卡片 → 抽屉显示 desc / status 选择器 / progress 滑块 / 子任务清单 / 关联文档 · localStorage 持久化覆盖
+- **Sprint Timeline** —— 模块按 sprint 分组 + 平均进度
+- **Concept Grid** + **System Docs 抽屉** —— 精挑的系统级文档(CLAUDE.md / PRD / DESIGN / RFC / memory / roadmap)一键直达
+- **Body 自动抽取** —— `## 待办` / `## TODO` checklist 自动变 subtasks · `## 关联` / `## Related` 链接列表自动变 `docs:` · frontmatter 不用写重复
+- **子任务 → 自动进度** —— `manualProgress: false` 时从子任务完成比例自动算
+- **抽屉内联 MD 预览** (0.7.1+) —— 点关联文档 · marked.js + highlight.js 在抽屉里直接渲染 · "返回模块" 一键回卡片视图
+- **空 docs · 复制提示词 CTA** (0.8.0+ · 0.9.0 重做) —— `Plan` / `RFC` / `Spec` 三个 tab · 提示词原文展示 · 单 Copy 按钮 · 粘贴到 Claude Code / Cursor / Codex / Continue / Aider
+- **needs-docs kanban chip** —— active 状态但无 docs 的模块卡片右上挂 amber chip · 一眼看出谁要补
+- **Frontmatter 校验器** (0.9.0+) —— 结构化 `error` / `warn` / `hint` · 含修法建议 + 规范引用 · 每条 issue 都指向 `docs-cockpit-author` 的具体段落
+- **双语 UI** —— 顶栏 `[EN] [中]` 切换 · 默认 EN · localStorage 持久化
+- **树形浏览器** (`docs-cockpit browse`) —— 侧边栏镜像目录结构 · 搜索 + 折叠 + 上次查看记忆 · marked.js + highlight.js 渲染
+
+### 机器可读 sidecar:`state.json`
+
+每次 build 在 HTML 旁写一份 `docs/state.json`。和看板同一份 payload + 校验器的 `issues[]`。`docs-cockpit-standup` skill 读它出叙事 · CI 读它做不变式检查。Schema 自 0.2.0 起稳定(只加字段 · 不删字段)。
+
+## 哲学
+
+- **单文件交付** —— `docs/index.html` 完全自包含 · 无 localhost · 无 build pipeline · 无 JS 框架 · 运行时零网络。可以丢进 Slack DM 也可以 commit 进仓库。
+- **Frontmatter 即 schema** —— 每个模块都是人类可读、同时 frontmatter 机器可解析的 markdown 文件。没有私有数据库。
+- **一套规范统一一切** (`docs-cockpit-author`) —— schema 写在一个 skill 里 · Claude 和人共享这份文档。校验器逐字段引用它。**不再每次写文档都问 Claude "frontmatter 该填啥"**。
+- **校验可选但要可操作** —— 每条 `❌` 与 `⚠️` 都带 `💡 fix` 和 `📚 see`。输出可 grep · IDE 能消费 · CI 能用。
+- **`file://` 优先** —— 不依赖 webserver。浏览器的 file:// 安全模型就是发布目标。
+- **原子升级** —— `docs-cockpit upgrade` 把"清 plugin cache"和"提示重启"压在一步里。Ghost state(CLI 升级后 plugin 仍跑老 SKILL.md)就是这条命令在防的。
+- **跨平台** —— 纯 Python 3.10+ + `pyyaml`。同一份 YAML 在 Windows / macOS / Linux 跑出同一份 HTML。
+
+## 项目结构
+
+```
+your-project/
+├── docs-cockpit.yaml              ← 配置(你写 · `init` 给脚手架)
+├── docs/
+│   ├── index.html                 ← BUILD 产物 · 看板(给人看)
+│   ├── browse.html                ← BUILD 产物 · 树形侧边栏阅读器(可选)
+│   ├── state.json                 ← BUILD 产物 · 机器可读 payload + issues[]
+│   ├── spec/
+│   │   ├── module/M01-*.md        ← 模块规范(frontmatter → Kanban 卡)
+│   │   └── concept/C01-*.md       ← 概念规范(frontmatter → Concept Grid)
+│   ├── plans/2026-MM-DD-<id>-plan.md   ← 执行计划(通过 `docs:` 关联回模块)
+│   ├── RFC/<NNN>-*.md             ← 技术决策
+│   └── PRD.md                     ← 作为 `system_docs` 条目展示
+├── CLAUDE.md                       ← 作为 `system_docs` 条目展示
+└── .git/
+```
+
+## 最小 `docs-cockpit.yaml`
+
+```yaml
+project:
+  name: MyProject
+  mark: M                          # 单字符 wordmark
+  tagline: "模块进度 + sprint 追踪"
+  output: docs/index.html
+
+paths:
+  repo: "."                        # 还可用 {home} / {env:VAR} / {main_repo}
+
+system_docs:
+  - { id: claude-md, title: CLAUDE.md, path: "{repo}/CLAUDE.md",  desc: "AI 协作约定", icon: memory }
+  - { id: prd,       title: PRD.md,    path: "{repo}/docs/PRD.md", desc: "产品需求文档", icon: doc }
+
+modules:
+  scan:
+    dir: "{repo}/docs/spec/module"
+    title_transform: prefix-dot-titlecase
+
+concepts:
+  scan:
+    dir: "{repo}/docs/spec/concept"
+    title_transform: prefix-dot-titlecase
+```
+
+## Frontmatter(看板读的就是这块)
+
+```yaml
 ---
-id: M07
-title: Job FSM
-status: in-progress
+id: M07                              # 必填 · 没有就被看板丢掉
+type: module                         # module | concept | plan | rfc | spec
+title: "Job / Task FSM"
+status: in-progress                  # not-started | planned | in-progress | blocked | done | deferred
 sprint: M1.2
-progress: 45
-desc: "12 类 FSM 状态机"
-subtasks:
-  - { title: "核心实体定义", done: true }
-  - { title: "字段校验", done: false }
----
-```
-
-或者 —— **直接在 body 写 `## TODO` / `## 待办`** checklist · docs-cockpit 自动提取为 subtasks(0.4.0+):
-
-```markdown
----
-id: M07
-title: Job FSM
-status: in-progress
+progress: 60                         # 0-100 · 会与 status 做区间一致性校验
+desc: "Job 生命周期状态机 · 驱动 worker 调度"
+owner: harvey
+prd_ref: "§7.4.1"
+docs:                                # 链到 plan / RFC / spec
+  - { title: "执行计划", path: "docs/plans/2026-05-03-m07-fsm-plan.md" }
+depends_on: [M06]
+blocks: [M08, M09]
+subtasks:                            # 或在 body 写 `## 待办` —— 二选一都可
+  - { title: "把 FSM enum 接到 Pydantic", done: true }
+  - { title: "worker 从队列拉取下一个状态", done: false }
 ---
 
-# M07 · Job FSM
-
-## 待办
-- [ ] 核心实体定义
-- [x] 字段校验
-- [ ] 跨模型引用约束
+# 模块正文 —— frontmatter 之下随意写
 ```
 
-完整 frontmatter 约定:[references/frontmatter_conventions.md](references/frontmatter_conventions.md)。
-
----
-
-## Install · 按工具选
-
-### A. Claude Code(推荐 · 主路径)
-
-**一行 plugin install + 一行 CLI install + 重启。**
-
-```bash
-# 在 Claude Code 里:
-/plugin marketplace add Guohao1020/docs-cockpit
-
-# 在你的 shell 里:
-pip install git+https://github.com/Guohao1020/docs-cockpit.git
-```
-
-重启 Claude Code → plugin 自动从 GitHub fetch → 3 个 skill + 5 个 slash command 生效。
-
-**自动升级**:在 `~/.claude/settings.json` 的 `extraKnownMarketplaces.docs-cockpit` 加 `"autoUpdate": true`。或者跟 Claude 说 *"升级 docs-cockpit"* · update skill 走完整流程(pip 升级 + plugin cache 强清 + 提示重启)。**Cache 强清这步很重要** · 当前 Claude Code 的 `autoUpdate: true` 不可靠 · 0.3.1+ 的 update flow 自动替你处理。
-
-**`/plugin` 不可用**(老版本 / PR review 等受限 surface) → 手工 merge `~/.claude/settings.json`:
-
-```json
-{
-  "extraKnownMarketplaces": {
-    "docs-cockpit": {
-      "source": { "source": "github", "repo": "Guohao1020/docs-cockpit" },
-      "autoUpdate": true
-    }
-  },
-  "enabledPlugins": {
-    "docs-cockpit@docs-cockpit": true
-  }
-}
-```
-
-#### 说人话自动触发(skill auto-trigger)
-
-| 你说 | Claude 触发 |
-|---|---|
-| "把 docs 做成 dashboard" / "Make a project Kanban" | `docs-cockpit` → 写 yaml + 跑 `build` |
-| "浏览项目所有 md" / "读所有 ADR" | `docs-cockpit` → 跑 `browse` |
-| "迁移这个 legacy 项目" / "我项目用 docs/plans/, 帮我迁" | `docs-cockpit` → 跑 `migrate`(先 dry-run · 用户确认后 `--apply`) |
-| "哪些 module 卡了" / "sprint M1.2 进度" / "weekly standup" | `docs-cockpit-status` → 读 `state.json` · 叙述输出 |
-| "升级 docs-cockpit" / "update docs-cockpit" | `docs-cockpit-update` → pip 升级 + plugin cache 强清 + 重启提示 |
-
-#### 显式 slash command
-
-- `/docs-cockpit:build` · Dashboard build → `docs/index.html` + `docs/state.json`
-- `/docs-cockpit:browse [--dir <path>]` · MD 浏览器 → `docs/browse.html`
-- `/docs-cockpit:migrate [--apply]` · Legacy 布局迁移(默认 dry-run · `--apply` 真执行)
-- `/docs-cockpit:status [问题]` · 读 state.json 答状态查询
-- `/docs-cockpit:update` · 两层升级 workflow
-
-### B. 其他 vibe coding 工具 · 手动复制 skill
-
-**Codex / Cursor / Gemini / OpenCode** 等(有 `~/.claude/skills/` 类似 skill loading 机制):
-
-```bash
-# 仓 clone 到本地
-git clone https://github.com/Guohao1020/docs-cockpit.git ~/.tools/docs-cockpit
-
-# 复制 skill 到你工具的 skill 目录
-# (把 <skills-dir> 换成你工具路径 · 比如 ~/.codex/skills/、~/.cursor/skills/)
-cp -r ~/.tools/docs-cockpit/skills/docs-cockpit         <skills-dir>/
-cp -r ~/.tools/docs-cockpit/skills/docs-cockpit-status  <skills-dir>/
-cp -r ~/.tools/docs-cockpit/skills/docs-cockpit-update  <skills-dir>/
-
-# 还要装 CLI · skill 才能调
-pip install git+https://github.com/Guohao1020/docs-cockpit.git
-```
-
-重启你的工具。skill 按同样的自然语言短语触发(SKILL.md 里的 Claude-specific 路径语法可能要微调)。
-
-> **需要 Python ≥ 3.10**。系统默认 Python 更老 · 用 [`uv`](https://docs.astral.sh/uv/):`uv tool install --python 3.11 git+https://github.com/Guohao1020/docs-cockpit.git`。
-
----
-
-## 配置(给 `docs-cockpit build` 用)
-
-Dashboard 的 `docs-cockpit.yaml` 有 4 个顶层数据 block:
-
-```yaml
-project:        { name, mark, tagline, eyebrow, output }
-paths:          { repo, ... 任意自定义变量 }
-system_docs:    [ { id, title, path, desc, icon } ... ]   # 手挑常驻入口
-modules:        { files / scan / glob }                    # frontmatter 驱动 dashboard 卡片
-concepts:       { files / scan / glob }                    # 简化 grid 卡片
-frontmatter:    { enabled, status_progress_ranges }
-```
-
-`docs-cockpit browse` **不需要任何 yaml** · 默认扫项目 + `~/.claude/{plans,projects}/<project>/`。用 `--dir` 覆盖。
-
-参考:
-- [`docs_cockpit/examples/full.yaml`](docs_cockpit/examples/full.yaml) · 完整参考配置(6 system_docs + 模块扫描 + 概念扫描 + frontmatter 治理)
-- [`docs_cockpit/examples/minimal.yaml`](docs_cockpit/examples/minimal.yaml) · 最小可用配置
-- [`references/config_reference.md`](references/config_reference.md) · 每个字段的语义和默认值
-- [`references/frontmatter_conventions.md`](references/frontmatter_conventions.md) · 模块 / 概念的 frontmatter 字段 + body 兜底提取规则(`## TODO` → subtasks 等)
-
----
-
-## 日常工作流
-
-### Dashboard build
-
-```bash
-docs-cockpit build                          # 默认读 ./docs-cockpit.yaml
-docs-cockpit build -c configs/preview.yaml  # 指定配置
-docs-cockpit build --debug                  # 打印解析后路径变量(排错神器)
-```
-
-每次 build 覆写 `docs/index.html` + `docs/state.json`。浏览器 `Ctrl+R` 看新内容。
-
-### Markdown browser
-
-```bash
-docs-cockpit browse                              # 默认:扫项目 + ~/.claude
-docs-cockpit browse --dir docs/adrs              # 限定某子目录
-docs-cockpit browse --output docs/adrs.html      # 自定义输出
-docs-cockpit browse --no-claude                  # 跳过 ~/.claude 扫描
-```
-
-每次跑重新生成 HTML · 没有 live watch。编辑 MD 后重跑 + `Ctrl+R`。
-
-### Legacy 项目迁移
-
-```bash
-docs-cockpit migrate                # dry-run · 只 print 计划 · 不动文件
-docs-cockpit migrate --apply        # 真执行 · git mv 文件 + 注入 frontmatter + 写 yaml
-docs-cockpit migrate --apply --keep-originals   # 复制不移动
-```
-
-Migrate 自动分类 legacy 布局(`docs/plans/` / `docs/adrs/` / `docs/superpowers/plans/` → modules; `docs/PRD/` / `docs/RFC/` / `docs/architecture/` → system_docs)· 生成 ID 前缀的 frontmatter(`M01-*.md`、`M02-*.md`...)。
-
-### 嵌进 git workflow(可选 · 强烈推荐)
-
-cockpit 持续更新才有用。三种 pattern:
-
-**Pre-commit hook**(零负担):
-
-```bash
-# .git/hooks/pre-commit
-#!/bin/bash
-if git diff --cached --name-only | grep -E '\.md$|\.yaml$' > /dev/null; then
-  docs-cockpit build
-  git add docs/index.html docs/state.json
-fi
-```
-
-**CI 检查**(严格):
-
-```yaml
-# .github/workflows/docs.yml
-- run: pip install git+https://github.com/Guohao1020/docs-cockpit.git
-- run: docs-cockpit build
-- run: git diff --exit-code docs/index.html docs/state.json
-```
-
-**CONTRIBUTING 约定**(最轻):
-
-> 任何 PR 涉及 `*.md` 必须重跑 `docs-cockpit build` 并 commit 重新生成的产物。
-
-### `docs/index.html` 入库还是 gitignore?
-
-**入库** · clone 后 `start docs/index.html` 立即能用 · 适合内部工具 / 团队预览。GitHub 上 `docs/` 视图更好。
-
-**ignore** · 仓库轻量 · 每次本地 build · 适合公开项目 / 不爱 binary diff 的 maintainer。
-
----
+完整规范见 `docs-cockpit-author` skill —— 含 "docs vs subtasks 决策" · 文件命名约定 · status × progress 不变式 · 跨文档引用规则。
 
 ## 升级
-
-**0.7.0+ 推荐:一条命令搞定。**
 
 ```bash
 docs-cockpit upgrade
 ```
 
-就这一条。CLI 自动检测你的 install backend(pip / uv / pipx / editable)· 显示 CHANGELOG diff · 跑对应升级命令 · 然后**根据 plugin SKILL.md 是否真改了**自动决定要不要重启 Claude Code。
+整条流(0.7.0+)。后端检测 · 版本对比 · CHANGELOG diff · 让你确认 · 跑升级命令 · 如果 plugin SKILL.md 变了 · 原子清 cache + 提示重启。`--dry-run` 看计划 · `--yes` 非交互。
 
-- **CLI-only patch 版本**(0.x.Y → 0.x.Y+1):不用重启 · 新功能立即生效
-- **动 plugin 的 minor 版本**(0.X → 0.X+1):自动清 cache + 告诉你 30 秒内退 Claude Code(原子操作 · 没有 ghost-state 风险)
+## 与 AI 编辑器协同
 
-在 Claude Code 里 · 跟 Claude 说 *"升级 docs-cockpit"* · `docs-cockpit-update` skill 帮你跑这条命令。
+空 docs CTA 生成的提示词支持以下主流编辑器:
 
-### 可用 flag
+- **Claude Code** + **[superpowers](https://github.com/obra/superpowers)** —— 它的 `/plan` `/spec` `/rfc` skill 出脚手架 · 之后 docs-cockpit-author 对齐 frontmatter
+- **Claude Code** + **gstack** —— 它的 plan / spec / rfc 生成器同样接得上
+- **Cursor / Codex / Continue / Aider** —— 把复制好的提示词粘进 chat · 编辑器把文件写出来
 
-```bash
-docs-cockpit upgrade --dry-run          # 只 print 计划 · 不动
-docs-cockpit upgrade --yes              # 非交互
-docs-cockpit upgrade --no-clear-cache   # 不自动清 cache(手工控制)
-docs-cockpit upgrade --skip-changelog   # 不 fetch CHANGELOG(网络慢时加速)
-```
+不管走哪条 · AI 写完后,`docs-cockpit lint` 都是"这文件能不能正确渲染"的唯一真相。
 
-### 手动兜底(pre-0.7.0 或上面失败)
+## 贡献
+
+欢迎 PR。开发环：
 
 ```bash
-# 1. CLI 升
-pip install --upgrade git+https://github.com/Guohao1020/docs-cockpit.git
-# 或: uv tool upgrade docs-cockpit
-
-# 2 + 3. 原子操作 · 清 plugin cache + 立即重启 Claude Code(两步不能分开)
-rm -rf ~/.claude/plugins/cache/*docs-cockpit*                                # POSIX
-# Windows: Remove-Item -Recurse -Force "$env:USERPROFILE\.claude\plugins\cache\*docs-cockpit*"
-# → 跑完立即退 Claude Code 完整重开
+git clone https://github.com/Guohao1020/docs-cockpit
+cd docs-cockpit
+pip install -e .              # editable 安装
+docs-cockpit build -c docs_cockpit/examples/minimal.yaml --debug
 ```
 
-### 验证
-
-升完(必要时重启):
-
-- `/plugin` UI 看 `docs-cockpit` 版本号是新的
-- Skills 列表显示 6 个 slash command(0.7.0+):`/build`、`/browse`、`/migrate`、`/status`、`/update`、`/upgrade`
-- 再跑一次 `docs-cockpit upgrade` 应该报 `✓ Already up to date`
-
-### 如果撞 ghost state
-
-Directory 里有 docs cockpit · 但 sidebar 看不到?你把清 cache 和重启分开做了。恢复方法:
-
-1. 完整重启 Claude Code · 30% 概率自动恢复
-2. 不行 → Directory → Plugins → Docs cockpit → **Uninstall** · 重启 · 重 add marketplace · install
-3. 终极 → 手工删 `~/.claude/settings.json` 里 `extraKnownMarketplaces` 和 `enabledPlugins` 的 docs-cockpit 条目 · 重启 · 重 add
-
-**`docs-cockpit upgrade`(0.7.0+)就是为消除这种情况而生**。能用就别走手动。
-
-### 升级会破坏配置吗?
-
-- `0.x.y` patch / minor 版本:向后兼容(除非 CHANGELOG 标 breaking)
-- `0.x → 1.0`:CHANGELOG 列迁移路径
-- 未知字段静默忽略 · 加新字段不破坏老版本
-
-完整版本历史见 [CHANGELOG.md](CHANGELOG.md)。
-
----
-
-## 故障排查 · 高频问题
-
-| 现象 | 大概率原因 | 修法 |
-|---|---|---|
-| `[WARN] 0 items` 跑 build | `paths.repo` 错 / modules/concepts 路径没扫到 MD | `docs-cockpit build --debug` 看 vars dict |
-| 模块没进 Kanban 卡板 | MD 缺 `id:` frontmatter · 或 id 是模板占位(`MXX`)| 加 `id: M07` 等 · 见 `references/frontmatter_conventions.md` |
-| Drawer 子任务空 · 但 MD body 有 `## TODO` | section header 不匹配 · 必须是 `## 待办` / `## TODO` / `## Subtasks` / `## Tasks`(可带数字前缀)| 见 `references/frontmatter_conventions.md` body 提取规则 |
-| 浏览器顶部红 banner | CDN 拉不到 marked.js / highlight.js | 内网用户:vendor JS 到本地 · 暂未支持 · 开 issue |
-| YAML 报 unknown-key | typo · schema 严格 | 在 `references/config_reference.md` 查拼写 |
-| Plugin 重启后版本没变 | Plugin 缓存陈旧 · `autoUpdate` 不可靠 | 强清 cache · 见上方 升级 段第 2 步 |
-| `pip install` 报 "requires-python: >=3.10" | 系统 Python 太老 | 切 `uv tool install --python 3.11 git+...` |
-
-深度排错见 `skills/docs-cockpit/SKILL.md` 末尾的 "Common failure modes" 节。
-
----
-
-## 文档索引
-
-### Skills(Claude 自动触发)
-- [`skills/docs-cockpit/SKILL.md`](skills/docs-cockpit/SKILL.md) · 操作型 skill(setup / build / browse / migrate workflow)
-- [`skills/docs-cockpit-status/SKILL.md`](skills/docs-cockpit-status/SKILL.md) · 读状态 skill(解读 `state.json` 给周报)
-- [`skills/docs-cockpit-update/SKILL.md`](skills/docs-cockpit-update/SKILL.md) · 自动升级 skill(CLI + plugin 双层)
-
-### Slash commands
-- [`commands/build.md`](commands/build.md) · `/docs-cockpit:build`
-- [`commands/browse.md`](commands/browse.md) · `/docs-cockpit:browse`
-- [`commands/migrate.md`](commands/migrate.md) · `/docs-cockpit:migrate`
-- [`commands/status.md`](commands/status.md) · `/docs-cockpit:status`
-- [`commands/update.md`](commands/update.md) · `/docs-cockpit:update`
-
-### Reference 文档
-- [`references/config_reference.md`](references/config_reference.md) · `docs-cockpit.yaml` 全字段 schema
-- [`references/frontmatter_conventions.md`](references/frontmatter_conventions.md) · frontmatter 字段约定 + body 提取规则
-- [`references/design_tokens.md`](references/design_tokens.md) · CSS token / 品牌色 / 字体 / 暗色模式
-
-### 示例(pip wheel 内置)
-- [`docs_cockpit/examples/minimal.yaml`](docs_cockpit/examples/minimal.yaml) · 最小可用配置
-- [`docs_cockpit/examples/full.yaml`](docs_cockpit/examples/full.yaml) · 完整参考配置
-
-### 代码
-- `docs_cockpit/build.py` · dashboard build + state.json + body 提取
-- `docs_cockpit/browse.py` · markdown 浏览器
-- `docs_cockpit/migrate.py` · legacy 布局迁移
-- `docs_cockpit/templates/index.html.tmpl` · dashboard 模板(含 i18n)
-- `docs_cockpit/templates/browse.html.tmpl` · browser 模板(含 i18n)
-
-### Meta
-- [`CHANGELOG.md`](CHANGELOG.md) · 每版本的发布记录 + 迁移说明
-- [`README.md`](README.md) · English README
-
-> 注:SKILL.md 和 `references/*.md` 仍是中文优先。README 和 HTML 产出有完整 EN/ZH 双语支持(顶部 toggle)。
-
----
+新增 skill 时,参考现有三个的写法(`skills/docs-cockpit*/SKILL.md`)—— frontmatter 的 `description` 要"pushy"(宁可过度触发也别欠触发)· body 解释 **why**,而不是只列 **what**。
 
 ## License
 
-MIT
+MIT · 见 [LICENSE](LICENSE)。
+
+## 社区
+
+- Issues: <https://github.com/Guohao1020/docs-cockpit/issues>
+- Release notes: [CHANGELOG.md](CHANGELOG.md)
