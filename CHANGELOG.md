@@ -4,6 +4,112 @@
 
 ## [Unreleased]
 
+## [0.9.0] · 2026-05-15
+
+把"怎么写出能被看板接住的文档"从口耳相传/反复试错变成**一套被代码强制的统
+一规范**。同时按用户反馈打理了 UX 与 skill/command 命名冲突。
+
+### Why · 用户实测的三个症结
+
+> 1. "提示词需要让人看到再复制" — 0.8.0 是 3 个直接 copy 按钮 · 用户不知道
+>    复制了啥
+> 2. "你就默认把侧边栏拉宽" — 540px 太窄 · 表格 / prompt / 长文都不够看
+> 3. "现在的子任务关联逻辑和文档关联逻辑,太差了,人都很难梳理 · 必须做
+>    出一个统一的规范 · 如果检测到用户不符合标准要二次确认"
+> 4. "skill 名称和 command 名称尽量别重复 · 不然两个一样的命令"
+
+### Added · `docs-cockpit-author` skill(统一规范源头)
+
+按 skill-creator 写法原则起草:**这是 docs-cockpit 项目里"如何写文档"的
+canonical spec**。写在一处 · 改在一处。覆盖:
+
+- **§1 · The five doc kinds** — module / concept / plan / RFC / spec 各自
+  的"什么时候用"判别式
+- **§2 · Frontmatter schema** — required vs recommended 字段 · status enum ·
+  status × progress 区间 · type enum · 跨文档引用字段(docs / depends_on /
+  blocks / prd_ref)
+- **§3 · "docs vs subtasks" 决策** — 把用户痛点直接拆掉:
+  - subtasks · 该 doc 自己的工作项 → 子任务清单
+  - docs · 链接到其他详述文档 → 关联文档
+  - 各自两种 form(frontmatter list / body section)+ frontmatter 优先规则
+- **§4 · File naming** — 路径模板 + slug 规则
+- **§5 · Validation flow** — `❌`/`⚠️`/`💡` 三档分别怎么处理 · 修前必须
+  跟用户确认(error 一律确认 · hint 可批量 · warn 看情况)
+- **§6 · Copy-prompt CTA 协议** — 用户从看板复制提示词到 AI 编辑器后,
+  对应 AI 应按 §2-§4 写文档 · 写完后回去更新源 module 的 docs:
+- **§7 · 与 superpowers / gstack 等工具的 interop**
+- **§8 · 反模式清单** — 不要把 checkbox 塞进 docs: 等
+
+Trigger 设计采用 skill-creator 推荐的 pushy 描述:不只是"用户说 author 才
+触发",而是"凡是要写 plan / RFC / spec / module-MD,凡是 build 报 ❌/⚠️/💡,
+凡是用户问 frontmatter 怎么填 → 都触发"。
+
+### Added · `docs-cockpit lint` CLI + `build --strict`
+
+`docs-cockpit/build.py` 把 validator 从干瘪 warning 升级成结构化 Issue:
+
+- 每条 issue 含 `severity / path / field / message / suggestion / reference`
+- severity 三档:
+  - `error` · 看板根本接不住(no id / unknown status / progress 非数值)
+  - `warn` · 看板能接住但 UX 烂(no status / progress 出范围)
+  - `hint` · 锦上添花(no desc / active 模块 no docs)
+- 终端输出三段式:`❌ M07 · id: missing required ... · 💡 fix: add id: ... ·
+  📚 see: docs-cockpit-author §2.1`
+- state.json 多一个 `issues[]` 字段(structured · 给 IDE / CI 消费),
+  老的 `warnings[]` 保留兼容(只有 message)
+
+新 CLI 子命令:
+
+```bash
+docs-cockpit lint               # 校验全部 module/concept · 不 build · 退出 1 if any error
+docs-cockpit lint --json        # 给 CI / IDE 消费
+docs-cockpit lint --strict-warn # warn 也升 error
+docs-cockpit build --strict     # build 仍写 HTML · 但 error 时退出 3(CI 用)
+```
+
+新 slash command:`/docs-cockpit:lint`。
+
+### Changed · drawer 默认宽度 540 → 720
+
+预览模式仍 960。0.7.2 是"默认窄 · 预览才宽",0.9.0 改成"默认就够看 · 预
+览再宽一档",照顾"模块 desc + status + progress + subtask 一屏看全"。
+
+### Changed · empty-docs CTA 重做(0.8.0 痛点)
+
+0.8.0 的 3 个直接 copy 按钮 → 0.9.0 的"tab 切换 + 提示词原文展示 + 单 Copy":
+
+- Tab 条:`Plan` / `RFC` / `Spec` · 各自带一行解释"什么时候选这个"
+- 提示词全文展示在等宽 `<pre>` 里 · 用户先看清(长度 / 替换变量 / 是否要
+  手工微调)再决定是否复制
+- 单个 Copy 按钮 · 复制后变成 `✓ 已复制` 反馈
+- 字符数 meta:"X 字 · 粘贴到 AI 编辑器对话框即可"
+- `copyDocPrompt()` 拆成 `buildDocPrompt()`(返回文本,不复制)+ 复制路径,
+  让 tab 切换能 preview 不污染剪贴板
+
+### Changed · skill 重命名(消除 skill/command 命名冲突)
+
+| 0.8.0                    | 0.9.0                       | 原因                    |
+|--------------------------|-----------------------------|------------------------|
+| `docs-cockpit-status`    | `docs-cockpit-standup`      | 跟 `/status` 命令名重复 |
+| `docs-cockpit-update`    | (删除 · 合并入 `docs-cockpit`) | 跟 `/update` 命令名重复 + CLI `docs-cockpit upgrade` 已接管 |
+| `docs-cockpit`           | `docs-cockpit`              | 不变                    |
+| —                        | `docs-cockpit-author` (新)   | 新增统一规范 skill       |
+
+最终 3 skills:`docs-cockpit` (写 cockpit) · `docs-cockpit-standup` (读 +
+narrative) · `docs-cockpit-author` (写单个项目 doc)。
+
+`docs-cockpit/SKILL.md` 把原 `docs-cockpit-update` 的升级触发逻辑(用户说
+"update docs-cockpit" / 看到 banner 时)折进来,trigger 部分相应扩展。
+
+### Migration
+
+- 用户卸载 plugin 后重装(`docs-cockpit upgrade` 帮你做),0.8.x 的 trigger
+  短语("升级 docs-cockpit" / "what's blocked")仍然命中,但内部路由到了
+  新名字的 skill。
+- state.json 仍兼容老 status skill — `warnings[]` 字段没去。
+- 用户已有的 `docs/spec/module/*.md` 不动 — 规范是 RECAP,不强制改写存量。
+  但下次 build 会用新 validator 报 hint(no desc / no docs),按需修。
+
 ## [0.8.0] · 2026-05-15
 
 把"build 后无 docs:"从一个静默缺失变成可操作 UX:active 模块在 kanban

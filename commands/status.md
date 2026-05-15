@@ -2,7 +2,7 @@
 description: Read docs/state.json and answer a status / progress / standup question about the project
 ---
 
-Explicit invocation of the `docs-cockpit-status` skill. Use this when the user wants project status quickly — without typing out "what's blocked" or "give me a weekly status report".
+Explicit invocation of the `docs-cockpit-standup` skill (renamed from `docs-cockpit-status` in 0.9.0). Use this when the user wants project status quickly — without typing out "what's blocked" or "give me a weekly status report".
 
 ## Argument handling
 
@@ -20,10 +20,10 @@ The user can pass their question as the argument after the command:
 
 2. **Handle missing state.json:**
    - If state.json doesn't exist → tell user `/docs-cockpit:build` first
-   - If state.json uses 0.1.x shape (has `groups[]` / `cards[]` / `kpi{}` instead of `modules[]` / `concepts[]` / `systemDocs[]`) → user's CLI is pre-0.2.0 · suggest `/docs-cockpit:update` first
+   - If state.json uses 0.1.x shape (has `groups[]` / `cards[]` / `kpi{}` instead of `modules[]` / `concepts[]` / `systemDocs[]`) → user's CLI is pre-0.2.0 · suggest `docs-cockpit upgrade` first
    - If state.json `lastBuild` > 7 days ago → warn the data may be stale, but still answer
 
-3. **Parse the question + read the right slice.** Match the table in `skills/docs-cockpit-status/SKILL.md`:
+3. **Parse the question + read the right slice.** Match the table in `skills/docs-cockpit-standup/SKILL.md`:
 
    | Question shape | Read |
    |---|---|

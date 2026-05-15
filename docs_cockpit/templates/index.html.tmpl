@@ -592,7 +592,9 @@ a:hover { text-decoration: underline; }
 .scrim.open { opacity: 1; pointer-events: auto; }
 .drawer {
   position: fixed; top: 0; right: 0; bottom: 0;
-  width: min(540px, 100vw);
+  /* 0.9.0:默认 720px(0.8.x 是 540px · 用户实测 prompt + 表格 / 长文都不够看)
+     · 仍保留响应式 fallback · 极小屏 96vw 让出页面边距 */
+  width: min(720px, 96vw);
   background: var(--c-paper);
   z-index: 90;
   transform: translateX(100%);
@@ -735,7 +737,9 @@ a:hover { text-decoration: underline; }
   font-size: 12px;
   color: var(--c-graphite);
 }
-/* 0.8.0:empty-docs CTA panel · 替换"无关联文档"为可操作 prompt-copy 面板 */
+/* 0.8.0 / 0.9.0:empty-docs CTA panel · 显示提示词原文 → 一键复制
+   · 0.8.0 是 3 个直接 copy 按钮(用户实测不直观:不知道复制了啥)
+   · 0.9.0 改成"tab 切换 doc 类型 + 实时渲染 prompt + 单 Copy 按钮" */
 .docs-empty-cta {
   border: 1px solid #fbcfe8;
   background: linear-gradient(180deg, #fff7ed 0%, #ffedd5 100%);
@@ -762,29 +766,78 @@ a:hover { text-decoration: underline; }
   padding: 1px 5px;
   border-radius: 3px;
 }
-.docs-empty-cta .cta-buttons {
-  display: flex; flex-wrap: wrap; gap: 6px;
+/* 0.9.0:tab 条 — 切换 Plan / RFC / Spec */
+.docs-empty-cta .cta-tabs {
+  display: flex; gap: 4px;
+  border-bottom: 1px solid #fcd34d;
   margin-bottom: 10px;
 }
-.docs-empty-cta .cta-buttons button {
-  background: var(--c-paper);
-  border: 1px solid #fdba74;
+.docs-empty-cta .cta-tabs button {
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  font: 500 12px/1 var(--f-sans);
   color: #9a3412;
-  font: 500 11.5px/1 var(--f-sans);
-  padding: 7px 11px;
-  border-radius: var(--r-md);
+  padding: 7px 10px 8px;
   cursor: pointer;
-  transition: background 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s;
-  display: inline-flex; align-items: center; gap: 5px;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+  border-radius: var(--r-md) var(--r-md) 0 0;
 }
-.docs-empty-cta .cta-buttons button:hover {
-  background: #fed7aa;
-  border-color: #fb923c;
+.docs-empty-cta .cta-tabs button:hover {
+  background: rgba(251, 146, 60, 0.12);
   color: #7c2d12;
 }
-.docs-empty-cta .cta-buttons button:active {
-  background: #fdba74;
-  box-shadow: 0 0 0 2px rgba(251, 146, 60, 0.35) inset;
+.docs-empty-cta .cta-tabs button.active {
+  background: var(--c-paper);
+  border-bottom-color: #ea580c;
+  color: #7c2d12;
+  font-weight: 600;
+}
+.docs-empty-cta .cta-tab-desc {
+  font-size: 11px;
+  line-height: 1.5;
+  color: #7c2d12;
+  opacity: 0.85;
+  margin-bottom: 8px;
+}
+/* 0.9.0:prompt 原文展示 · 等宽 + 可滚动 · 让用户先看清再复制 */
+.docs-empty-cta .cta-prompt-view {
+  background: var(--c-paper);
+  border: 1px solid #fcd34d;
+  border-radius: var(--r-md);
+  padding: 10px 12px;
+  max-height: 380px;
+  overflow: auto;
+  font-family: var(--f-mono);
+  font-size: 11.5px;
+  line-height: 1.55;
+  color: var(--c-ink);
+  white-space: pre-wrap;
+  word-break: break-word;
+  margin-bottom: 10px;
+}
+.docs-empty-cta .cta-copy-row {
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 8px;
+}
+.docs-empty-cta .cta-copy-btn {
+  background: #ea580c;
+  border: 1px solid #c2410c;
+  color: #fff;
+  font: 600 12px/1 var(--f-sans);
+  padding: 8px 14px;
+  border-radius: var(--r-md);
+  cursor: pointer;
+  display: inline-flex; align-items: center; gap: 6px;
+  transition: background 0.15s, transform 0.05s;
+}
+.docs-empty-cta .cta-copy-btn:hover { background: #c2410c; }
+.docs-empty-cta .cta-copy-btn:active { transform: translateY(1px); }
+.docs-empty-cta .cta-copy-meta {
+  font-size: 10.5px;
+  color: #9a3412;
+  font-family: var(--f-mono);
 }
 .docs-empty-cta .cta-tools-hint {
   font-size: 10.5px;
@@ -1542,6 +1595,15 @@ a:hover { text-decoration: underline; }
       'empty_docs.copy_plan': 'Copy Plan prompt',
       'empty_docs.copy_rfc': 'Copy RFC prompt',
       'empty_docs.copy_spec': 'Copy Spec prompt',
+      'empty_docs.tab_plan': 'Plan',
+      'empty_docs.tab_rfc': 'RFC',
+      'empty_docs.tab_spec': 'Spec',
+      'empty_docs.tab_plan_desc': 'Time-boxed execution plan with milestones, scope, and a `## TODO` checklist. Use when you know what to build and need a roadmap.',
+      'empty_docs.tab_rfc_desc': 'Technical decision doc — compares options and records the rationale. Use when there is a non-obvious design choice to make.',
+      'empty_docs.tab_spec_desc': 'Formal interface contract (API / data model / errors). Use when other modules will depend on this one and need a stable shape.',
+      'empty_docs.copy_btn': 'Copy prompt to clipboard',
+      'empty_docs.copy_btn_done': '✓ Copied',
+      'empty_docs.copy_meta': '{chars} chars · paste into your AI coding chat',
       'empty_docs.tools_hint': 'Works with Claude Code (superpowers / gstack), Cursor, Codex, Continue, Aider.',
       'kanban.needs_docs_chip': 'docs?',
       'kanban.needs_docs_title': 'This module is active but has no linked docs · open it to copy a prompt-generation snippet.',
@@ -1803,6 +1865,15 @@ a:hover { text-decoration: underline; }
       'empty_docs.copy_plan': '复制 Plan 提示词',
       'empty_docs.copy_rfc': '复制 RFC 提示词',
       'empty_docs.copy_spec': '复制 Spec 提示词',
+      'empty_docs.tab_plan': 'Plan(计划)',
+      'empty_docs.tab_rfc': 'RFC(技术决策)',
+      'empty_docs.tab_spec': 'Spec(接口规范)',
+      'empty_docs.tab_plan_desc': '时间盒执行计划:含里程碑 · 范围 · `## 待办` 子任务清单。**适合**:已知要做什么 · 需要一份路线图。',
+      'empty_docs.tab_rfc_desc': '技术决策文档:对比候选方案 · 留下决策理由。**适合**:有不显然的设计选择要拍板。',
+      'empty_docs.tab_spec_desc': '正式接口契约(API / 数据模型 / 错误码)。**适合**:其他 module 会依赖该 module · 需要稳定的形状。',
+      'empty_docs.copy_btn': '复制提示词到剪贴板',
+      'empty_docs.copy_btn_done': '✓ 已复制',
+      'empty_docs.copy_meta': '{chars} 字 · 粘贴到 AI 编辑器对话框即可',
       'empty_docs.tools_hint': '兼容 Claude Code(superpowers / gstack)· Cursor · Codex · Continue · Aider。',
       'kanban.needs_docs_chip': '待补',
       'kanban.needs_docs_title': '该 module 已在 active 状态但未关联任何文档 · 点开抽屉可一键复制提示词生成 plan/RFC/spec。',
@@ -2267,8 +2338,8 @@ a:hover { text-decoration: underline; }
         );
       }).join('') + '</div>';
     } else {
-      // 0.8.0:替换"无关联文档"为可操作 CTA · 三个 copy-prompt 按钮
-      // 让用户一键把当前 module 的上下文做成提示词 · 粘贴到 AI 编辑器写 plan/RFC/spec
+      // 0.9.0:替换"无关联文档"为 CTA 面板 · tab 切换 + 提示词原文展示 + 单 Copy 按钮
+      // 让用户先看清提示词内容(prompt 长度 / 替换变量是否正确 / 是否要手工微调)再决定复制
       docsHtml =
         '<div class="docs-empty-cta">' +
           '<div class="cta-title">' +
@@ -2276,10 +2347,19 @@ a:hover { text-decoration: underline; }
             '<span>' + escapeHtml(t('empty_docs.title')) + '</span>' +
           '</div>' +
           '<div class="cta-hint">' + t('empty_docs.hint') + '</div>' +
-          '<div class="cta-buttons">' +
-            '<button type="button" data-prompt-kind="plan">📋 <span>' + escapeHtml(t('empty_docs.copy_plan')) + '</span></button>' +
-            '<button type="button" data-prompt-kind="rfc">📋 <span>' + escapeHtml(t('empty_docs.copy_rfc')) + '</span></button>' +
-            '<button type="button" data-prompt-kind="spec">📋 <span>' + escapeHtml(t('empty_docs.copy_spec')) + '</span></button>' +
+          '<div class="cta-tabs" role="tablist">' +
+            '<button type="button" data-prompt-kind="plan" class="active" role="tab" aria-selected="true">' + escapeHtml(t('empty_docs.tab_plan')) + '</button>' +
+            '<button type="button" data-prompt-kind="rfc" role="tab" aria-selected="false">' + escapeHtml(t('empty_docs.tab_rfc')) + '</button>' +
+            '<button type="button" data-prompt-kind="spec" role="tab" aria-selected="false">' + escapeHtml(t('empty_docs.tab_spec')) + '</button>' +
+          '</div>' +
+          '<div class="cta-tab-desc" id="cta-tab-desc">' + escapeHtml(t('empty_docs.tab_plan_desc')) + '</div>' +
+          '<pre class="cta-prompt-view" id="cta-prompt-view"></pre>' +
+          '<div class="cta-copy-row">' +
+            '<button type="button" class="cta-copy-btn" id="cta-copy-btn">' +
+              '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4.5" y="2.5" width="9" height="11" rx="1"/><path d="M2.5 11.5V4.5a1 1 0 0 1 1-1H4"/></svg>' +
+              '<span id="cta-copy-label">' + escapeHtml(t('empty_docs.copy_btn')) + '</span>' +
+            '</button>' +
+            '<span class="cta-copy-meta" id="cta-copy-meta"></span>' +
           '</div>' +
           '<div class="cta-tools-hint">' + escapeHtml(t('empty_docs.tools_hint')) + '</div>' +
         '</div>';
@@ -2451,13 +2531,56 @@ a:hover { text-decoration: underline; }
       });
     });
 
-    // 0.8.0:绑 empty-docs CTA 的 copy-prompt 按钮
-    body.querySelectorAll('.docs-empty-cta .cta-buttons button').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const kind = btn.dataset.promptKind;
-        copyDocPrompt(id, kind);
+    // 0.9.0:绑 empty-docs CTA · tab 切换 + 实时渲染 prompt + 单 Copy 按钮
+    // 默认显示 plan tab · 切 tab 时重新渲染 · Copy 按钮复制当前 tab 内容
+    const ctaEl = body.querySelector('.docs-empty-cta');
+    if (ctaEl) {
+      let currentKind = 'plan';
+      const viewEl = ctaEl.querySelector('#cta-prompt-view');
+      const descEl = ctaEl.querySelector('#cta-tab-desc');
+      const metaEl = ctaEl.querySelector('#cta-copy-meta');
+
+      function renderPrompt(kind) {
+        currentKind = kind;
+        // 高亮当前 tab
+        ctaEl.querySelectorAll('.cta-tabs button').forEach(b => {
+          const on = (b.dataset.promptKind === kind);
+          b.classList.toggle('active', on);
+          b.setAttribute('aria-selected', on ? 'true' : 'false');
+        });
+        // 切 tab 描述
+        descEl.textContent = t('empty_docs.tab_' + kind + '_desc');
+        // 渲染 prompt 全文 + 显示字数 meta
+        const text = buildDocPrompt(id, kind);
+        viewEl.textContent = text;
+        metaEl.textContent = t('empty_docs.copy_meta', { chars: text.length });
+      }
+
+      ctaEl.querySelectorAll('.cta-tabs button').forEach(btn => {
+        btn.addEventListener('click', () => renderPrompt(btn.dataset.promptKind));
       });
-    });
+
+      const copyBtn = ctaEl.querySelector('#cta-copy-btn');
+      const copyLabel = ctaEl.querySelector('#cta-copy-label');
+      if (copyBtn) {
+        copyBtn.addEventListener('click', () => {
+          copyText(
+            viewEl.textContent,
+            () => {
+              copyLabel.textContent = t('empty_docs.copy_btn_done');
+              toast(t('toast.prompt_copied_' + currentKind));
+              setTimeout(() => {
+                copyLabel.textContent = t('empty_docs.copy_btn');
+              }, 1600);
+            },
+            () => toast(t('toast.copy_failed'))
+          );
+        });
+      }
+
+      // 首次渲染:默认 plan
+      renderPrompt('plan');
+    }
 
     openDrawer('module-drawer');
   }
@@ -2499,10 +2622,11 @@ a:hover { text-decoration: underline; }
     }
   }
 
-  // 主流程:把 module 上下文塞进对应 kind 的 prompt 模板 · 复制到剪贴板 · 弹 toast
-  function copyDocPrompt(moduleId, kind) {
+  // 0.9.0:拆出 buildDocPrompt · 返回填好变量的提示词文本(不复制)
+  // 让 CTA 面板的 tab 切换能先 preview 再让用户决定是否 Copy
+  function buildDocPrompt(moduleId, kind) {
     const m = getModule(moduleId);
-    if (!m) return;
+    if (!m) return '';
     const today = new Date().toISOString().slice(0, 10);
     const desc = (m.desc || '').trim();
     const excerpt = (m.bodyExcerpt || '').trim();
@@ -2515,11 +2639,9 @@ a:hover { text-decoration: underline; }
     const projectName = (RAW.project && RAW.project.name) || 'this project';
     const tmpl = t('prompt.' + kind);
     if (!tmpl || tmpl === ('prompt.' + kind)) {
-      // 找不到模板 · 兜底:用 plan
-      toast(t('toast.copy_failed'));
-      return;
+      return '';
     }
-    const text = fillTemplate(tmpl, {
+    return fillTemplate(tmpl, {
       project: projectName,
       id: m.id,
       idLower: m.id.toLowerCase(),
@@ -2531,6 +2653,12 @@ a:hover { text-decoration: underline; }
       date: today,
       descOrExcerpt: descOrExcerpt,
     });
+  }
+
+  // 旧接口保留 · 直接 build → copy(仍然给键盘快捷键 / 老调用兜底用)
+  function copyDocPrompt(moduleId, kind) {
+    const text = buildDocPrompt(moduleId, kind);
+    if (!text) { toast(t('toast.copy_failed')); return; }
     copyText(
       text,
       () => toast(t('toast.prompt_copied_' + kind)),

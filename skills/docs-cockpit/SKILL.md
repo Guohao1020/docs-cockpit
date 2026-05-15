@@ -1,24 +1,44 @@
 ---
 name: docs-cockpit
 description: |
-  Set up and maintain a docs-cockpit — a self-contained single-HTML **dashboard** for project module / sprint / progress tracking. Aggregates a project's `docs/spec/module/*.md` + `docs/spec/concept/*.md` (driven by YAML frontmatter: id / status / sprint / progress / desc / subtasks / docs) into one `file://`-openable page with topbar, hero, KPI strip, module Kanban, Sprint Timeline, and Concept Grid. System docs (CLAUDE.md / DESIGN.md / PRD / RFC index / memory / roadmap) appear in a separate "系统文档" drawer. Module cards open drawer with desc + status select + progress slider + subtask checklist (localStorage-persisted overrides). Each build also writes `docs/state.json` for the sibling `docs-cockpit-status` skill.
+  Set up and maintain a docs-cockpit — a self-contained single-HTML **dashboard** for project module / sprint / progress tracking. Aggregates a project's `docs/spec/module/*.md` + `docs/spec/concept/*.md` (driven by YAML frontmatter: id / status / sprint / progress / desc / subtasks / docs) into one `file://`-openable page with topbar, hero, KPI strip, module Kanban, Sprint Timeline, Concept Grid, and a "System Docs" drawer (CLAUDE.md / PRD / RFC index / memory / roadmap). Module cards open drawer with desc + status select + progress slider + subtask checklist (localStorage-persisted overrides) + linked-docs inline preview. Each build writes `docs/state.json` for `docs-cockpit-standup` (status narratives) and includes structured `issues[]` (referencing `docs-cockpit-author` for spec). Also handles **upgrading docs-cockpit itself** via `docs-cockpit upgrade` CLI (since 0.7.0).
 
-  TRIGGER this skill when the user wants to (a) bootstrap a docs-cockpit dashboard for a project, (b) extend an existing config to scan new module / concept directories, (c) wire frontmatter status / progress / sprint / desc / docs / subtasks conventions so modules show up as cards, (d) curate the `system_docs` list (CLAUDE.md / PRD / memory / etc), (e) wire build into pre-commit / CI to keep `docs/index.html` from going stale, (f) debug build issues (0 modules / wrong status / frontmatter warnings / yaml schema errors). Common phrasings: "把项目做成 dashboard / 项目看板", "build a project progress dashboard", "搞个 module Kanban", "agg my spec/module mds into one HTML", "wire frontmatter for sprint tracking", or any near-paraphrase that involves SETTING UP or MAINTAINING the cockpit itself.
+  TRIGGER this skill when the user wants to (a) bootstrap a docs-cockpit dashboard for a project, (b) extend an existing config to scan new module / concept directories, (c) curate the `system_docs` list (CLAUDE.md / PRD / memory / etc), (d) wire build into pre-commit / CI to keep `docs/index.html` from going stale, (e) debug build issues (0 modules / wrong status / yaml schema errors), (f) **upgrade docs-cockpit itself** (just run `docs-cockpit upgrade` — 0.7.0+ CLI handles backend detection + atomic restart), (g) react to a "new version available" banner in build output. Common phrasings: "把项目做成 dashboard / 项目看板", "build a project progress dashboard", "搞个 module Kanban", "wire frontmatter for sprint tracking", "升级 docs-cockpit", "update docs-cockpit to the latest version".
 
-  Do NOT trigger for: rendering a single MD file to HTML (use marked/pandoc); building a multi-page static site like Sphinx/Docusaurus/MkDocs/GitBook (different toolchain); markdown→PDF; live multi-user kanban with drag-drop (Jira/Linear/Trello); Notion-style collaborative wikis. **Also do NOT trigger for status questions about an EXISTING cockpit** — phrasings like "what's blocked", "sprint M1.3 progress", "weekly standup from the cockpit", "which modules are stalled" go to the SIBLING skill `docs-cockpit-status`. The discriminator: this skill **WRITES** project files (yaml / MD frontmatter / runs build); `docs-cockpit-status` only **READS** `docs/state.json` to interpret status. If the user wants to change the cockpit → this skill. If the user wants to be told what the cockpit currently says → the sibling.
+  Do NOT trigger for: rendering a single MD file to HTML (use marked/pandoc); building a multi-page static site like Sphinx/Docusaurus/MkDocs/GitBook (different toolchain); markdown→PDF; live multi-user kanban with drag-drop (Jira/Linear/Trello). **Also do NOT trigger for**: (a) status questions about an EXISTING cockpit ("what's blocked", "sprint M1.3 progress", "weekly standup", "which modules are stalled") → use `docs-cockpit-standup`; (b) writing a single project doc (plan / RFC / spec / module MD) per the schema → use `docs-cockpit-author`; (c) fixing individual frontmatter `issues[]` reported by lint → use `docs-cockpit-author` per the suggestion + reference of each issue. The discriminator: this skill **WRITES cockpit-level config + runs the build + handles upgrade**. For status interpretation → `docs-cockpit-standup`. For authoring a single doc per the schema → `docs-cockpit-author`.
 ---
 
-# docs-cockpit (operational skill · 0.2.0+)
+# docs-cockpit (operational skill · 0.9.0+)
 
 > Turn a folder of `docs/spec/module/*.md` into a single-file project Kanban dashboard you can open with `file://`.
 
-## Scope · what's in this skill vs the siblings
+## Scope · what's in this skill vs the siblings (0.9.0)
 
-**This skill** (`docs-cockpit`) — **writes/edits** project files. Setup, extend modules / concepts, wire frontmatter, debug. If your action ends with the user's repo gaining or changing a yaml / MD / HTML / hook, you're in this skill.
+The plugin ships **3 skills** as of 0.9.0 (was 3 differently-named in 0.8.x, renamed for clarity · no separate `docs-cockpit-update` anymore — the CLI absorbed it):
 
-**Sibling `docs-cockpit-status`** — **reads only**. Answers questions about an existing cockpit's state: "what's blocked", "sprint M1.3 progress", "weekly standup", "which modules are stale". If your action ends with a narrative summary back to the user and no files change, hand off.
+**This skill** (`docs-cockpit`) — **writes/edits cockpit-level files + runs CLI**. Setup, extend the `docs-cockpit.yaml` config, curate `system_docs`, run `build` / `migrate` / `browse` / `lint`, **run `docs-cockpit upgrade`** for self-upgrade. If your action ends with the user's repo gaining or changing a yaml / HTML / hook, or you're invoking the CLI directly, you're in this skill.
 
-**Sibling `docs-cockpit-update`** — **handles upgrades**. Triggers when the user asks to update / upgrade docs-cockpit, OR when a `docs-cockpit build` run prints a banner like `[!] docs-cockpit X.Y.Z available (current: …)`. **If you see such a banner in build output, surface it to the user and hand off** — don't try to limp along with a stale install.
+**Sibling `docs-cockpit-standup`** — **reads only**. Answers narrative questions about an existing cockpit's state: "what's blocked", "sprint M1.3 progress", "weekly standup", "which modules are stale", "lint output summary". If your action ends with a narrative summary back to the user and no files change, hand off.
+
+**Sibling `docs-cockpit-author`** (NEW in 0.9.0) — **writes individual project docs per the unified frontmatter spec**. Plans, RFCs, specs, individual module/concept MDs. The canonical source for frontmatter schema + body conventions + file naming + cross-doc reference rules. If `docs-cockpit lint` reported issues OR the user asks to write a new plan/RFC/spec/module MD, hand off.
+
+## Upgrading docs-cockpit itself (folded in from old `docs-cockpit-update` skill)
+
+When the user says "update docs-cockpit" / "升级 docs-cockpit" / "把 docs-cockpit 升到最新" / "I saw a 'new version available' banner":
+
+```bash
+docs-cockpit upgrade
+```
+
+That's the whole flow (0.7.0+). The CLI:
+1. Detects backend (pip / uv / pipx / editable)
+2. Compares CLI + plugin layer versions independently
+3. Shows CHANGELOG diff
+4. Asks confirmation
+5. Runs the right upgrade command
+6. Compares plugin SKILL.md hash · if changed, atomic cache-clear + ATOMIC restart prompt; else "no restart needed"
+
+Useful flags: `--dry-run` · `--yes` · `--no-clear-cache` · `--skip-changelog`. If the user is on pre-0.7.0 and gets "unknown subcommand: upgrade", fall back to manual: `pip install --upgrade git+https://github.com/Guohao1020/docs-cockpit.git` (or `uv tool upgrade` / `pipx upgrade`), then clear `~/.claude/plugins/cache/*docs-cockpit*` and restart Claude Code in **one atomic operation** (the ghost-state hazard otherwise).
 
 **Related CLI · `docs-cockpit browse`** — when the user wants to **just read** the project's scattered MD files (no dashboard), use `docs-cockpit browse` (or `/docs-cockpit:browse`) instead. It generates a separate `docs/browse.html` with a tree-organized file browser + marked.js rendering. Use when:
 - User asks to "browse / 浏览 / 预览 / 读" project docs

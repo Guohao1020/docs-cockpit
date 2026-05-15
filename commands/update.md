@@ -1,8 +1,10 @@
 ---
-description: Update docs-cockpit (CLI + plugin) · 0.7.0+ delegates to `docs-cockpit upgrade` for one-command upgrade with automatic backend detection and atomic cache-clear+restart
+description: Update docs-cockpit (CLI + plugin) · delegates to `docs-cockpit upgrade` CLI for atomic one-command upgrade
 ---
 
-Explicit invocation of the docs-cockpit upgrade workflow. **0.7.0+ recommendation**: just run `docs-cockpit upgrade` — the CLI handles everything (backend detection, version comparison, plugin cache decision, atomic restart). The skill SKILL.md is now a thin wrapper around the CLI command.
+Explicit invocation of the docs-cockpit upgrade workflow. **0.7.0+ recommendation**: just run `docs-cockpit upgrade` — the CLI handles everything (backend detection, version comparison, plugin cache decision, atomic restart).
+
+The upgrade trigger phrases are now handled inside the **main `docs-cockpit` skill** (0.9.0 cleanup — the old standalone `docs-cockpit-update` skill was redundant; `docs-cockpit upgrade` CLI is the source of truth). This slash command remains as the explicit invocation surface.
 
 ## Primary path · 0.7.0+
 

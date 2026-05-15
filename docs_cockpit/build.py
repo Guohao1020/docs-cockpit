@@ -230,8 +230,24 @@ def read_md(path: pathlib.Path) -> tuple[str, dict, str | None, bool]:
         return f"# ⚠️ 读取失败\n\n`{path}`\n\n```\n{exc}\n```", {}, None, False
 
 
-# ── frontmatter governance 校验 ──────────────────────────────────
-# 默认 status × progress 区间 · 用于文档治理一致性校验
+# ── frontmatter governance 校验 (0.9.0 大改 · 接 docs-cockpit-author 规范) ──
+#
+# 0.8.x 之前 validator 只校验 status 与 progress 区间 · 输出形如
+# "M01.md: progress=80 out of range" 这种干瘪的 warning · 用户实测说"光看
+# warning 不知道该怎么改"。0.9.0 配套 docs-cockpit-author skill 把规范固化:
+#   - REQUIRED 字段:id · 不写就拿不到看板位置
+#   - RECOMMENDED 字段:status · sprint · 没有 status drawer 显示 not-started
+#   - OPTIONAL but high-value:desc · docs · subtasks
+# Issue 输出结构化(severity / field / message / suggestion / reference) · CLI
+# 端打印成"❌ M01: missing required `id` · 💡 add `id: M01-Web` to frontmatter
+# · 📚 docs-cockpit-author §2.1" 这种"问题 + 修法 + 引用"三段式。
+#
+# severity 分 3 档:
+#   error · 看板根本接不住 · build 仍写 HTML 但 --strict 模式下 exit 1
+#   warn  · 看板能接住但用户体验差(no status / progress 越界 / 关键字段缺失)
+#   hint  · 锦上添花(没 desc · 没 docs · subtasks 全在 body 没在 frontmatter)
+#
+# 默认 status × progress 区间 · 给 status × progress 一致性校验用
 DEFAULT_STATUS_RANGES = {
     "not-started": (0, 0),
     "planned": (0, 15),
@@ -241,24 +257,166 @@ DEFAULT_STATUS_RANGES = {
     "deferred": (0, 100),
 }
 
+# Status enum · 写错值会被 validator 抓出来(unknown status)
+VALID_STATUSES = set(DEFAULT_STATUS_RANGES.keys())
+
+# 文档类型 enum · 用于 type 字段一致性校验
+VALID_DOC_TYPES = {"module", "concept", "plan", "rfc", "spec", "memory", "roadmap"}
+
+
+class Issue:
+    """单条 frontmatter 校验问题 · 结构化便于 CLI / IDE / CI 消费.
+
+    severity 决定 build / lint / --strict 的退出行为:
+      error · MUST fix · --strict 下退出码非零 · 看板接不住或会渲染错
+      warn  · SHOULD fix · 用户体验问题 · 仍能 build
+      hint  · COULD fix · 锦上添花 · 不影响 build
+    """
+
+    __slots__ = ("severity", "path", "field", "message", "suggestion", "reference")
+
+    def __init__(
+        self,
+        severity: str,
+        path: pathlib.Path,
+        field: str,
+        message: str,
+        suggestion: str = "",
+        reference: str = "",
+    ):
+        self.severity = severity
+        self.path = path
+        self.field = field
+        self.message = message
+        self.suggestion = suggestion
+        self.reference = reference
+
+    def as_dict(self) -> dict:
+        return {
+            "severity": self.severity,
+            "path": str(self.path),
+            "field": self.field,
+            "message": self.message,
+            "suggestion": self.suggestion,
+            "reference": self.reference,
+        }
+
+    def format_for_terminal(self) -> str:
+        """三段式 CLI 输出:❌/⚠️/💡 message · 💡 suggestion · 📚 reference."""
+        glyph = {"error": "❌", "warn": "⚠️ ", "hint": "💡"}.get(self.severity, "·")
+        parts = [f"{glyph} {self.path.name} · {self.field}: {self.message}"]
+        if self.suggestion:
+            parts.append(f"   💡 fix: {self.suggestion}")
+        if self.reference:
+            parts.append(f"   📚 see: {self.reference}")
+        return "\n".join(parts)
+
 
 def validate_meta(
-    path: pathlib.Path, meta: dict, ranges: dict[str, tuple[int, int]]
-) -> list[str]:
-    """返不合规的 warning 字符串 · 不抛 · 让 build 继续."""
-    warnings: list[str] = []
+    path: pathlib.Path,
+    meta: dict,
+    ranges: dict[str, tuple[int, int]],
+    *,
+    body: str = "",
+) -> list[Issue]:
+    """返结构化 Issue 列表 · 不抛 · 让 build 继续.
+
+    docs-cockpit-author skill 是 spec 的规范来源 · 这里只把 frontmatter
+    跟规范对齐 · 不增不减 · 改 skill 同步改这里。
+    """
+    issues: list[Issue] = []
+    name = path.name
+
+    # ── REQUIRED: id ─────────────────────────────────────
+    doc_id = meta.get("id")
+    if not doc_id:
+        issues.append(Issue(
+            "error", path, "id",
+            "missing required field — module/concept won't appear in dashboard",
+            suggestion=f'add `id: M01-{path.stem[:8]}` (or your project ID convention) to frontmatter',
+            reference="docs-cockpit-author · §2.1 required frontmatter",
+        ))
+    elif isinstance(doc_id, str) and ("XX" in doc_id or doc_id.endswith("XXX")):
+        issues.append(Issue(
+            "warn", path, "id",
+            f"id `{doc_id}` looks like a template placeholder · this entry will be skipped",
+            suggestion="replace XX/XXX with a concrete identifier (e.g. M07, RFC-002, C03)",
+            reference="docs-cockpit-author · §2.1 required frontmatter",
+        ))
+
+    # ── RECOMMENDED: status · drawer 的状态指示靠它 ──────
     status = meta.get("status")
+    if status is None:
+        issues.append(Issue(
+            "warn", path, "status",
+            "missing — dashboard will treat this as `not-started`",
+            suggestion='set `status: planned` / `in-progress` / `done` etc.',
+            reference="docs-cockpit-author · §2.2 status enum",
+        ))
+    elif status not in VALID_STATUSES:
+        valid = " · ".join(sorted(VALID_STATUSES))
+        issues.append(Issue(
+            "error", path, "status",
+            f"unknown status `{status}` — dashboard renders fallback dot",
+            suggestion=f"pick one of: {valid}",
+            reference="docs-cockpit-author · §2.2 status enum",
+        ))
+
+    # ── status × progress 区间一致性 ─────────────────────
     progress = meta.get("progress")
-    if status is not None and status not in ranges:
-        warnings.append(f"{path.name}: unknown status '{status}'")
-    if isinstance(progress, int) and status in ranges:
+    if isinstance(progress, (int, float)) and status in ranges:
         lo, hi = ranges[status]
         if not (lo <= progress <= hi):
-            warnings.append(
-                f"{path.name}: progress={progress} out of range [{lo}, {hi}] "
-                f"for status={status}"
-            )
-    return warnings
+            issues.append(Issue(
+                "warn", path, "progress",
+                f"progress={progress} out of range [{lo}, {hi}] for status=`{status}`",
+                suggestion=(
+                    "either move status forward (e.g. `in-progress`) "
+                    f"or bring progress back to the {lo}-{hi} band"
+                ),
+                reference="docs-cockpit-author · §2.3 status × progress invariants",
+            ))
+    elif progress is not None and not isinstance(progress, (int, float)):
+        issues.append(Issue(
+            "error", path, "progress",
+            f"progress must be a number 0-100 · got {type(progress).__name__} `{progress!r}`",
+            suggestion="use `progress: 75` (integer 0-100), not strings or percentages",
+            reference="docs-cockpit-author · §2.3 status × progress invariants",
+        ))
+
+    # ── type 字段(可选 · 但写错会让 author skill 困惑)──
+    doc_type = meta.get("type")
+    if doc_type is not None and doc_type not in VALID_DOC_TYPES:
+        valid = " · ".join(sorted(VALID_DOC_TYPES))
+        issues.append(Issue(
+            "warn", path, "type",
+            f"unknown type `{doc_type}` — won't affect rendering but breaks doc-type filters",
+            suggestion=f"pick one of: {valid}",
+            reference="docs-cockpit-author · §2.4 doc type enum",
+        ))
+
+    # ── HINTS · 锦上添花 ────────────────────────────────
+    if not meta.get("desc"):
+        issues.append(Issue(
+            "hint", path, "desc",
+            "no description — drawer shows '(empty)' and copy-prompt has less context",
+            suggestion='add `desc: "<one-line summary>"` so AI editors can generate better plans',
+            reference="docs-cockpit-author · §2.5 recommended fields",
+        ))
+
+    docs_field = meta.get("docs")
+    docs_in_body = bool(body) and bool(_DOCS_SECTION_RE.search(body))
+    if not docs_field and not docs_in_body:
+        # 只在 active 状态下提醒(done / not-started / deferred 不催)
+        if status in ("in-progress", "planned", "blocked"):
+            issues.append(Issue(
+                "hint", path, "docs",
+                "no docs link · dashboard shows the 'copy prompt' CTA on active modules",
+                suggestion="add a `docs:` list or a `## Related` body section once a plan/RFC exists",
+                reference="docs-cockpit-author · §3 cross-doc references",
+            ))
+
+    return issues
 
 
 # ── MD body extraction (0.4.0 · 让 frontmatter 缺字段时自动从正文提取) ──
@@ -507,11 +665,11 @@ def _build_card_list(
     vars_: dict[str, str],
     fm_enabled: bool,
     ranges: dict[str, tuple[int, int]],
-    warnings: list[str],
+    issues: list[Issue],
     *,
     full: bool,
 ) -> list[dict]:
-    """从 modules: / concepts: block 解析出 card 列表."""
+    """从 modules: / concepts: block 解析出 card 列表 · 0.9.0:issues 收 Issue 对象."""
     if not group_cfg:
         return []
     out: list[dict] = []
@@ -519,10 +677,11 @@ def _build_card_list(
         content, meta, mtime, exists = read_md(path)
         if not exists:
             continue
-        if fm_enabled:
-            warnings.extend(validate_meta(path, meta, ranges))
         # 0.4.0:把 body 单独切出来 · _build_card 用它做 subtasks/docs 兜底提取
         _, body = split_frontmatter(content)
+        if fm_enabled:
+            # 0.9.0:把 body 一起传给 validator · 让它能判"docs 在 frontmatter 还是在 body section"
+            issues.extend(validate_meta(path, meta, ranges, body=body))
         # 0.7.1:vars_ 透传 · _build_card 用 repo_root 解析 docs 相对路径
         card = _build_card(title, path, meta, mtime, body, full=full, vars_=vars_)
         if card is not None:
@@ -550,8 +709,8 @@ def _build_system_docs(
 
 def build_payload(
     config: dict, vars_: dict[str, str], build_time: str
-) -> tuple[dict, list[str]]:
-    """返 (payload, warnings) · 0.2.0 dashboard 形状.
+) -> tuple[dict, list[Issue]]:
+    """返 (payload, issues) · 0.2.0 dashboard 形状 · 0.9.0:issues 是 Issue 对象.
 
     Payload 结构:
     {
@@ -561,7 +720,7 @@ def build_payload(
       "concepts": [{id, title, status, sprint, progress}],
     }
     """
-    warnings: list[str] = []
+    issues: list[Issue] = []
 
     fm_cfg = config.get("frontmatter", {}) or {}
     fm_enabled = fm_cfg.get("enabled", True)
@@ -580,10 +739,10 @@ def build_payload(
 
     system_docs = _build_system_docs(config.get("system_docs"), vars_)
     modules = _build_card_list(
-        config.get("modules"), vars_, fm_enabled, ranges, warnings, full=True
+        config.get("modules"), vars_, fm_enabled, ranges, issues, full=True
     )
     concepts = _build_card_list(
-        config.get("concepts"), vars_, fm_enabled, ranges, warnings, full=False
+        config.get("concepts"), vars_, fm_enabled, ranges, issues, full=False
     )
 
     payload = {
@@ -592,7 +751,7 @@ def build_payload(
         "modules": modules,
         "concepts": concepts,
     }
-    return payload, warnings
+    return payload, issues
 
 
 # ── 渲染 HTML ─────────────────────────────────────────────────────
@@ -719,7 +878,7 @@ def cmd_build(args: argparse.Namespace) -> int:
         _safe_print(f"[debug] output: {output}")
 
     build_time = _dt.datetime.now().strftime("%Y-%m-%d %H:%M")
-    payload, warnings = build_payload(config, vars_, build_time)
+    payload, issues = build_payload(config, vars_, build_time)
 
     if not TEMPLATE_PATH.exists():
         _safe_print(f"[ERR] template missing: {TEMPLATE_PATH}")
@@ -731,10 +890,15 @@ def cmd_build(args: argparse.Namespace) -> int:
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(html, encoding="utf-8")
 
-    # ── sidecar state.json · 给 docs-cockpit-status skill 读 ──
-    # 同 payload · 多一份 warnings · 方便 status skill 摘出。
+    # ── sidecar state.json · 给 docs-cockpit-standup skill 读 ──
+    # 0.9.0:warnings 字段保留(老 status skill 兼容)· issues 字段是新的
+    # 结构化版本 · 含 severity / suggestion / reference · IDE 与 CI 消费
     state_path = output.parent / "state.json"
-    state_payload = {**payload, "warnings": warnings}
+    state_payload = {
+        **payload,
+        "warnings": [issue.message for issue in issues],  # 兼容老 state.json 形状
+        "issues": [issue.as_dict() for issue in issues],
+    }
     state_path.write_text(
         json.dumps(state_payload, ensure_ascii=False, indent=2, default=str),
         encoding="utf-8",
@@ -758,8 +922,12 @@ def cmd_build(args: argparse.Namespace) -> int:
         if n_modules else 0
     )
 
-    for w in warnings:
-        _safe_print(f"[WARN] frontmatter: {w}")
+    # 0.9.0:三段式输出 · ❌/⚠️/💡 + 修法 + 规范引用
+    errors = [i for i in issues if i.severity == "error"]
+    warns = [i for i in issues if i.severity == "warn"]
+    hints = [i for i in issues if i.severity == "hint"]
+    for issue in issues:
+        _safe_print(issue.format_for_terminal())
     if n_modules == 0 and n_concepts == 0 and n_sysdocs == 0:
         _safe_print(
             "[WARN] 0 items · 检查 paths.repo 与 modules/concepts/system_docs 路径"
@@ -782,13 +950,100 @@ def cmd_build(args: argparse.Namespace) -> int:
         _safe_print(f"     overall progress: {overall}%")
     _safe_print(f"     HTML size: {output.stat().st_size:,} bytes")
     _safe_print(f"     build time: {build_time}")
-    if warnings:
-        _safe_print(f"     [!] {len(warnings)} frontmatter warning(s) — see above")
+    if issues:
+        _safe_print(
+            f"     [!] frontmatter issues · {len(errors)} error(s) · "
+            f"{len(warns)} warning(s) · {len(hints)} hint(s)"
+        )
+        _safe_print("     → run `docs-cockpit lint` to see only issues without rebuilding")
+        _safe_print("     → consult docs-cockpit-author skill for the spec")
     _safe_print("")
     _safe_print("Open in browser:")
     _safe_print(f"  start {output}    # Windows")
     _safe_print(f"  open  {output}    # macOS")
     _safe_print(f"  xdg-open {output} # Linux")
+
+    # 0.9.0:--strict · errors(任何 severity=error)非零退出 · CI 友好
+    if getattr(args, "strict", False) and errors:
+        _safe_print("")
+        _safe_print(f"[ERR] --strict mode: {len(errors)} error(s) · failing build")
+        return 3
+    return 0
+
+
+# ── 0.9.0 · docs-cockpit lint(只校验不 build · CI / pre-commit 用)──
+def cmd_lint(args: argparse.Namespace) -> int:
+    """校验 frontmatter + body 是否符合 docs-cockpit-author 规范 · 不 build · 不写 HTML.
+
+    退出码:
+      0 · 全通过(可能仍有 hint · hint 不阻塞)
+      0 · 仅有 warn / hint(默认) · 加 --strict-warn 升级
+      1 · 至少 1 个 error · 一律退出 1
+    """
+    config_path = pathlib.Path(args.config).resolve()
+    if not config_path.exists():
+        _safe_print(f"[ERR] config not found: {config_path}")
+        return 2
+
+    config = yaml.safe_load(config_path.read_text(encoding="utf-8")) or {}
+    paths_cfg = config.get("paths", {}) or {}
+    vars_ = _build_vars(config_path, paths_cfg)
+
+    fm_cfg = config.get("frontmatter", {}) or {}
+    fm_enabled = fm_cfg.get("enabled", True)
+    ranges_cfg = fm_cfg.get("status_progress_ranges") or DEFAULT_STATUS_RANGES
+    ranges = {k: tuple(v) for k, v in ranges_cfg.items()}
+
+    issues: list[Issue] = []
+    for key in ("modules", "concepts"):
+        group_cfg = config.get(key)
+        if not group_cfg:
+            continue
+        for _title, path in _resolve_group_files(group_cfg, vars_):
+            content, meta, _mtime, exists = read_md(path)
+            if not exists:
+                continue
+            _, body = split_frontmatter(content)
+            if fm_enabled:
+                issues.extend(validate_meta(path, meta, ranges, body=body))
+
+    # 仅在 lint 时按 severity 排序 · error 在前 · 修起来按重要性
+    severity_rank = {"error": 0, "warn": 1, "hint": 2}
+    issues.sort(key=lambda i: (severity_rank.get(i.severity, 9), str(i.path)))
+
+    errors = [i for i in issues if i.severity == "error"]
+    warns = [i for i in issues if i.severity == "warn"]
+    hints = [i for i in issues if i.severity == "hint"]
+
+    if not issues:
+        _safe_print("[OK] no frontmatter issues · all modules / concepts pass docs-cockpit-author spec")
+        return 0
+
+    # JSON 输出(CI / IDE 消费 · 通过 --json)
+    if getattr(args, "json", False):
+        _safe_print(json.dumps(
+            {"issues": [i.as_dict() for i in issues],
+             "summary": {"error": len(errors), "warn": len(warns), "hint": len(hints)}},
+            ensure_ascii=False, indent=2,
+        ))
+        return 1 if errors else 0
+
+    # 人类可读输出
+    for issue in issues:
+        _safe_print(issue.format_for_terminal())
+        _safe_print("")
+
+    _safe_print(
+        f"Summary · {len(errors)} error(s) · {len(warns)} warning(s) · {len(hints)} hint(s)"
+    )
+    _safe_print(
+        "Reference · docs-cockpit-author skill (frontmatter schema + body conventions)"
+    )
+    if errors:
+        return 1
+    # warn / hint 默认不退出非零 · 加 --strict-warn 让 warn 也变 error
+    if warns and getattr(args, "strict_warn", False):
+        return 1
     return 0
 
 
@@ -828,7 +1083,22 @@ def main(argv: list[str] | None = None) -> int:
                         help="打印解析后的路径变量与每条 entry 的绝对路径")
     build_p.add_argument("--no-version-check", action="store_true",
                         help="跳过新版本检测(也可设 DOCS_COCKPIT_NO_VERSION_CHECK=1)")
+    build_p.add_argument("--strict", action="store_true",
+                        help="0.9.0:任何 frontmatter error 非零退出(CI 用 · warn/hint 不算)")
     build_p.set_defaults(func=cmd_build)
+
+    # 0.9.0:lint 子命令 · 只校验不 build · 配合 docs-cockpit-author skill 使用
+    lint_p = sub.add_parser(
+        "lint",
+        help="校验 frontmatter 是否符合 docs-cockpit-author 规范(不 build · CI / pre-commit 用)",
+    )
+    lint_p.add_argument("--config", "-c", default="docs-cockpit.yaml",
+                       help="YAML 配置文件路径")
+    lint_p.add_argument("--json", action="store_true",
+                       help="JSON 输出 · 给 IDE / CI 消费")
+    lint_p.add_argument("--strict-warn", action="store_true",
+                       help="把 warning 也升级成 error(默认只 error 非零退出)")
+    lint_p.set_defaults(func=cmd_lint)
 
     init_p = sub.add_parser("init", help="生成最小可用配置模板")
     init_p.add_argument("-o", "--output", default="docs-cockpit.yaml")
