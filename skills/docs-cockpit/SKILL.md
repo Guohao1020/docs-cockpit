@@ -1,37 +1,38 @@
 ---
 name: docs-cockpit
 description: |
-  Set up and maintain a docs-cockpit — a self-contained single-HTML page that aggregates a project's scattered Markdown documents (PRD, spec, plan, RFC, task, README, external plans, session memory) into ONE `file://`-openable preview with sidebar nav, in-page Markdown rendering (marked.js + highlight.js via CDN), and an optional YAML-frontmatter-driven kanban dashboard. Each build also writes a machine-readable `docs/state.json` sidecar that the sibling `docs-cockpit-status` skill reads.
+  Set up and maintain a docs-cockpit — a self-contained single-HTML **dashboard** for project module / sprint / progress tracking. Aggregates a project's `docs/spec/module/*.md` + `docs/spec/concept/*.md` (driven by YAML frontmatter: id / status / sprint / progress / desc / subtasks / docs) into one `file://`-openable page with topbar, hero, KPI strip, module Kanban, Sprint Timeline, and Concept Grid. System docs (CLAUDE.md / DESIGN.md / PRD / RFC index / memory / roadmap) appear in a separate "系统文档" drawer. Module cards open drawer with desc + status select + progress slider + subtask checklist (localStorage-persisted overrides). Each build also writes `docs/state.json` for the sibling `docs-cockpit-status` skill.
 
-  TRIGGER this skill when the user wants to (a) bootstrap a cockpit for a project for the first time, (b) add new doc sources / scan rules / globs to an existing cockpit, (c) wire frontmatter status/progress/sprint conventions to enable the kanban view, (d) customize design tokens / brand colors / typography / dark mode, (e) wire the build into pre-commit / CI to keep `docs/index.html` from going stale, or (f) debug build issues (empty sidebar, missing chips, CDN failures, YAML schema errors). Common phrasings: "把 md 文档汇总成 HTML", "docs dashboard", "build docs preview", "spec/plan/RFC 集中预览", "项目文档看板", "aggregate markdown into one html", "single-file offline preview of my docs", or any near-paraphrase that involves SETTING UP or MAINTAINING the cockpit itself.
+  TRIGGER this skill when the user wants to (a) bootstrap a docs-cockpit dashboard for a project, (b) extend an existing config to scan new module / concept directories, (c) wire frontmatter status / progress / sprint / desc / docs / subtasks conventions so modules show up as cards, (d) curate the `system_docs` list (CLAUDE.md / PRD / memory / etc), (e) wire build into pre-commit / CI to keep `docs/index.html` from going stale, (f) debug build issues (0 modules / wrong status / frontmatter warnings / yaml schema errors). Common phrasings: "把项目做成 dashboard / 项目看板", "build a project progress dashboard", "搞个 module Kanban", "agg my spec/module mds into one HTML", "wire frontmatter for sprint tracking", or any near-paraphrase that involves SETTING UP or MAINTAINING the cockpit itself.
 
-  Do NOT trigger for: rendering a single MD file to HTML (use marked/pandoc); building a multi-page static site like Sphinx/Docusaurus/MkDocs/GitBook (different toolchain); markdown→PDF; live multi-user kanban with drag-drop (Jira/Linear/Trello); Notion-style collaborative wikis. **Also do NOT trigger for status/progress/health questions about an EXISTING cockpit** — phrasings like "what's blocked", "sprint M1.3 progress", "weekly status from the cockpit", "which modules are stalled", "generate a standup report from docs" go to the SIBLING skill `docs-cockpit-status`. The discriminator: this skill **WRITES** project files (yaml, optionally MD frontmatter, runs build) to set up or extend a cockpit; `docs-cockpit-status` only **READS** `docs/state.json` to interpret status. If the user wants to change the cockpit → this skill. If the user wants to be told what the cockpit currently says → the sibling.
+  Do NOT trigger for: rendering a single MD file to HTML (use marked/pandoc); building a multi-page static site like Sphinx/Docusaurus/MkDocs/GitBook (different toolchain); markdown→PDF; live multi-user kanban with drag-drop (Jira/Linear/Trello); Notion-style collaborative wikis. **Also do NOT trigger for status questions about an EXISTING cockpit** — phrasings like "what's blocked", "sprint M1.3 progress", "weekly standup from the cockpit", "which modules are stalled" go to the SIBLING skill `docs-cockpit-status`. The discriminator: this skill **WRITES** project files (yaml / MD frontmatter / runs build); `docs-cockpit-status` only **READS** `docs/state.json` to interpret status. If the user wants to change the cockpit → this skill. If the user wants to be told what the cockpit currently says → the sibling.
 ---
 
-# docs-cockpit (operational skill)
+# docs-cockpit (operational skill · 0.2.0+)
 
-> Turn a folder of Markdown into a single-file project cockpit you can open with `file://`.
+> Turn a folder of `docs/spec/module/*.md` into a single-file project Kanban dashboard you can open with `file://`.
 
 ## Scope · what's in this skill vs the siblings
 
-**This skill** (`docs-cockpit`) — **writes/edits** project files. Setup, add groups, build, wire frontmatter, tweak design, debug. If your action ends with the user's repo gaining or changing a yaml / MD / HTML / hook, you're in this skill.
+**This skill** (`docs-cockpit`) — **writes/edits** project files. Setup, extend modules / concepts, wire frontmatter, debug. If your action ends with the user's repo gaining or changing a yaml / MD / HTML / hook, you're in this skill.
 
-**Sibling `docs-cockpit-status`** — **reads only**. Answers questions about an existing cockpit's state: "what's blocked", "sprint M1.3 progress", "weekly status report", "which docs are stale". If your action ends with a narrative summary back to the user and no files change, hand off.
+**Sibling `docs-cockpit-status`** — **reads only**. Answers questions about an existing cockpit's state: "what's blocked", "sprint M1.3 progress", "weekly standup", "which modules are stale". If your action ends with a narrative summary back to the user and no files change, hand off.
 
-**Sibling `docs-cockpit-update`** — **handles upgrades**. Triggers when the user asks to update/upgrade docs-cockpit, OR when a `docs-cockpit build` run prints a banner like `[!] docs-cockpit X.Y.Z available (current: …)`, OR when something in this skill fails because the user's CLI is too old (e.g. they're missing `state.json` output because their CLI predates 0.1.1). **If you see such a banner in build output, surface it to the user and hand off** — don't try to limp along with a stale install.
-
-Hand off explicitly: *"That's a status question — switching to `docs-cockpit-status`"* or *"Your CLI looks outdated — switching to `docs-cockpit-update`"*. Don't try to do all three jobs in this skill.
+**Sibling `docs-cockpit-update`** — **handles upgrades**. Triggers when the user asks to update / upgrade docs-cockpit, OR when a `docs-cockpit build` run prints a banner like `[!] docs-cockpit X.Y.Z available (current: …)`. **If you see such a banner in build output, surface it to the user and hand off** — don't try to limp along with a stale install.
 
 ## What this skill is for
 
-You're given a project with lots of Markdown documentation scattered across folders (`docs/PRD/`, `docs/spec/`, `docs/plan/`, `docs/RFC/`, `docs/task/`, `~/.claude/plans/`, root `README.md`, etc.). The user wants a **single HTML file** that, when opened in a browser, gives them:
+The user has a project with structured docs under `docs/spec/module/M*.md` (and optionally `docs/spec/concept/C*.md`). Each module MD carries YAML frontmatter with `id`, `status`, `sprint`, `progress`, and (in 0.2.0+) `desc`, `docs`, `subtasks`. You produce **ONE** HTML file that gives the user:
 
-1. A **sidebar** grouping all those MD files by category (Spec, Plan, RFC, …)
-2. A **document view** that renders any MD file with marked.js
-3. An optional **dashboard view** with KPI cards / kanban / sprint timeline driven by YAML frontmatter inside the MD files (e.g. `status: in-progress`, `progress: 60`, `sprint: M1.2`)
-4. **Real-time sync**: when an MD file changes, re-running one build command regenerates the HTML — no service, no DB, just a static file
+1. **Topbar** with project brand + last build time + "系统文档" drawer button
+2. **Hero** with project name + tagline + overall % gauge
+3. **KPI strip** — total modules / done / in-progress+planned / not-started+blocked
+4. **Module Kanban** — 5 status columns; click a card → drawer with desc / status / progress slider / subtask checklist
+5. **Sprint Timeline** — modules grouped by sprint with avg %
+6. **Concept Grid** — concept cards at bottom (simpler · just id/title/status/sprint/progress)
+7. **System Docs Drawer** — curated list (CLAUDE.md / PRD / memory / etc) accessed via topbar button
 
-The whole thing is self-contained — open it from `file://`, no localhost, no build pipeline beyond Python + PyYAML. Markdown rendering happens client-side from a CDN.
+The whole thing is self-contained — open it from `file://`, no localhost, no build pipeline beyond Python + PyYAML. Markdown rendering via marked.js / highlight.js is **not used in 0.2.0** (modules don't show MD body — they show structured frontmatter data in drawers).
 
 ## How the pieces fit together
 
@@ -39,193 +40,154 @@ The whole thing is self-contained — open it from `file://`, no localhost, no b
 project root/
 ├── docs-cockpit.yaml              ← user-authored config (you help write it)
 ├── docs/
-│   ├── index.html                 ← BUILD ARTIFACT — human-facing, do not hand-edit
+│   ├── index.html                 ← BUILD ARTIFACT — human-facing dashboard
 │   ├── state.json                 ← BUILD ARTIFACT — machine-readable, read by docs-cockpit-status
-│   ├── PRD/*.md
-│   ├── spec/{concept,module}/*.md
-│   ├── plan/**/*.md
-│   ├── RFC/*.md
-│   └── task/*.md
+│   ├── spec/
+│   │   ├── module/M*.md           ← modules (frontmatter-driven cards)
+│   │   └── concept/C*.md          ← concepts (simpler cards)
+│   ├── PRD.md / PRD/*.md          ← system docs (curated · not auto-scanned)
+│   └── RFC/                        ← typically a system_docs entry pointing here
+├── CLAUDE.md                       ← typically a system_docs entry
 └── (run the build)
-    python -m docs_cockpit build --config docs-cockpit.yaml
+    docs-cockpit build              # or python -m docs_cockpit build
 ```
 
 The build:
 1. Reads `docs-cockpit.yaml`
-2. For each `groups[*]`, resolves files (explicit list, dir scan, or glob)
-3. Reads each MD, splits YAML frontmatter, computes mtime, runs frontmatter governance checks
-4. Aggregates frontmatter into `cards` (for kanban) + `kpi` (rolled-up metrics) if `frontmatter.kanban.enabled`
-5. Serializes `{groups, cards, kpi}` as JSON, embeds inside an HTML template
-6. Writes `<output>` (default `docs/index.html`) — human-facing
-7. Writes `<output_dir>/state.json` — same payload **without** per-doc markdown content, for `docs-cockpit-status` to read
-
-Frontend (already inside the template — you don't touch this):
-- Loads marked.js + highlight.js from jsdelivr CDN
-- Parses the embedded JSON payload
-- Renders sidebar, dashboard, and on-click document view
-- Persists last-viewed slug + view mode in `localStorage`
-- Shows a CDN-failure banner if marked.js doesn't load
+2. **system_docs**: pass-through with path-variable expansion (no MD scanning)
+3. **modules / concepts**: scan/glob/files → read each MD → extract frontmatter → build cards
+4. Serializes `{project, systemDocs, modules, concepts}` as JSON, embeds in HTML template
+5. Writes `<output>` (default `docs/index.html`) — human-facing
+6. Writes `<output_dir>/state.json` — same payload + warnings, for `docs-cockpit-status` to read
 
 ## When you arrive at a task
 
-Decide which workflow you're in and skip to that section. Each one calls out which references to consult before writing code.
+Decide which workflow you're in and skip to that section.
 
 ### Workflow A — Bootstrap a cockpit for a new project
 
-The user has a project with `docs/` full of MD files and no cockpit yet.
-
-1. **Look at the doc layout first.** `ls docs/` and skim a few MD files to spot natural groupings (Spec / Plan / RFC / Task / etc.). Also check for `README.md`, `CHANGELOG.md`, `CLAUDE.md` at root — these usually belong in an "Overview" group.
-2. **Ask about frontmatter.** If MD files already have YAML frontmatter with fields like `status` / `progress` / `sprint`, the kanban view will work out of the box. If not, ask the user whether they want kanban enabled — if yes, point them at `references/frontmatter_conventions.md` and offer to seed a few files. If no, just leave `frontmatter.kanban.enabled: false`.
-3. **Author `docs-cockpit.yaml`.** Start from `examples/minimal.yaml` and grow. Use `scan:` blocks when a directory has many files; use explicit `files:` when each entry is hand-picked.
+1. **Look at the doc layout.** `ls docs/` and skim a few MD files. Identify:
+   - **modules** (typically `docs/spec/module/` or similar)
+   - **concepts** (typically `docs/spec/concept/`)
+   - **system docs to surface** (CLAUDE.md, README, PRD, DESIGN.md, RFC index, memory dir, roadmap dir)
+2. **Check frontmatter.** Do the module MDs already have `id` + `status` + `sprint` + `progress`? If yes, cards will populate automatically. If no, point user at `references/frontmatter_conventions.md` and offer to seed a few files.
+3. **Author `docs-cockpit.yaml`.** Start from `examples/minimal.yaml` and grow. Use `scan:` blocks for module/concept dirs; hand-list `system_docs:` entries.
 4. **Run the build.**
    ```bash
-   python -m docs_cockpit build --config docs-cockpit.yaml
+   docs-cockpit build --config docs-cockpit.yaml
    ```
-   Open the resulting HTML and verify the sidebar populates and at least one doc renders.
-5. **Wire it into the workflow.** Tell the user about the forcing-function pattern: any PR that changes MD must re-run the build and commit the regenerated `docs/index.html` in the same commit. This is what makes the cockpit a real "live" view instead of going stale.
+   Open the resulting HTML. Verify modules appear in Kanban, concept grid populates, system docs drawer shows the curated entries.
+5. **Wire it into the workflow.** Tell the user about the forcing-function pattern: PR-touching-MD must re-run `docs-cockpit build` and commit the regenerated HTML. This is what keeps the dashboard "live".
 
-### Workflow B — Add a new doc source to an existing cockpit
+### Workflow B — Extend / migrate a config
 
-User says "I just added `docs/runbook/` with a bunch of MD — show those in the sidebar too" or similar.
+User says "add new modules from `docs/spec/m2/`" or "this is 0.1.x · migrate to 0.2.0":
 
-1. Open `docs-cockpit.yaml`, find the most similar existing group, and add a new entry under `groups:`.
-2. Prefer `scan:` over explicit `files:` whenever the directory will keep growing — saves the user from re-editing the config every time they add a doc.
-3. Re-run the build. Done.
+1. **For new scan paths**: append a glob/scan to existing `modules:` or `concepts:` block.
+2. **For 0.1.x → 0.2.0 migration**: see migration table in `references/config_reference.md`:
+   - `project.glyph` → `project.mark`
+   - `groups[] (with type: module)` → top-level `modules:`
+   - `groups[] (with type: concept)` → top-level `concepts:`
+   - `groups[] (other)` → flatten into `system_docs:` (need `{id, title, path, desc, icon}` per entry)
+   - `frontmatter.kanban.*` → mostly removed in 0.2.0
+3. Re-run build, verify.
 
 ### Workflow C — Just rebuild after MD changes
 
-This is the daily-driver path. One command, no config edits:
-
 ```bash
-python -m docs_cockpit build --config docs-cockpit.yaml
+docs-cockpit build --config docs-cockpit.yaml
 ```
 
-The build is idempotent and fast (no network during build — CDN only loads when a human opens the HTML). If the user has a pre-commit hook or CI step, plug this command into it.
+Idempotent. Plug into pre-commit or CI to keep `docs/index.html` and `docs/state.json` fresh.
 
-### Workflow D — Customize design / branding
+### Workflow D — Add subtasks / desc / docs links to a module
 
-User wants to change the primary color, swap the wordmark glyph, replace the footer columns, or theme the page to match a different design system.
+User says "M07 needs subtasks" or "fill in the desc for these modules":
 
-1. Read `references/design_tokens.md` to see which tokens are exposed via the `design:` block in the config.
-2. Edit `docs-cockpit.yaml`. Anything not overridden falls back to the built-in HP-style defaults (clean white canvas + blue primary + ink sidebar).
-3. For deeper changes (new section in the dashboard, custom card layouts), the template lives at `docs_cockpit/templates/index.html.tmpl`. Edit it directly. Keep the `__BUILD_TIME__` / `__DOCS_JSON__` / `__PROJECT_*__` placeholders intact — the renderer substitutes those.
+1. Open the MD file (e.g. `docs/spec/module/M07-job-fsm.md`)
+2. Edit the frontmatter to add:
+   ```yaml
+   desc: "12 类 FSM · 含字段校验"
+   docs:
+     - { title: "Schema 设计文档", path: "docs/design/schemas.md" }
+   subtasks:
+     - { title: "核心实体定义", done: true }
+     - { title: "字段校验", done: false }
+   manualProgress: false        # auto-derive progress from subtasks
+   ```
+3. Re-run build. Subtask completion ratio auto-populates the progress bar.
 
 ## Quick config reference
 
 ```yaml
 project:
   name: MyProject
-  subtitle: Docs preview
-  glyph: M                                # single char in the wordmark square
-  description: One-line tagline for footer
-  output: docs/index.html                 # relative to config file
+  mark: M                          # single-char wordmark
+  tagline: "项目进度概览"            # hero subtitle
+  eyebrow: "DASHBOARD"             # hero topline
+  output: docs/index.html
 
 paths:
-  repo: "."                               # default; everything resolves from here
+  repo: "."
   # Auto-available: {home}, {env:VAR}, {main_repo} (worktree-aware)
 
-groups:
-  - name: Overview
-    icon: O
-    color: primary
-    files:
-      - {title: README, path: "{repo}/README.md"}
-      - {title: CHANGELOG, path: "{repo}/CHANGELOG.md"}
+system_docs:
+  - id: claude-md
+    title: CLAUDE.md
+    path: "{repo}/CLAUDE.md"
+    desc: 项目根级 AI 协作约定
+    icon: memory                   # memory | design | plan | doc
+  - id: prd
+    title: PRD.md
+    path: "{repo}/docs/PRD.md"
+    desc: 产品需求文档
+    icon: doc
 
-  - name: Spec · Modules
-    icon: "6"
-    color: primary
-    scan:
-      dir: "{repo}/docs/spec/module"
-      title_transform: prefix-dot-titlecase   # M01-foo-bar → M01 · Foo Bar
+modules:
+  scan:
+    dir: "{repo}/docs/spec/module"
+    title_transform: prefix-dot-titlecase
 
-  - name: Plans
-    icon: P
-    color: graphite
-    scan:
-      dir: "{repo}/docs/plan"
-      recursive: true                     # nested dirs included
-      title_transform: path-slash         # subdir / stem
-
-  - name: External roadmap
-    icon: R
-    color: storm-deep
-    glob:
-      - "{home}/.claude/plans/myproject/**/*.md"
+concepts:
+  scan:
+    dir: "{repo}/docs/spec/concept"
+    title_transform: prefix-dot-titlecase
 
 frontmatter:
-  enabled: true                           # parse YAML frontmatter
-  kanban:
-    enabled: true                         # show dashboard view
-    card_types: [module, concept, task]   # only these `type:` values become cards
-    kpi_type: module                      # KPI summary aggregates this type
-    sprint_order: [M0, M1, M2, M3, GA]    # order for the timeline; unknowns sort last
-
-design:                                    # all optional — see references/design_tokens.md
-  primary: "#024ad8"
-  primary_deep: "#0e3191"
-  # ... or leave the whole block out for HP-style defaults
+  enabled: true
+  status_progress_ranges:
+    not-started: [0, 0]
+    planned: [0, 15]
+    in-progress: [5, 95]
+    blocked: [0, 100]
+    done: [100, 100]
+    deferred: [0, 100]
 ```
 
-Full reference with every option: see `references/config_reference.md`.
+Full reference: `references/config_reference.md`. Frontmatter field reference: `references/frontmatter_conventions.md`.
 
-## Frontmatter conventions (only if kanban enabled)
+## Common failure modes
 
-Each MD file that should appear as a kanban card needs YAML frontmatter at the top:
-
-```markdown
----
-id: M07
-type: module
-title: Job-Task FSM
-status: in-progress     # not-started | planned | in-progress | blocked | done | deferred
-progress: 45            # 0-100; must match status range (see frontmatter_conventions.md)
-sprint: M1.2
-prd_ref: §6.3.7
-owner: harvey
-depends_on: [M04, M06]
-blocks: [M08]
-updated_at: 2026-05-14
----
-
-# document body…
-```
-
-Files without an `id` field are still indexed in the sidebar but don't appear as cards. This is intentional — README, governance docs, design system pages aren't "trackable work items".
-
-Status / progress mismatches surface as build warnings (e.g. `progress=80 out of range [0,15] for status=planned`) but never block the build — partial truth is better than no truth.
-
-Full schema and rationale: see `references/frontmatter_conventions.md`.
-
-## Common failure modes (and what they mean)
-
-- **`[WARN] 0 docs exist`** → all paths in the config resolved to nonexistent files. Almost always a `paths.repo` mismatch or you ran the build from a worktree without `{main_repo}` resolution. Run with `--debug` to print every resolved path.
-- **Sidebar shows `missing` chips next to entries** → the doc was listed but the file isn't there. Either delete the entry from the config or create the file. Missing docs render a friendly placeholder inside the document view; they don't crash the build.
-- **CDN failure banner in the rendered HTML** → user is offline or behind a firewall that blocks jsdelivr. Document view falls back to raw `<pre>` MD. For an offline-first deployment, see `references/design_tokens.md` → "Offline / vendored mode".
-- **Frontmatter warnings spamming the console** → the `status` ⇄ `progress` ranges are tighter than the user's actual usage. Either fix the MD files or relax the ranges under `frontmatter.status_progress_ranges` in the config.
-- **YAML config rejects with `unknown key`** → the config loader uses strict matching. Typo in a key, or a feature that's not implemented yet. Check spelling against `references/config_reference.md`.
+- **`[WARN] 0 items` after build** → all paths resolved to nonexistent files. Almost always `paths.repo` wrong or scan dir typo. Run with `--debug` to print resolved vars.
+- **Modules don't appear in Kanban** → MD missing `id:` in frontmatter, OR id is a template placeholder like `MXX` (those are skipped by design).
+- **`progress=80 out of range [0,15] for status=planned`** → status / progress mismatch. Either fix the MD or relax the ranges under `frontmatter.status_progress_ranges`.
+- **Subtask toggles don't persist** → that's localStorage. Open the SAME `file://` URL again (re-opening with a fresh path won't carry overrides).
+- **CDN font fails (no Inter loaded)** → marked.js/highlight.js are no longer used in 0.2.0; only Google Fonts loads externally. If user wants fully offline, suggest vendoring Inter + JetBrains Mono fonts (future feature).
 
 ## References — read these when…
 
-- **`references/config_reference.md`** — when authoring or extending the YAML config, especially the `groups` / `frontmatter` / `design` blocks. Open this any time you're about to write more than a single `scan:` entry.
-- **`references/frontmatter_conventions.md`** — when enabling kanban for the first time, or when the user asks why a doc didn't show up as a card. Includes the status / progress validation table.
-- **`references/design_tokens.md`** — when the user wants brand/theme changes, or when something looks wrong in the rendered HTML. Lists every CSS variable the template exposes, the default color tokens, and how to vendor marked.js / highlight.js for offline mode.
+- **`references/config_reference.md`** — when authoring or extending the YAML config. Open any time you're about to write more than a single `scan:` entry.
+- **`references/frontmatter_conventions.md`** — when wiring module frontmatter, especially desc / docs / subtasks fields (new in 0.2.0). Includes status / progress validation table + subtask auto-progress calculation.
 
 ## Examples — clone-and-edit starting points
 
-- **`examples/minimal.yaml`** — smallest workable config: one group, a couple of files, no kanban. Good for "I have a tiny `docs/` and just want a sidebar".
-- **`examples/full.yaml`** — comprehensive reference config: 10 groups, mix of explicit files + dir scans + globs into `~/.claude/plans/`, kanban enabled with PRD-driven module statuses. Reference this when you're scaling a real project up.
+- **`examples/minimal.yaml`** — smallest workable 0.2.0 config: project + 1 system_doc + modules scan. Good starting point.
+- **`examples/full.yaml`** — comprehensive reference config: full project meta + multi-entry system_docs + modules + concepts + frontmatter governance.
 
 ## The forcing function (worth surfacing to the user)
 
-The cockpit is only useful if it stays fresh. The pattern that's been battle-tested:
+The cockpit is only useful if it stays fresh. Pattern:
 
-> Any PR that touches MD files must re-run `python -m docs_cockpit build` and commit the regenerated HTML in the same commit. PRs without this update don't merge.
+> Any PR touching a module MD must re-run `docs-cockpit build` and commit the regenerated `docs/index.html` + `docs/state.json`.
 
-This isn't enforced by the skill — it's a team convention. But if the user asks "how do I make sure people don't forget", suggest one of:
-
-- A `pre-commit` hook that runs the build and stages the HTML
-- A CI step that runs the build and fails if `docs/index.html` is dirty
-- A simple paragraph in CONTRIBUTING.md / CLAUDE.md spelling out the rule
-
-The lowest-friction starting point is option 3.
+If user asks how to enforce: pre-commit hook OR CI step OR CONTRIBUTING line — see README "Daily workflow" section for templates.

@@ -1,201 +1,152 @@
-# Frontmatter conventions · 给文档加 YAML 头
+# YAML frontmatter 约定(0.2.0)
 
-> 读这份文档的时机:用户想启用 kanban,但 MD 文档现在没有 frontmatter;或者一个文档加了 frontmatter 但没出现在看板里,需要排错;或者要扩展新字段。
+> docs-cockpit dashboard 的 module / concept 卡片来自 MD 文件顶部的 YAML frontmatter。这份文档列每个字段的语义 + status × progress 治理校验 + 0.2.0 新加的扩展字段。
 
-## 为什么要 frontmatter
+## 最小 module frontmatter
 
-如果你只想要"很多 MD 文件 → 一个 HTML 预览页",不需要 frontmatter — 配置里把 `frontmatter.kanban.enabled` 留成 false 就行,所有文档照常进侧边栏。
+```markdown
+---
+id: M07                          # 必填 · 不带 id 不进卡板
+title: Job-Task FSM              # 可省 · 缺则用文件名
+status: in-progress              # not-started | planned | in-progress | blocked | done | deferred
+progress: 45                     # 0-100 · 必须符合 status_progress_ranges
+sprint: M1.2                     # 可省 · timeline 按这个分组
+---
 
-但**项目进度看板**(KPI / 模块 Kanban / Sprint Timeline)需要从文档身上读出"这是什么类型的 work item、当前状态、做了百分之多少、属于哪个 sprint"。这些元数据没法从正文里靠 LLM 推断 — 必须显式写。Frontmatter 就是放这些字段的地方。
+# M07 · Job-Task FSM(MD body 仍在 · 但 dashboard 不渲染)
+```
 
-## 标准字段
-
-每个想进看板的 MD 文档头部:
+## 0.2.0 扩展字段(modules · 选填)
 
 ```markdown
 ---
 id: M07
-type: module
 title: Job-Task FSM
 status: in-progress
-progress: 45
 sprint: M1.2
-prd_ref: §6.3.7
+progress: 45
+
+# ── 0.2.0 新加 ────────────────────────────────────────
+desc: 12 类核心 FSM 状态机 · 含字段校验与跨模型引用约束
+docs:
+  - { title: "Schema 设计文档", path: "docs/design/schemas.md" }
+  - { title: "RFC 003 · 模型边界", path: "docs/RFC/003-model-boundaries.md" }
+subtasks:
+  - { title: "核心实体定义(12 类)", done: true }
+  - { title: "字段校验与 strict 模式", done: true }
+  - { title: "序列化与反序列化测试", done: false }
+  - { title: "跨模型引用约束", done: false }
+manualProgress: false            # 默认 false · 子任务自动算 progress
+
+# ── 治理类(选填)─────────────────────────────────────
 owner: harvey
+prd_ref: §6.3.7
 depends_on: [M04, M06]
 blocks: [M08]
 updated_at: 2026-05-14
 ---
-
-# Job-Task FSM
-
-(正文 ...)
 ```
 
 ### 字段语义
 
-| 字段 | 必需? | 类型 | 说明 |
-|------|------|------|------|
-| `id` | **是** · 没 id 不进看板 | str | 唯一识别符 · 用于 depends_on / blocks 引用 |
-| `type` | 强烈建议 | str | `module` / `concept` / `task` / `rfc` / 自定义。`kanban.card_types` 与 `kanban.kpi_type` 都按这个分 |
-| `title` | 可选 | str | 看板卡上显示。不写就用从文件名解析的标题 |
-| `status` | 是(看板用) | str | 见 status 词汇表 |
-| `progress` | 是(看板用) | int 0-100 | 必须落在对应 status 的区间内 |
-| `sprint` | 可选 | str | Sprint timeline 用 · 例 `M1.2` / `Q4` |
-| `prd_ref` | 可选 | str | PRD 章节回溯 · 例 `§6.3.7` |
-| `owner` | 可选 | str | 负责人 · 当前只展示,未来可能加 owner filter |
-| `depends_on` | 可选 | list[str] | id 列表 · 当前只展示,未来 DAG 视图会用 |
-| `blocks` | 可选 | list[str] | id 列表(反向依赖)|
-| `updated_at` | 可选 | date | YAML date 类型会被自动转 ISO 字符串 |
+| 字段 | 类型 | 必填 | 说明 |
+|---|---|---|---|
+| `id` | string | ✅ | 唯一标识 · 不带 id 的 MD 不进卡板(允许侧边栏继续列出 · 但不计入 Kanban / KPI) |
+| `title` | string | ⚠️ | 卡片标题 · 缺省用文件名 |
+| `status` | enum | ⚠️ | 必须在 `status_progress_ranges` 表里 |
+| `progress` | int 0-100 | ⚠️ | 跟 status 的范围匹配 · 不匹配只 warn 不阻塞 |
+| `sprint` | string | ⚠️ | 任意字符串 · timeline 按此分组 · 缺则归 "—" 组 |
+| `desc` | string | ✅(展示完整 · 强烈建议) | drawer 里展示的"模块描述" 1-3 句 |
+| `docs` | list of `{title, path}` | 可空 | 模块关联的 MD 文档列表 · drawer 里可点开 |
+| `subtasks` | list of `{title, done}` | 可空 | 子任务清单 · drawer 里可勾选(localStorage 持久化) |
+| `manualProgress` | bool | 可空 | true → 用 `progress` 字段;false → 用子任务完成率算 |
 
-### status 词汇表 + 区间
+## Concepts 简化字段
 
-默认值(可在配置里覆盖):
+Concepts(底部 grid)**不用**扩展字段 · 只读这 5 个:
 
-| status | progress 区间 | 含义 |
-|--------|--------------|------|
-| `not-started` | `[0, 0]` | 完全未启动 · 只是占位 |
-| `planned` | `[0, 15]` | 已排期 · 文档骨架可能在,但未真正开工 |
-| `in-progress` | `[5, 95]` | 真在做 · progress 反映完成度 |
-| `blocked` | `[0, 100]` | 因外部依赖卡住 · progress 保留卡住前的值 |
-| `done` | `[100, 100]` | 完成 · 必须 100 才能写 done |
-| `deferred` | `[0, 100]` | 推迟到更晚 sprint · 类似 blocked 但是主动决策 |
+```markdown
+---
+id: C03
+title: Site Adapter
+status: in-progress
+sprint: M1.2
+progress: 60
+---
+```
 
-**区间是闭区间**(`[lo, hi]` 含两端)。违反会打 warning 但不 fail build。
+`desc / docs / subtasks` 即使写了也会被忽略 — 概念 grid 只展示 5 字段卡片。
 
-### 为什么 `planned` 上限到 15?
+## status × progress 治理
 
-允许 sprint 启动前的小量铺垫(scaffold / 调研笔记落地后但实际工作未开始)。如果你想更严,改成 `[0, 0]`。
+默认 status 词汇 + 允许的 progress 范围(`status_progress_ranges`):
+
+| status | progress 允许 [min, max] | 含义 |
+|---|---|---|
+| `not-started` | [0, 0] | 完全没开始 |
+| `planned` | [0, 15] | sprint 已排期但实际未启动(允许 ≤15 的轻量铺垫) |
+| `in-progress` | [5, 95] | 在做 · 排除 0/100 两头 |
+| `blocked` | [0, 100] | 任何进度 · 但 status=blocked 比 progress 重要 |
+| `done` | [100, 100] | 必须 100% |
+| `deferred` | [0, 100] | 暂停 / 推迟 |
+
+不合规会发 build warning(`progress=N out of range [a,b] for status=S`)· 永远**不阻塞** build。
+
+### 自定义 status 词汇
+
+如果你用别的词(`todo` / `wip` / `shipped`),整张表替换:
+
+```yaml
+frontmatter:
+  status_progress_ranges:
+    todo: [0, 0]
+    wip: [1, 99]
+    shipped: [100, 100]
+```
+
+**注意**:前端 Kanban 5 列(`STATUS_ORDER`)硬编码默认这套词。换词汇也要同步改 `templates/index.html.tmpl` 里的 `STATUS_ORDER` / `STATUS_LABEL` / `STATUS_COLOR`。
+
+## Subtasks → 自动 progress
+
+`manualProgress: false`(或不写)时,build **不读** `progress` 字段 · 改为按子任务完成率算:
+
+```
+progress = round(已完成 subtask 数 / 总 subtask 数 × 100)
+```
+
+子任务全空时降级到 `progress` 字段值。
+
+`manualProgress: true` 时:用 `progress` 字段。dashboard drawer 里 toggle 可切换 · 切完写 localStorage 覆盖(用户在浏览器里调 · 不动 MD)。
+
+## localStorage 覆盖机制(0.2.0 新加)
+
+用户在 dashboard 里点 status / 拖 progress / 勾 subtask · **覆盖**写 `localStorage[project-kanban-state-v1]`:
+
+```json
+{
+  "M07": { "status": "blocked", "progress": 30, "manualProgress": true },
+  "M07__st0": true,
+  "M07__st1": false
+}
+```
+
+**source of truth 仍是 MD frontmatter** · 覆盖只是浏览端展示层 · 重 build 不会丢 MD 的真实值。如果用户要把 dashboard 上的覆盖**落回** MD · 暂无自动同步 · 手工改 frontmatter 即可。
+
+(后续 roadmap:`docs-cockpit sync-overrides` 命令把 localStorage 落回 MD frontmatter。)
+
+## 跳过模板占位 id
+
+如果你的 MD 是从模板复制来的 · id 还没填(写成 `MXX` / `CXXX` 等),build 会**跳过这条**不报错。避免模板半成品污染 dashboard。
 
 ## ID 命名约定
 
 一种典型约定:
 
-- `M01` ~ `M24` — modules(对应 PRD 里的模块清单)
-- `C01` ~ `C11` — concepts(核心概念)
-- `T-<scope>` — tasks(`T-M1.1.3-login-cookies`)
+- `M01` ~ `M24` — modules
+- `C01` ~ `C11` — concepts
+- `T-<scope>` — tasks(如 `T-M1.1.3-login-cookies`)
 - `RFC-001` ~ — RFCs
 
-可以用任何约定。但有两个坑:
-
-1. **占位 ID**: 含 `XX` 的 ID(`MXX`)和 `XXX` 结尾的 ID(`RFC-XXX`)会被 build 自动过滤掉 — 这是 template 文件常用模式,防止模板 stub 被错误算进看板
-2. **跨文档 unique**: build 不强制 · 但前端 Kanban 卡的 hover 跳转用 slug(文件名 slugify)· id 重复不冲突,只是看上去有歧义
-
-## 文件没出现在看板里 · 排错清单
-
-按概率排序:
-
-1. **`frontmatter.kanban.enabled` 没开** · 配置 `false` 或不写就走文档视图。
-2. **没有 `id` 字段** · 没有 id 就不是 trackable work item · 故意只进侧边栏。
-3. **`type` 不在 `card_types` 列表里** · 配置里若设了 `card_types: [module]`,而文档是 `type: rfc`,就不进卡。
-4. **`type` 不等于 `kpi_type`** · 文档进了 cards 但不进 KPI / Kanban / Timeline(只在 Concept Grid 区显示)。
-5. **YAML 解析失败** · 头部第一行不是 `---`,或 yaml 语法错(比如 string 里有 colon 没引号)。build 会静默把 frontmatter 当空字典,文档照常进侧边栏但不进看板。用 `--debug` 看不到这种,得肉眼检查 MD 头。
-6. **`progress` 不是 int** · 写成 `"45%"` / `45.0` 会变成 string / float · 看板能渲染但 progress bar 会出 NaN。永远写成 `progress: 45` 不带引号不带 %。
-
-## 给一个文档加 frontmatter · 推荐工作流
-
-如果项目还没有 frontmatter 约定,从 1-2 个高价值文档开始(比如目前 in-progress 的模块):
-
-1. 在文档最顶上插入:
-
-   ```markdown
-   ---
-   id: M07
-   type: module
-   title: Job-Task FSM
-   status: in-progress
-   progress: 30
-   sprint: M1.2
-   ---
-   ```
-
-2. 跑 build,看看出现在 Kanban 的哪一列:
-
-   ```bash
-   python -m docs_cockpit build
-   ```
-
-3. 调 status / progress 直到看板反映真实。
-4. 给其他模块文档复制相同模式。
-
-**不要一次给所有文档加** · 先把约定跑通 + 用户接受了再批量上,否则改约定时要回头改一堆文档。
-
-## 扩展新字段
-
-只需要在 `meta` 上加 key,build 时会原样进 `payload.cards[*].meta`。但前端 template 不会自动渲染未知字段。
-
-要把新字段渲染出来:
-
-1. 在 `docs_cockpit/templates/index.html.tmpl` 里找到 `renderModuleCard` / `renderDashboard`,加 HTML 段
-2. 重跑 build
-
-这是 template 直接改的场景 — 当前没法纯 YAML 配置扩 UI。
-
-## 模板:给新文档复制粘贴
-
-### Module(常用)
-
-```markdown
----
-id: M__
-type: module
-title: __
-status: not-started
-progress: 0
-sprint: TBD
-prd_ref: §_._._
-owner: __
-depends_on: []
-blocks: []
-updated_at: __
----
-
-# __
-
-## 目标
-
-## 范围
-
-## 接口
-
-## 进度
-
-## 风险
-```
-
-### Task
-
-```markdown
----
-id: T-__
-type: task
-title: __
-status: planned
-progress: 0
-sprint: __
-owner: __
----
-
-# T-__ · __
-
-## DOD
-
-## 步骤
-
-## 链接
-```
-
-### Concept
-
-```markdown
----
-id: C__
-type: concept
-title: __
-status: planned
-progress: 0
-prd_ref: §5.__
----
-
-# C__ · __
-```
+可以用任何约定。注意两点:
+- id 在整个项目要**全局唯一** · 重复会被前端去重(后出现的覆盖)
+- 不要在 id 里塞空格 / 中文 / 特殊字符 · 简单 ASCII 字母 + 数字 + dash 最稳

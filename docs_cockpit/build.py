@@ -261,143 +261,148 @@ def validate_meta(
     return warnings
 
 
-# ── payload 组装 ───────────────────────────────────────────────────
-def build_payload(
-    config: dict, vars_: dict[str, str]
-) -> tuple[list[dict], list[dict], dict | None, list[str]]:
-    """返 (groups_payload, cards, kpi, warnings).
+# ── payload 组装 (0.2.0 dashboard 形状) ──────────────────────────────
+def _build_card(
+    title: str,
+    path: pathlib.Path,
+    meta: dict,
+    mtime: str | None,
+    *,
+    full: bool,
+) -> dict | None:
+    """从 frontmatter 拼一张 card · None = 跳过(无 id / 占位 id).
 
-    - groups_payload: 侧边栏 + 文档视图用 · 每个 group 含 items 列表
-    - cards: 看板用 · 只挑 frontmatter 有 id + type 在 card_types 内的文档
-    - kpi: 模块级汇总(默认 type=module · 可配)
-    - warnings: frontmatter 不合规的提示
+    full=True → modules 用 · 含 desc / docs / subtasks / manualProgress 等扩展字段
+    full=False → concepts 用 · 仅核心 5 字段(id/title/status/sprint/progress)
     """
+    doc_id = meta.get("id")
+    if not doc_id:
+        return None
+    # 跳过模板占位 ID
+    if isinstance(doc_id, str) and ("XX" in doc_id or doc_id.endswith("XXX")):
+        return None
+
+    card = {
+        "id": doc_id,
+        "title": meta.get("title") or title,
+        "status": meta.get("status") or "not-started",
+        "sprint": meta.get("sprint") or "",
+        "progress": meta.get("progress") if isinstance(meta.get("progress"), (int, float)) else 0,
+    }
+    if full:
+        card["desc"] = meta.get("desc") or ""
+        card["docs"] = meta.get("docs") or []
+        card["subtasks"] = meta.get("subtasks") or []
+        card["manualProgress"] = bool(meta.get("manualProgress"))
+        # 额外 metadata · status skill 读 state.json 时也能拿到
+        card["path"] = str(path)
+        card["mtime"] = mtime
+        card["owner"] = meta.get("owner") or ""
+        card["prd_ref"] = meta.get("prd_ref") or ""
+        card["depends_on"] = meta.get("depends_on") or []
+        card["blocks"] = meta.get("blocks") or []
+        card["updated_at"] = meta.get("updated_at") or ""
+    return card
+
+
+def _build_card_list(
+    group_cfg: dict | None,
+    vars_: dict[str, str],
+    fm_enabled: bool,
+    ranges: dict[str, tuple[int, int]],
+    warnings: list[str],
+    *,
+    full: bool,
+) -> list[dict]:
+    """从 modules: / concepts: block 解析出 card 列表."""
+    if not group_cfg:
+        return []
+    out: list[dict] = []
+    for title, path in _resolve_group_files(group_cfg, vars_):
+        _content, meta, mtime, exists = read_md(path)
+        if not exists:
+            continue
+        if fm_enabled:
+            warnings.extend(validate_meta(path, meta, ranges))
+        card = _build_card(title, path, meta, mtime, full=full)
+        if card is not None:
+            out.append(card)
+    return out
+
+
+def _build_system_docs(
+    entries: list[dict] | None, vars_: dict[str, str]
+) -> list[dict]:
+    """system_docs: 手挑列表 · 仅展开 path 变量 · 不读 MD 内容."""
+    if not entries:
+        return []
+    out: list[dict] = []
+    for entry in entries:
+        out.append({
+            "id": entry.get("id") or slugify(entry.get("title", "")),
+            "title": entry.get("title", ""),
+            "path": _expand(entry.get("path", ""), vars_),
+            "desc": entry.get("desc", ""),
+            "icon": entry.get("icon", "doc"),
+        })
+    return out
+
+
+def build_payload(
+    config: dict, vars_: dict[str, str], build_time: str
+) -> tuple[dict, list[str]]:
+    """返 (payload, warnings) · 0.2.0 dashboard 形状.
+
+    Payload 结构:
+    {
+      "project": {name, tagline, eyebrow, mark, lastBuild},
+      "systemDocs": [{id, title, path, desc, icon}],
+      "modules": [{id, title, status, sprint, progress, desc, docs, subtasks, ...}],
+      "concepts": [{id, title, status, sprint, progress}],
+    }
+    """
+    warnings: list[str] = []
+
     fm_cfg = config.get("frontmatter", {}) or {}
     fm_enabled = fm_cfg.get("enabled", True)
     ranges_cfg = fm_cfg.get("status_progress_ranges") or DEFAULT_STATUS_RANGES
     ranges = {k: tuple(v) for k, v in ranges_cfg.items()}
 
-    out: list[dict] = []
-    all_warnings: list[str] = []
-    for group in config.get("groups", []):
-        items: list[dict] = []
-        for title, path in _resolve_group_files(group, vars_):
-            content, meta, mtime, exists = read_md(path)
-            if fm_enabled and exists:
-                all_warnings.extend(validate_meta(path, meta, ranges))
-            items.append({
-                "slug": slugify(title),
-                "title": title,
-                "path": str(path),
-                "mtime": mtime,
-                "exists": exists,
-                "content": content,
-                "size": len(content),
-                "meta": meta if fm_enabled else {},
-            })
-        out.append({
-            "group": group["name"],
-            "icon": group.get("icon", "·"),
-            "color": group.get("color", "primary"),
-            "items": items,
-        })
+    # Project meta(含 build_time → lastBuild)
+    project = config.get("project", {}) or {}
+    payload_project = {
+        "name": project.get("name") or "MyProject",
+        "tagline": project.get("tagline") or "",
+        "eyebrow": project.get("eyebrow") or "",
+        "mark": (project.get("mark") or project.get("glyph") or "·"),
+        "lastBuild": build_time,
+    }
 
-    kanban_cfg = fm_cfg.get("kanban", {}) or {}
-    kanban_enabled = fm_enabled and kanban_cfg.get("enabled", False)
-    cards: list[dict] = []
-    kpi: dict | None = None
-    if kanban_enabled:
-        card_types = set(kanban_cfg.get("card_types") or [])
-        for g in out:
-            for it in g["items"]:
-                meta = it.get("meta") or {}
-                doc_id = meta.get("id")
-                if not meta or not doc_id:
-                    continue
-                # 跳过模板占位 ID(MXX / CXX / RFC-XXX 等)
-                if isinstance(doc_id, str) and (
-                    "XX" in doc_id or doc_id.endswith("XXX")
-                ):
-                    continue
-                if card_types and meta.get("type") not in card_types:
-                    continue
-                cards.append({
-                    "id": meta.get("id"),
-                    "type": meta.get("type"),
-                    "title": meta.get("title") or it["title"],
-                    "status": meta.get("status"),
-                    "progress": meta.get("progress"),
-                    "sprint": meta.get("sprint"),
-                    "prd_ref": meta.get("prd_ref"),
-                    "owner": meta.get("owner"),
-                    "depends_on": meta.get("depends_on") or [],
-                    "blocks": meta.get("blocks") or [],
-                    "updated_at": meta.get("updated_at"),
-                    "slug": it["slug"],
-                    "group": g["group"],
-                })
-        kpi_type = kanban_cfg.get("kpi_type", "module")
-        kpi_cards = [c for c in cards if c["type"] == kpi_type]
-        kpi = {
-            "kpi_type": kpi_type,
-            "total_modules": len(kpi_cards),
-            "done": sum(1 for c in kpi_cards if c["status"] == "done"),
-            "in_progress": sum(1 for c in kpi_cards if c["status"] == "in-progress"),
-            "blocked": sum(1 for c in kpi_cards if c["status"] == "blocked"),
-            "planned": sum(1 for c in kpi_cards if c["status"] == "planned"),
-            "not_started": sum(1 for c in kpi_cards if c["status"] == "not-started"),
-            "deferred": sum(1 for c in kpi_cards if c["status"] == "deferred"),
-            "overall_progress": (
-                round(sum((c["progress"] or 0) for c in kpi_cards)
-                      / max(len(kpi_cards), 1), 1)
-            ),
-        }
+    system_docs = _build_system_docs(config.get("system_docs"), vars_)
+    modules = _build_card_list(
+        config.get("modules"), vars_, fm_enabled, ranges, warnings, full=True
+    )
+    concepts = _build_card_list(
+        config.get("concepts"), vars_, fm_enabled, ranges, warnings, full=False
+    )
 
-    return out, cards, kpi, all_warnings
+    payload = {
+        "project": payload_project,
+        "systemDocs": system_docs,
+        "modules": modules,
+        "concepts": concepts,
+    }
+    return payload, warnings
 
 
 # ── 渲染 HTML ─────────────────────────────────────────────────────
 TEMPLATE_PATH = pathlib.Path(__file__).parent / "templates" / "index.html.tmpl"
 
 
-def render_html(
-    template: str, project: dict, payload: dict, build_time: str, design: dict
-) -> str:
-    """占位符替换 · 注意 __DOCS_JSON__ 最后做 · MD content 可能撞到其他 placeholder 字面量."""
+def render_html(template: str, payload: dict) -> str:
+    """0.2.0:模板只需一个占位符替换 · JS 从 payload 渲染其他一切."""
     docs_json = json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
-    sprint_order_json = json.dumps(
-        payload.get("sprint_order") or [], ensure_ascii=False
-    )
-    kanban_enabled = "true" if payload.get("kanban_enabled") else "false"
-
-    out = template
-    out = out.replace("__BUILD_TIME__", build_time)
-    out = out.replace("__PROJECT_NAME__", project.get("name", "Project"))
-    out = out.replace("__PROJECT_SUBTITLE__", project.get("subtitle", "Docs preview"))
-    out = out.replace("__PROJECT_GLYPH__", project.get("glyph", "P"))
-    out = out.replace(
-        "__PROJECT_DESCRIPTION__",
-        project.get("description", "Project documentation preview"),
-    )
-    # localStorage key 前缀 · 避免多个项目互相覆盖
-    out = out.replace(
-        "__STORAGE_KEY__", slugify(project.get("name", "project")) + "-docs"
-    )
-    out = out.replace("__SPRINT_ORDER_JSON__", sprint_order_json)
-    out = out.replace("__KANBAN_ENABLED__", kanban_enabled)
-
-    # design tokens override(可选)
-    color_overrides = []
-    for k, v in (design.get("colors") or {}).items():
-        # 把 primary → --colors-primary 这样的 token name 写进 :root inline style
-        color_overrides.append(f"--colors-{k}: {v};")
-    out = out.replace(
-        "/* __DESIGN_OVERRIDES__ */", "\n  ".join(color_overrides)
-    )
-
-    # docs payload 最后做 · MD content 里可能撞到上面的 placeholder 字面量
-    out = out.replace("__DOCS_JSON__", docs_json)
-    return out
+    return template.replace("__DOCS_JSON__", docs_json)
 
 
 # ── CLI ─────────────────────────────────────────────────────────────
@@ -513,94 +518,68 @@ def cmd_build(args: argparse.Namespace) -> int:
         _safe_print(f"[debug] vars: {vars_}")
         _safe_print(f"[debug] output: {output}")
 
-    groups, cards, kpi, warnings = build_payload(config, vars_)
-
-    fm_cfg = config.get("frontmatter", {}) or {}
-    kanban_cfg = fm_cfg.get("kanban", {}) or {}
-    sprint_order = kanban_cfg.get("sprint_order") or []
-
-    payload = {
-        "groups": groups,
-        "cards": cards,
-        "kpi": kpi,
-        "sprint_order": sprint_order,
-        "kanban_enabled": kpi is not None,
-    }
+    build_time = _dt.datetime.now().strftime("%Y-%m-%d %H:%M")
+    payload, warnings = build_payload(config, vars_, build_time)
 
     if not TEMPLATE_PATH.exists():
         _safe_print(f"[ERR] template missing: {TEMPLATE_PATH}")
         return 2
 
     template = TEMPLATE_PATH.read_text(encoding="utf-8")
-    build_time = _dt.datetime.now().strftime("%Y-%m-%d %H:%M")
-    html = render_html(
-        template, project, payload, build_time, config.get("design", {}) or {}
-    )
+    html = render_html(template, payload)
 
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(html, encoding="utf-8")
 
     # ── sidecar state.json · 给 docs-cockpit-status skill 读 ──
-    # 跟 HTML 同目录 · 但不含逐文档 markdown content(避免文件膨胀)
+    # 同 payload · 多一份 warnings · 方便 status skill 摘出。
     state_path = output.parent / "state.json"
-    state_groups = [
-        {
-            "group": g["group"],
-            "icon": g["icon"],
-            "color": g["color"],
-            "items": [
-                {k: v for k, v in i.items() if k != "content"}
-                for i in g["items"]
-            ],
-        }
-        for g in groups
-    ]
-    state_payload = {
-        "project": {
-            "name": project.get("name"),
-            "subtitle": project.get("subtitle"),
-            "glyph": project.get("glyph"),
-            "description": project.get("description"),
-        },
-        "build_time": build_time,
-        "groups": state_groups,
-        "cards": cards,
-        "kpi": kpi,
-        "sprint_order": sprint_order,
-        "kanban_enabled": kpi is not None,
-        "warnings": warnings,
-    }
+    state_payload = {**payload, "warnings": warnings}
     state_path.write_text(
         json.dumps(state_payload, ensure_ascii=False, indent=2, default=str),
         encoding="utf-8",
     )
 
-    total_docs = sum(len(g["items"]) for g in groups)
-    total_existing = sum(1 for g in groups for i in g["items"] if i["exists"])
-    missing = total_docs - total_existing
-    total_chars = sum(sum(i["size"] for i in g["items"]) for g in groups)
+    # ── 统计 + 输出 ───────────────────────────────────────────
+    n_modules = len(payload["modules"])
+    n_concepts = len(payload["concepts"])
+    n_sysdocs = len(payload["systemDocs"])
+
+    def _status_counts(cards: list[dict]) -> dict[str, int]:
+        counts: dict[str, int] = {}
+        for c in cards:
+            counts[c.get("status", "")] = counts.get(c.get("status", ""), 0) + 1
+        return counts
+
+    mod_counts = _status_counts(payload["modules"])
+    overall = (
+        round(sum(c.get("progress") or 0 for c in payload["modules"])
+              / max(n_modules, 1), 1)
+        if n_modules else 0
+    )
 
     for w in warnings:
         _safe_print(f"[WARN] frontmatter: {w}")
-    if total_existing == 0:
-        _safe_print("[WARN] 0 docs exist · 检查 paths.repo 与 groups[*].* 路径")
+    if n_modules == 0 and n_concepts == 0 and n_sysdocs == 0:
+        _safe_print(
+            "[WARN] 0 items · 检查 paths.repo 与 modules/concepts/system_docs 路径"
+        )
     _safe_print(f"[OK] Built {output}")
     _safe_print(f"     state: {state_path}")
     _safe_print(
-        f"     groups: {len(groups)} | docs: {total_docs} "
-        f"({total_existing} exist, {missing} missing) | {total_chars:,} chars"
+        f"     modules: {n_modules} | concepts: {n_concepts} | "
+        f"system_docs: {n_sysdocs}"
     )
-    if kpi:
+    if n_modules:
         _safe_print(
-            f"     cards: {len(cards)} (kpi type '{kpi['kpi_type']}': "
-            f"{kpi['total_modules']})"
+            f"     module status · done={mod_counts.get('done', 0)} "
+            f"in-progress={mod_counts.get('in-progress', 0)} "
+            f"planned={mod_counts.get('planned', 0)} "
+            f"blocked={mod_counts.get('blocked', 0)} "
+            f"not-started={mod_counts.get('not-started', 0)} "
+            f"deferred={mod_counts.get('deferred', 0)}"
         )
-        _safe_print(
-            f"     KPI · done={kpi['done']} in-progress={kpi['in_progress']} "
-            f"planned={kpi['planned']} blocked={kpi['blocked']} "
-            f"not-started={kpi['not_started']} deferred={kpi['deferred']}"
-        )
-        _safe_print(f"     overall progress: {kpi['overall_progress']}%")
+        _safe_print(f"     overall progress: {overall}%")
     _safe_print(f"     HTML size: {output.stat().st_size:,} bytes")
     _safe_print(f"     build time: {build_time}")
     if warnings:

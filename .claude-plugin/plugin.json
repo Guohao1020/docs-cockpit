@@ -1,7 +1,7 @@
 {
   "name": "docs-cockpit",
-  "description": "Aggregate scattered project markdown (PRD, spec, plan, RFC, tasks, README, session memory) into ONE file:// openable HTML cockpit — sidebar nav, in-page rendering, optional YAML-frontmatter-driven kanban + KPI dashboard. Ships THREE skills (auto-triggered): `docs-cockpit` (set up / maintain), `docs-cockpit-status` (read state.json + standup queries), `docs-cockpit-update` (auto-upgrade). Plus THREE slash commands for explicit invocation: `/docs-cockpit:build`, `/docs-cockpit:status`, `/docs-cockpit:update`. No server, no Docusaurus/Sphinx multi-page setup.",
-  "version": "0.1.3",
+  "description": "Project module / sprint / progress dashboard in a single self-contained HTML file. Aggregates `docs/spec/module/M*.md` + `docs/spec/concept/C*.md` (frontmatter-driven: id / status / sprint / progress / desc / subtasks / docs) into a `file://`-openable page with topbar, hero gauge, KPI strip, module Kanban (5 status columns, click for drawer with subtask checklist + progress slider), Sprint Timeline, Concept Grid. System docs (CLAUDE.md / PRD / DESIGN.md / RFC / memory / roadmap) appear in a separate drawer. Plus state.json sidecar for the status skill. Ships 3 auto-triggered skills (`docs-cockpit` setup, `docs-cockpit-status` standup queries, `docs-cockpit-update` self-upgrade) and 3 slash commands (`/docs-cockpit:build`, `:status`, `:update`).",
+  "version": "0.2.0",
   "author": {
     "name": "Guohao1020"
   },

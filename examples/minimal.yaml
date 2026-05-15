@@ -1,35 +1,58 @@
-# docs-cockpit · 最小可行配置
+# docs-cockpit · 最小可用配置(0.2.0)
 #
-# 用途:把一个 docs/ 目录下所有 MD 文件汇总到单文件 HTML。
-# 没启用看板 · 只有侧边栏 + 文档视图。
+# 用途:把项目里带 frontmatter 的 module / concept MD 卷成单文件 dashboard。
+# 浏览器 file:// 直接打开 docs/index.html · 含模块 Kanban + Sprint Timeline + KPI bar。
 #
 # 跑:
 #   python -m docs_cockpit build --config docs-cockpit.yaml
 #
-# 输出:docs/index.html · 用浏览器 file:// 打开。
+# 输出:
+#   docs/index.html  · 人看的 dashboard
+#   docs/state.json  · 机器读的结构化数据(给 docs-cockpit-status skill)
 
 project:
   name: MyProject
-  subtitle: Docs preview
-  glyph: M
-  description: My project documentation preview
+  mark: M                                      # wordmark 方块里的单字符
+  tagline: "项目进度概览 · 模块、Sprint、概念一站式"
+  eyebrow: "DASHBOARD"                          # 可选 · hero 顶部小标签
   output: docs/index.html
 
-groups:
-  - name: Overview
-    icon: O
-    color: primary
-    files:
-      - { title: README, path: "{repo}/README.md" }
+paths:
+  repo: "."                                    # 默认 · 配置文件所在目录
 
-  - name: Docs
-    icon: D
-    color: graphite
-    scan:
-      dir: "{repo}/docs"
-      recursive: true
-      # title_transform 默认在 recursive=true 时是 path-slash
-      # 即 subdir/foo.md → "subdir / foo"
+# ── 系统文档 · 手挑常驻入口 · 顶 bar "系统文档" 按钮里弹出 ──────────
+system_docs:
+  - id: claude-md
+    title: CLAUDE.md
+    path: "{repo}/CLAUDE.md"
+    desc: 项目根级 AI 协作约定 · 任务流程 / 规范
+    icon: memory                               # memory / design / plan / doc
 
-# frontmatter / kanban 未开 · 留空即可
-# 想试看板:看 examples/full.yaml
+  - id: readme
+    title: README
+    path: "{repo}/README.md"
+    desc: 项目总览 + 快速上手
+    icon: doc
+
+# ── 模块 · 主 dashboard 来源 · 每个 module MD 带 frontmatter 自动入卡 ──
+modules:
+  scan:
+    dir: "{repo}/docs/spec/module"
+    title_transform: prefix-dot-titlecase      # M01-foo-bar.md → M01 · Foo Bar
+
+# ── 概念 · 底部 grid · 极简 5 字段(id/title/status/sprint/progress)──
+concepts:
+  scan:
+    dir: "{repo}/docs/spec/concept"
+    title_transform: prefix-dot-titlecase
+
+# ── frontmatter 治理(可选)──────────────────────────────────────
+frontmatter:
+  enabled: true
+  status_progress_ranges:
+    not-started: [0, 0]
+    planned: [0, 15]
+    in-progress: [5, 95]
+    blocked: [0, 100]
+    done: [100, 100]
+    deferred: [0, 100]

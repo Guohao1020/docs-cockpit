@@ -1,28 +1,26 @@
 ---
 name: docs-cockpit-status
 description: |
-  Read an existing docs-cockpit's `docs/state.json` and answer interpretive questions about project status. Doesn't write or run anything — just reads structured frontmatter data (id / type / status / progress / sprint / owner / depends_on / blocks / updated_at) and produces narrative summaries: blockers, sprint completion %, stale docs, weekly diffs, standup reports.
+  Read an existing docs-cockpit project's `docs/state.json` and answer interpretive questions about module status, sprint progress, blockers, stale docs, and weekly diffs. Doesn't write or run anything — just reads structured frontmatter data (`modules[]` with id / status / progress / sprint / desc / docs / subtasks, `concepts[]`, `systemDocs[]`) and produces narrative summaries.
 
-  TRIGGER this skill when the user asks status / health / progress questions about a project that already has docs-cockpit set up. Common phrasings: "what's blocked", "what's blocked in <project>", "sprint M1.3 progress", "how's the project going", "weekly status from docs", "generate a standup report", "which modules haven't moved", "which RFCs are still planned", "show me sprint M1.X cards", "what changed in the cockpit this week", "项目进度怎么样", "哪些模块卡了", "M1.2 sprint 还差啥", "给我一份周报". Also trigger for status diffs over time if historical state.json snapshots exist ("what's different since last week").
+  TRIGGER this skill when the user asks status / health / progress questions about a project that already has docs-cockpit set up. Common phrasings: "what's blocked", "what's blocked in <project>", "sprint M1.3 progress", "how's the project going", "weekly status from docs", "generate a standup report", "which modules haven't moved", "show me sprint M1.X modules", "what changed in the cockpit this week", "项目进度怎么样", "哪些模块卡了", "M1.2 sprint 还差啥", "给我一份周报", "哪些 module 子任务做完了", "总体完成度多少". Also trigger for status diffs over time if historical state.json snapshots exist.
 
-  Do NOT trigger for: setting up a cockpit when no state.json exists (→ sibling `docs-cockpit`); changing config / yaml / MD files (writing files → `docs-cockpit`); rendering or building (→ `docs-cockpit`); questions about a project that doesn't have docs-cockpit installed (state.json doesn't exist — answer with the source MDs directly or suggest installing docs-cockpit first). The discriminator: `docs/state.json` (or a custom path equivalent) **exists** AND the user wants **narrative output with no file changes** → this skill. Anything that writes a yaml / MD / HTML / hook → the sibling.
+  Do NOT trigger for: setting up a cockpit when no state.json exists (→ sibling `docs-cockpit`); changing config / yaml / MD files (writing → `docs-cockpit`); rendering or building (→ `docs-cockpit`); questions about a project that doesn't have docs-cockpit installed (state.json doesn't exist — suggest installing docs-cockpit first). The discriminator: `docs/state.json` (or a custom path equivalent) **exists** AND the user wants **narrative output with no file changes** → this skill. Anything that writes a yaml / MD / HTML / hook → the sibling.
 ---
 
-# docs-cockpit-status
+# docs-cockpit-status (0.2.0+)
 
-> Read the cockpit. Tell the user what's going on. No file writes — narrative only.
+> Read the cockpit's `state.json`. Tell the user what's going on. No file writes — narrative only.
 
 ## Scope · what's in this skill vs the siblings
 
 **This skill** (`docs-cockpit-status`) — **reads only**. Answers questions about a cockpit's current state. Outputs are tables, prose, bullet lists. **No project files change.**
 
-**Sibling `docs-cockpit`** — **writes/edits**. Setup, add doc sources, build, frontmatter wiring, design tweaks, debug. If the user wants to *change* the cockpit, hand off.
+**Sibling `docs-cockpit`** — **writes/edits**. Setup, extend modules / concepts, build, frontmatter wiring, debug. If the user wants to *change* the cockpit, hand off.
 
-**Sibling `docs-cockpit-update`** — **handles upgrades**. If you go to read `docs/state.json` and find it **missing**, or it's present but missing fields (e.g. no `cards` array when kanban is enabled), or the build_time is from before features you depend on existed — the user's docs-cockpit CLI is probably stale. Hand off to `docs-cockpit-update` rather than telling them "state.json is missing, run build" (their build wouldn't produce state.json on the old CLI anyway).
+**Sibling `docs-cockpit-update`** — **handles upgrades**. If `docs/state.json` is **missing**, or has the old 0.1.x shape (`groups[]` / `cards[]` / `kpi{}` instead of `modules[]` / `concepts[]` / `systemDocs[]`), the user's CLI is stale → hand off to `docs-cockpit-update` rather than try to fall back.
 
-Hand off explicitly: *"That's a setup change — switching to `docs-cockpit`"* or *"state.json looks like an older format — switching to `docs-cockpit-update` first"*.
-
-## Data source: `docs/state.json`
+## Data source: `docs/state.json` (0.2.0 schema)
 
 Every `docs-cockpit build` writes `<output_dir>/state.json` next to `index.html`. That's your primary input.
 
@@ -30,125 +28,119 @@ Every `docs-cockpit build` writes `<output_dir>/state.json` next to `index.html`
 
 - Default: `<project_root>/docs/state.json`
 - Custom: if `project.output` in `docs-cockpit.yaml` is e.g. `site/foo.html`, state.json is at `site/state.json` (sibling of the HTML)
-- Always read the **most recent** state.json — its `build_time` is in the JSON
 
-### If state.json doesn't exist
-
-Three possible causes — diagnose before answering anything:
-
-1. **Cockpit was never built** → tell the user "I don't see `docs/state.json`. Run `docs-cockpit build` and try again." Don't try to scan MD files manually as a fallback — that's the operational skill's job.
-2. **Cockpit was built with an old docs-cockpit version** (pre-state.json output) → tell the user to `pip install --upgrade git+https://github.com/Guohao1020/docs-cockpit.git` then rebuild.
-3. **`project.output` is in an unusual place** → check `docs-cockpit.yaml` for the output path, look at that directory.
-
-### State.json schema (top-level)
+### Schema (top-level)
 
 ```json
 {
-  "project": { "name": "...", "subtitle": "...", "glyph": "...", "description": "..." },
-  "build_time": "2026-05-14 22:30",
-  "groups": [
-    {
-      "group": "Spec · Modules",
-      "icon": "M",
-      "color": "primary",
-      "items": [
-        {
-          "slug": "m07-job-fsm",
-          "title": "M07 · Job FSM",
-          "path": "/abs/path/to/M07-job-fsm.md",
-          "mtime": "2026-05-14 12:00:00",
-          "exists": true,
-          "size": 4521,
-          "meta": { ...YAML frontmatter as parsed... }
-        }
-      ]
-    }
+  "project": {
+    "name": "MyProject",
+    "tagline": "项目进度概览…",
+    "eyebrow": "DASHBOARD",
+    "mark": "M",
+    "lastBuild": "2026-05-15 10:30"
+  },
+  "systemDocs": [
+    { "id": "claude-md", "title": "CLAUDE.md", "path": "<abs>", "desc": "...", "icon": "memory" }
   ],
-  "cards": [
+  "modules": [
     {
       "id": "M07",
-      "type": "module",
       "title": "Job FSM",
-      "status": "in-progress",         // not-started | planned | in-progress | blocked | done | deferred
-      "progress": 45,                  // 0-100
+      "status": "in-progress",     // not-started | planned | in-progress | blocked | done | deferred
       "sprint": "M1.2",
-      "prd_ref": "§6.3.7",
+      "progress": 45,              // 0-100
+      "desc": "12 类核心 FSM 状态机",
+      "docs": [{ "title": "Schema 设计文档", "path": "docs/design/schemas.md" }],
+      "subtasks": [
+        { "title": "核心实体定义(12 类)", "done": true },
+        { "title": "字段校验与 strict 模式", "done": false }
+      ],
+      "manualProgress": false,
+      "path": "<abs path to MD>",
+      "mtime": "2026-05-14 12:00:00",
       "owner": "harvey",
-      "depends_on": ["M04", "M06"],
+      "prd_ref": "§6.3.7",
+      "depends_on": ["M04"],
       "blocks": ["M08"],
-      "updated_at": "2026-05-14",
-      "slug": "m07-job-fsm",
-      "group": "Spec · Modules"
+      "updated_at": "2026-05-14"
     }
   ],
-  "kpi": {
-    "kpi_type": "module",
-    "total_modules": 24,
-    "done": 5,
-    "in_progress": 8,
-    "blocked": 2,
-    "planned": 7,
-    "not_started": 2,
-    "deferred": 0,
-    "overall_progress": 32.1
-  },
-  "sprint_order": ["M0", "M1.1", "M1.2", "M2", "M3", "GA"],
-  "kanban_enabled": true,
-  "warnings": ["progress=80 out of range [0,15] for status=planned · /path/foo.md"]
+  "concepts": [
+    {
+      "id": "C03",
+      "title": "Site Adapter",
+      "status": "in-progress",
+      "sprint": "M1.2",
+      "progress": 60
+    }
+  ],
+  "warnings": [
+    "M09-foo.md: progress=80 out of range [0, 15] for status=planned"
+  ]
 }
 ```
 
-`cards` and `kpi` are only populated if `frontmatter.kanban.enabled: true` in the project's config. If `kanban_enabled: false`, you only have `groups[*].items[*]` to work with — fall back to mtime-based "what's been touched recently" answers.
+**Notes**:
+- `modules[]` are full-featured (subtasks / docs / desc / owner / depends_on / blocks). Concepts are minimal.
+- `subtasks[*].done` reflects the **MD frontmatter** state, NOT user's localStorage overrides. User overrides only persist in browser localStorage; they don't write back to MD.
+- `progress` is the **stored value** (from frontmatter). If `manualProgress: false`, the rendered Kanban auto-derives from subtask done ratio in the browser — but `state.json` keeps the raw frontmatter `progress` value.
+
+### If state.json doesn't exist or has wrong shape
+
+Three diagnostic cases:
+
+1. **state.json missing entirely** → tell the user `/docs-cockpit:build` first. Don't try to read MD files yourself as fallback.
+2. **state.json exists but uses 0.1.x shape** (`{groups, cards, kpi}` instead of `{modules, concepts, systemDocs}`) → user's CLI is pre-0.2.0. Hand off to `docs-cockpit-update`. Don't try to read the old shape.
+3. **state.json exists but `lastBuild` > 7 days ago** → note the staleness in your output but still answer.
 
 ## Workflow
 
 ### 1. Locate and load state.json
 
 ```python
-# Always start here. Read the file via your Read tool.
-# Don't shell out to jq or anything fancy — it's just JSON.
+# Just read the file. It's plain JSON.
 ```
 
 ### 2. Decide which slice answers the question
 
 | User asks about | Read from |
 |---|---|
-| Blocking / blockers | `cards` where `status == "blocked"` + `cards[*].blocks` graph |
-| Sprint progress | `cards` filtered by `sprint == X` + sum `progress` |
-| Stale docs | `groups[*].items[*].mtime` |
-| Overall health | `kpi` |
-| What changed | Compare two state.json snapshots over time |
-| Specific module/RFC by id | `cards` filtered by `id` |
-| Owner workload | `cards` grouped by `owner` |
+| Blockers | `modules` where `status == "blocked"` + `blocks` / `depends_on` graph |
+| Sprint progress | `modules` filtered by `sprint == X` + sum `progress` |
+| Stale modules | `modules[*].mtime` (or `updated_at`) |
+| Overall health | derived counts from `modules` |
+| What changed | compare two state.json snapshots over time (git history or archive) |
+| Specific module/concept by id | filter by `id` |
+| Owner workload | `modules` grouped by `owner` |
+| Subtask completion | per module, count `subtasks[*].done` |
 
 ### 3. Compose narrative output
 
-**No file writes.** Reply directly to the user. Match the output shape to the question shape (see "Output format" below).
+**No file writes.** Reply directly to the user. Match output shape to question shape (see "Output format" below).
 
 ## Common question patterns
 
 ### A — "What's blocked?"
 
-1. Read state.json
-2. Filter `cards` → `status == "blocked"`
-3. For each, also pull `blocks` (what this card is gating) and `depends_on` (what's gating this card)
-4. Output as a table:
+1. Filter `modules` → `status == "blocked"`
+2. For each, pull `blocks` (what this gates) and `depends_on` (what gates this)
+3. Output as a table:
 
 ```markdown
-| Card | Sprint | Blocks | Depends on |
+| Module | Sprint | Blocks | Depends on |
 |---|---|---|---|
 | M07 · Job FSM | M1.2 | M08, M09 | M04 (✓ done) |
-| RFC-002 · ResourcePool | M1.3 | M11 | — |
+| M11 · Quota Enforcer | M1.3 | — | RFC-002 (planned) |
 ```
 
-If 0 blockers: "Nothing's blocked right now. Total cards: N (done=X, in-progress=Y, planned=Z)."
+If 0 blockers: "Nothing's blocked right now. Total modules: N (done=X, in-progress=Y, planned=Z)."
 
 ### B — "Sprint M1.X progress"
 
-1. Filter `cards` → `sprint == X`
+1. Filter `modules` → `sprint == X`
 2. Group by `status`, count each
-3. Sum `progress` / count for an overall %
-4. Output:
+3. Sum `progress` / count for overall %
 
 ```markdown
 **Sprint M1.2** · 3/8 done · 45% overall
@@ -157,88 +149,72 @@ If 0 blockers: "Nothing's blocked right now. Total cards: N (done=X, in-progress
 - 🔄 In progress: M07 (45%), M08 (20%)
 - ⏳ Planned: M09, M10
 - 🚫 Blocked: M11
-
-Next moves: M07 is closest to done · M11 needs the resource-pool RFC decision before it can move.
 ```
 
-If the sprint doesn't exist in `sprint_order`: tell the user, list known sprints.
+### C — "What's stale?"
 
-### C — "What's stale / what hasn't been touched?"
+1. Read `modules[*].mtime` (or `updated_at`)
+2. Filter by older than threshold (default: 30 days)
+3. Output table oldest first
 
-1. Read `groups[*].items[*]` 
-2. Filter by `mtime` older than threshold (default: 30 days, but ask the user if unsure)
-3. Output as a table, oldest first:
+### D — "Weekly diff"
 
-```markdown
-| Doc | Group | Last touched |
-|---|---|---|
-| docs/spec/concept/C03-site-adapter.md | Spec · Concepts | 2026-02-14 (90d ago) |
-| docs/RFC/001-tech-stack.md | RFCs | 2026-03-01 (74d ago) |
-```
+Requires a previous state.json snapshot. Options:
+- User keeps `docs/state-archive/<date>.json` weekly
+- User has git history of `docs/state.json` → `git show HEAD~7:docs/state.json`
+- If neither: tell user "I'd need a prior snapshot — commit `docs/state.json` weekly and I can `git show HEAD~7:docs/state.json`."
 
-Stale ≠ broken. Just surfacing for the user to triage.
-
-### D — "Weekly diff / what changed this week?"
-
-Requires two state.json snapshots. Options for getting the prior snapshot:
-
-- User keeps a `docs/state-archive/<date>.json` per week (their setup)
-- User has git history of `docs/state.json` — `git show HEAD~7:docs/state.json` to get last-week's
-- If neither: tell the user "I'd need a previous state.json to diff against. Either commit `docs/state.json` weekly and I can `git show HEAD~7:docs/state.json`, or save snapshots under `docs/state-archive/`."
-
-If two snapshots are available:
-1. Diff `cards` by `id` — find new cards, removed cards, changed status, changed progress
-2. Output as 4 sections:
+If two snapshots available, diff `modules` by `id`:
 
 ```markdown
 **Diff: 2026-05-07 → 2026-05-14**
 
-🆕 New cards (2): M12 · Webhook FSM (planned), RFC-004 · Retry strategy (planned)
-✅ Newly done (1): M05 · Login flow (was in-progress 80%)
-📈 Progress (3): M07 30% → 45%, M08 0% → 20%, M11 planned → blocked
-🚫 Newly blocked (1): M11 · Quota enforcer (was planned)
+🆕 New (2): M12 · Webhook FSM (planned), RFC-004 (planned)
+✅ Newly done (1): M05 · Login flow (was 80% in-progress)
+📈 Progress (2): M07 30%→45%, M08 0%→20%
+🚫 Newly blocked (1): M11 · Quota enforcer
 ```
 
 ### E — "Generate a standup / weekly report"
 
-Combine A + B + C + D into a paste-ready Markdown block. Default structure (override if user has a template):
+Combine A + B + C + D into paste-ready Markdown:
 
 ```markdown
-## Sprint M1.2 weekly status · 2026-05-14
+## 2026-05-14 · Weekly status · Sprint M1.2
 
-**KPI bar**: 24 modules · 5 done · 8 in-progress · 2 blocked · 7 planned · 32% overall progress
+**KPI**: 24 modules · 5 done · 8 in-progress · 2 blocked · 7 planned · 32% overall
 
-### 🚀 This week's wins
-- M05 · Login flow shipped (was in-progress 80% last week)
-- M07 · Job FSM now at 45% (was 30%)
+### 🚀 Wins this week
+- M05 · Login flow shipped (was 80%)
+- M07 · Job FSM now 45% (was 30%)
 
 ### 🔥 Blockers
-- M11 · Quota enforcer (gated on RFC-002 decision)
+- M11 · Quota enforcer (gated on RFC-002)
 
-### 📋 In flight this sprint
+### 📋 In flight
 - M07 (45%), M08 (20%)
 
-### 🥶 Stale (>30 days no edit)
-- C03 · Site Adapter (2026-02-14, 90d)
-- RFC-001 · Tech stack (2026-03-01, 74d)
+### 🥶 Stale (>30 days)
+- C03 · Site Adapter (90d ago)
+- RFC-001 · Tech stack (74d ago)
 
 ### ⚠️ Frontmatter warnings (2)
-- M09 has progress=80 but status=planned (range allows 0-15)
-- RFC-003 missing `updated_at`
+- M09 progress=80 vs status=planned (range [0,15])
+- RFC-003 missing updated_at
 ```
 
 ## Output format conventions
 
-- **Tables for multi-row data** (3+ cards, multiple blockers, stale list)
-- **Prose for single-answer questions** ("How's M07?" → "M07 · Job FSM is in-progress at 45%, in sprint M1.2, blocks M08 and M09, depends on M04 which is done.")
-- **Bullet lists for short enumerations** (≤4 items)
-- **Always include build_time** at the top or bottom: "Based on `docs/state.json` built 2026-05-14 22:30" — so the user knows how fresh the answer is
-- **Always note kanban-disabled mode** if `kanban_enabled: false`: "(kanban not enabled in this project's config — answer based on mtime + filenames only)"
+- **Tables** for multi-row data (3+ modules, blockers, stale list)
+- **Prose** for single-answer questions ("How's M07?" → "M07 · Job FSM is in-progress at 45%, in sprint M1.2, blocks M08 and M09, depends on M04 which is done. 2/4 subtasks complete.")
+- **Bullet lists** for short enumerations (≤4 items)
+- **Always include `lastBuild`** so user knows data freshness: "Based on `docs/state.json` built 2026-05-15 10:30"
+- **Always note `warnings[]`** if non-empty — surface frontmatter issues so user can fix
 
 ## Failure modes
 
-- **state.json missing** → tell user to run `docs-cockpit build`, don't fall back to MD scanning
-- **state.json present but kanban_enabled: false** → degrade gracefully to file-listing answers (group structure + mtime), skip card/KPI questions, suggest enabling kanban (hand off to `docs-cockpit`)
-- **state.json present but cards array empty** → kanban is enabled but no MD files have `id` frontmatter; tell the user "kanban is on but no docs are wired up as cards. Add `id: M01` (or similar) to the docs you want to track."
-- **state.json present but build_time is suspiciously old** (>7 days) → note it: "This data is from 2026-05-01 — it may be stale. Run `docs-cockpit build` if you want today's state."
-- **user asks about something not in state.json** (e.g. content of an MD) → tell them this skill only sees frontmatter; for content questions hand off to a regular Read of the source MD file
+- **state.json missing** → tell user `/docs-cockpit:build`, don't scan MD as fallback
+- **state.json has 0.1.x shape** → hand off to `docs-cockpit-update`
+- **state.json `modules` array empty** → no module MDs have `id` frontmatter; tell user "no modules visible — add `id:` to your module MDs"
+- **`lastBuild` > 7 days** → note staleness: "This data is from 2026-05-01 — may be stale. Run `docs-cockpit build` for fresh state."
+- **User asks about content of an MD** → this skill only sees frontmatter (no markdown body in state.json). For body queries, suggest opening the MD directly OR hand off to `docs-cockpit` for build context.

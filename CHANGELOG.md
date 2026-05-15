@@ -4,6 +4,86 @@
 
 ## [Unreleased]
 
+## [0.2.0] · 2026-05-15
+
+**🚨 Breaking change · 产品转型版本**:从 "项目 MD 文档预览" 转型为 "项目模块进度 dashboard"。
+
+### 转型本质
+
+- **0.1.x**: 把 MD 文档汇总成单 HTML · 侧边栏 + 文档视图 · marked.js 客户端渲染
+- **0.2.0**: 把 module / concept frontmatter 卷成单 HTML dashboard · topbar + Hero + KPI strip + Kanban + Sprint Timeline + Concept Grid + System Docs drawer · MD body **不再嵌入** · 只展示 frontmatter 结构化数据
+
+### Added
+
+- **新 UI 范式**:dashboard-first · 侧边栏视图删除 · MD body 不再客户端渲染
+- **模块 drawer**:点击 Kanban 卡片弹出 · 含 desc / status select / progress 滑块 / subtask checklist · localStorage 持久化用户覆盖
+- **System Docs drawer**:topbar "系统文档" 按钮 · 弹出 curated 入口列表(CLAUDE.md / PRD / DESIGN.md / memory / RFC / roadmap 等)· 每条 `{id, title, path, desc, icon}` 自配 icon
+- **Subtasks 自动 progress**:`manualProgress: false` 时按子任务完成率算 · `manualProgress: true` 时用 frontmatter `progress` 字段
+- **新 frontmatter 字段**(modules 卡用):`desc` / `docs[]` / `subtasks[]` / `manualProgress`
+- **state.json 新 schema**:`{project, systemDocs, modules, concepts, warnings}` · 替代 0.1.x 的 `{groups, cards, kpi, ...}`
+
+### Changed (breaking)
+
+- **配置 schema 大改**:
+  - `project.glyph` → `project.mark`
+  - `project.subtitle` → `project.tagline`
+  - `project.description` 删除
+  - 顶层 `groups[]` 删除 · 拆成三个独立 block:
+    - `system_docs:` — 手挑常驻入口
+    - `modules:` — frontmatter 驱动主 dashboard
+    - `concepts:` — 简化卡片(底部 grid)
+  - `frontmatter.kanban.*` 全部删除(`card_types` / `kpi_type` / `sprint_order` / `enabled` 都不再需要)
+- **build_payload() 重写**:返回 `(payload, warnings)` 二元组 · 不再返 4 元组
+- **render_html() 简化**:模板只剩 `__DOCS_JSON__` 一个占位符 · 其他都由 JS 从 JSON 渲染
+- **`design.colors.*` override 暂时移除**:CSS 变量改成 `--c-*` namespace · 0.2.x 后续会重新加回 design override
+
+### Migration · 0.1.x → 0.2.0
+
+完整对照见 `references/config_reference.md` 末尾。最小迁移示例:
+
+```yaml
+# 0.1.x
+project: { name: MyProject, glyph: M, subtitle: Docs preview }
+groups:
+  - name: Overview
+    files:
+      - { title: README, path: "{repo}/README.md" }
+  - name: Modules
+    scan: { dir: "{repo}/docs/spec/module" }
+frontmatter:
+  kanban: { enabled: true, card_types: [module], kpi_type: module }
+
+# 0.2.0
+project: { name: MyProject, mark: M, tagline: "项目进度" }
+system_docs:
+  - { id: readme, title: README, path: "{repo}/README.md", desc: "项目总览", icon: doc }
+modules:
+  scan: { dir: "{repo}/docs/spec/module" }
+frontmatter: { enabled: true }
+```
+
+模块 frontmatter 升级(可选 · 为 dashboard 展示完整):
+
+```yaml
+---
+id: M07
+title: Job-Task FSM
+status: in-progress
+sprint: M1.2
+progress: 45
+# ── 0.2.0 新加(可选)─────────
+desc: 12 类 FSM 状态机
+docs:
+  - { title: "Schema 设计文档", path: "docs/design/schemas.md" }
+subtasks:
+  - { title: "核心实体定义", done: true }
+  - { title: "字段校验", done: false }
+manualProgress: false
+---
+```
+
+老的字段(`owner` / `prd_ref` / `depends_on` / `blocks` / `updated_at`)继续支持 · 在 state.json 里仍然导出 · 给 docs-cockpit-status skill 答 blocker / 周报问题用。
+
 ## [0.1.3] · 2026-05-14
 
 加 3 个 slash command 作为 skill 的显式调用入口 · 给 power user 一条快速通道。
@@ -76,7 +156,8 @@
 - Python 依赖只有 `pyyaml`,装 plugin 后仍需 `pip install git+https://github.com/Guohao1020/docs-cockpit.git` 让 `docs-cockpit` CLI 进 PATH。
 - 离线 mode(CDN 拉不到 marked.js)目前需手工 vendor `_assets/` · 见 `references/design_tokens.md` "Offline mode" 节。
 
-[Unreleased]: https://github.com/Guohao1020/docs-cockpit/compare/v0.1.3...HEAD
+[Unreleased]: https://github.com/Guohao1020/docs-cockpit/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/Guohao1020/docs-cockpit/compare/v0.1.3...v0.2.0
 [0.1.3]: https://github.com/Guohao1020/docs-cockpit/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/Guohao1020/docs-cockpit/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/Guohao1020/docs-cockpit/compare/v0.1.0...v0.1.1

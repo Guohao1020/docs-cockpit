@@ -1,18 +1,19 @@
-# `docs-cockpit.yaml` · 全配置参考
+# `docs-cockpit.yaml` · 全配置参考(0.2.0)
 
-> 读这份文档的时机:你要写一个新的 cockpit 配置,或往现有配置里加一类不熟悉的 group / 调整 frontmatter 治理规则 / 改 design tokens。SKILL.md 里的 Quick reference 给最常用的字段,这里给**全部**字段 + 每个字段的语义、默认值、为什么这么设。
+> 读这份的时机:你要写一个新的 cockpit 配置 · 或扩展现有配置。SKILL.md 里的 Quick reference 给最常用字段 · 这里给**全部**字段 + 语义 + 默认值 + 为什么这么设。
 
-## 顶层结构
+## 0.2.0 schema(dashboard 形态)
 
 ```yaml
-project:        { name, subtitle, glyph, description, output }
-paths:          { repo, ... 任意命名的额外变量 }
-groups:         [ { name, icon, color, files / scan / glob } ... ]
-frontmatter:    { enabled, status_progress_ranges, kanban: { ... } }
-design:         { colors: { primary, primary_deep, ... } }
+project:            { name, mark, tagline, eyebrow, output }
+paths:              { repo, ... 任意命名的额外变量 }
+system_docs:        [ { id, title, path, desc, icon } ... ]   # 手挑常驻入口
+modules:            { files / scan / glob }                    # frontmatter 驱动
+concepts:           { files / scan / glob }                    # 简化卡片
+frontmatter:        { enabled, status_progress_ranges }
 ```
 
-所有 block 都可省略 · 缺省值见下方各节。`groups` 是唯一**必填**字段(否则页面没内容)。
+所有 block 都可省略。**至少给一个 `modules` 或 `concepts` 或 `system_docs`** 才有内容可看。
 
 ---
 
@@ -20,16 +21,16 @@ design:         { colors: { primary, primary_deep, ... } }
 
 ```yaml
 project:
-  name: MyProject                   # 必填 · wordmark 主标题 + footer 版权 + tab title
-  subtitle: 文档预览                # 默认 "Docs preview" · wordmark 副标题
-  glyph: M                          # 默认 "P" · wordmark 方块里的单字符
-  description: 项目文档预览站        # 默认 "Project documentation preview" · footer 第一列描述
-  output: docs/index.html           # 默认 "docs/index.html" · 相对 paths.repo
+  name: MyProject                  # 必填 · wordmark 主标题 + tab title
+  mark: M                          # 默认 "·" · wordmark 方块里的单字符(替代 0.1.x 的 glyph)
+  tagline: "项目模块进度概览"        # 可选 · hero 区下方一句话
+  eyebrow: "DASHBOARD"             # 可选 · hero 顶部小标签
+  output: docs/index.html          # 默认 "docs/index.html" · 相对 paths.repo
 ```
 
-**为什么 output 不能用 absolute?** 可以 — 写成绝对路径(`/var/docs/index.html` / `C:\out\index.html`)build 也会写到那里。相对路径会被 `{repo}` 解析,所以最常见的 `docs/index.html` 不需要管 CWD。
+**为什么 output 不能用 absolute?** 可以 — 写成 `/var/docs/index.html` 或 `C:\out\index.html` 都行。
 
-**glyph 建议:** 单个字母或数字 · 中文字符也行(`图` / `站`)· 太长会被 28×28 的方块裁掉。
+**mark 建议:** 单字母 / 数字 / 中文一字 · 太长会被 28×28 方块裁掉。
 
 ---
 
@@ -37,220 +38,186 @@ project:
 
 ```yaml
 paths:
-  repo: "."                          # 默认 "." · 即 docs-cockpit.yaml 所在目录
-  # 还可以定义任意命名的额外变量,后续在 groups[*].* 里用 {var} 引用
+  repo: "."                        # 默认 · 即配置文件所在目录
+  # 任意自定义变量 · 后续在 system_docs / modules / concepts 用 {name}
+  memory_dir: "{home}/.claude/projects/my-project/memory"
   external_plans: "{home}/.claude/plans/my-project"
-  internal_docs: "{repo}/docs"
 ```
 
-### 内置变量(永远可用)
+### 内置变量
 
 | 变量 | 含义 |
-|------|------|
-| `{repo}` | `paths.repo` 解析后的绝对路径。默认是配置文件所在目录。如果是相对路径,以配置文件目录为基准 |
-| `{home}` | `$USERPROFILE`(Windows)或 `$HOME`(Linux/macOS) |
-| `{main_repo}` | 如果 `{repo}` 是 git worktree(`.git` 是文件 + 父目录叫 `worktrees`),上溯到 main repo · 否则等于 `{repo}` |
+|---|---|
+| `{repo}` | `paths.repo` 解析后的绝对路径 |
+| `{home}` | `$USERPROFILE`(Windows) / `$HOME`(Linux/macOS) |
+| `{main_repo}` | 如果 `{repo}` 是 git worktree · 自动上溯到 main · 否则等于 `{repo}` |
 | `{env:VAR}` | 环境变量 `VAR` · 找不到则空串 |
 
-### 自定义变量
-
-`paths.*` 下面的任意 key 都会被注册为变量。求值时支持引用其他变量:
-
-```yaml
-paths:
-  repo: "."
-  docs: "{repo}/docs"
-  plans: "{home}/.claude/plans/myproject"
-```
-
-之后在 `groups` 里:
-
-```yaml
-groups:
-  - name: Plans
-    scan: { dir: "{plans}/roadmap", recursive: true }
-```
-
-变量未定义时**保留原文**(不报错),方便 `--debug` 时一眼看出哪个变量没解析。
+未定义变量**保留原文** · 不报错 · 便于 `--debug` 排错。
 
 ### worktree 处理
 
-典型用法:在 `.claude/worktrees/<wt-name>/` 装 worktree。在 worktree 内跑 build 时,`{main_repo}` 会自动指回 main(用于读 main 的 DESIGN.md 等)。其他项目不用 worktree 就忽略这个变量。
+典型用法:`.claude/worktrees/<wt-name>/` 装 worktree。在 worktree 内跑 build · `{main_repo}` 自动指回 main(用于读 main 的 DESIGN.md 等)。
 
 ---
 
-## `groups` · 文档分组
+## `system_docs` · 手挑常驻入口
 
-每个 group 是侧边栏的一节。Group 内的文件可以三种方式提供:
+```yaml
+system_docs:
+  - id: claude-md
+    title: CLAUDE.md
+    path: "{repo}/CLAUDE.md"
+    desc: 项目根级 AI 协作约定
+    icon: memory                   # memory / design / plan / doc
+  - id: design
+    title: DESIGN.md
+    path: "{main_repo}/DESIGN.md"
+    desc: 设计系统 tokens、视觉规范
+    icon: design
+```
+
+每条字段:
+
+| 字段 | 必填 | 说明 |
+|---|---|---|
+| `id` | 可省 · 缺则从 title slugify | 唯一标识(给 localStorage 用) |
+| `title` | ✅ | drawer 里显示的标题 |
+| `path` | ✅ | 可以是文件 / 目录 / 任意 URL · `{var}` 会展开 |
+| `desc` | 可省 | drawer 里 title 下方的描述 |
+| `icon` | 默认 `doc` | `memory` / `design` / `plan` / `doc` 之一 · 决定列表前的图标 |
+
+**system_docs 是手挑的** — 不像 modules / concepts 是扫目录。这里放 CLAUDE.md / DESIGN.md / PRD.md / memory/ / roadmap 这种**全局常驻**的入口。每条点击在新 tab 打开 `path`。
+
+---
+
+## `modules` · 主 dashboard 数据源
+
+```yaml
+modules:
+  scan:
+    dir: "{repo}/docs/spec/module"
+    title_transform: prefix-dot-titlecase
+    # 同时支持 files / glob · 见下方
+```
+
+Modules 块支持三种来源 · 同 0.1.x:
 
 ### 1. 显式列表 · `files`
 
 ```yaml
-- name: Overview
-  icon: O
-  color: primary
+modules:
   files:
-    - { title: README, path: "{repo}/README.md" }
-    - { title: CHANGELOG, path: "{repo}/CHANGELOG.md" }
-    - { title: 项目说明, path: "{repo}/CLAUDE.md" }
+    - { title: M01 Web Console, path: "{repo}/docs/spec/module/M01-web-console.md" }
+    - { title: M07 Job FSM, path: "{repo}/docs/spec/module/M07-job-fsm.md" }
 ```
-
-适合:每一条都是手挑的,不会动态增长。"Overview" / "项目说明" / "Design System" 是典型场景。
 
 ### 2. 目录扫描 · `scan`
 
 ```yaml
-- name: Spec · Modules
-  icon: "6"
-  color: primary
+modules:
   scan:
-    dir: "{repo}/docs/spec/module"     # 必填
-    pattern: "*.md"                     # 默认 "*.md"
-    recursive: false                    # 默认 false
-    title_transform: prefix-dot-titlecase   # 见下方
-    exclude_underscores: true           # 默认 true · 跳过 _xxx.md 与 README.md
+    dir: "{repo}/docs/spec/module"          # 必填
+    pattern: "*.md"                          # 默认 "*.md"
+    recursive: false                         # 默认 false
+    title_transform: prefix-dot-titlecase    # 见下方
+    exclude_underscores: true                # 默认 true
 ```
-
-适合:目录里会持续加新文件 · `spec/concept/` / `spec/module/` / `plan/` / `task/` / `RFC/` 都是典型场景。
 
 #### `title_transform` 选项
 
-把文件名翻译成展示标题。三个内置 transform:
-
 | transform | 输入 → 输出 | 用途 |
-|-----------|------------|------|
-| `stem` | `C03-site-adapter.md` → `C03-site-adapter` | 默认值(非递归扫时)· 不动文件名 |
-| `prefix-dot-titlecase` | `C03-site-adapter.md` → `C03 · Site Adapter` | spec/concept 这种 `<ID>-<name>.md` 命名最好用 |
-| `path-slash` | `roadmap/00-master.md` → `roadmap / 00-master` | 递归扫时默认值 · 把子目录加进 title |
+|---|---|---|
+| `stem` | `M07-job-fsm.md` → `M07-job-fsm` | 不动文件名 |
+| `prefix-dot-titlecase` | `M07-job-fsm.md` → `M07 · Job Fsm` | 最常用 |
+| `path-slash` | `roadmap/00-master.md` → `roadmap / 00-master` | 递归扫时默认 |
 
 ### 3. Glob 模式 · `glob`
 
 ```yaml
-- name: External roadmap
-  icon: R
-  color: storm-deep
+modules:
   glob:
-    - "{home}/.claude/plans/my-project/**/*.md"
-    - "{home}/Documents/notes/my-project-*.md"
+    - "{repo}/docs/spec/module/M*.md"
+    - "{home}/.claude/plans/my-project/modules/*.md"
 ```
 
-适合:文件分散在多个不连续路径,或要跨工作目录引入文档。`**/*.md` 是递归(Python `glob.glob(recursive=True)` 语义)。
+### 同时混用
 
-### Group 公共字段
+允许 `files` + `scan` + `glob` 共存 · 结果合并。
 
-```yaml
-- name: <str>           # 必填 · 侧边栏组标题
-  icon: <single char>   # 默认 "·" · group-label 左边的小方块
-  color: <token>        # 默认 "primary" · 见下方 token 列表
-  files / scan / glob:  # 至少给一种;同时给两种也行,会合并
+### Module → Dashboard 卡片
+
+扫出的每个 MD 经过 frontmatter 解析 · 生成一张卡:
+
+```python
+{
+    "id":       meta["id"],            # 必有 · 不然跳过
+    "title":    meta["title"] or filename,
+    "status":   meta["status"] or "not-started",
+    "sprint":   meta["sprint"] or "",
+    "progress": meta["progress"] or 0,
+    "desc":     meta["desc"] or "",
+    "docs":     meta["docs"] or [],
+    "subtasks": meta["subtasks"] or [],
+    "manualProgress": meta.get("manualProgress", False),
+    # + 治理字段:owner / prd_ref / depends_on / blocks / updated_at
+}
 ```
 
-#### `color` 可用 token
-
-`primary` · `primary-bright` · `primary-deep` · `graphite` · `storm-deep` · `ink` · `bloom-deep` · `bloom-coral`
-
-如果传了 token 名以外的值,前端会回退到默认蓝。要加新颜色?在 `design.colors` 里加 + 在 template 的 `.sidebar .group-label .group-icon.color-<name>` 加 CSS rule。
-
-### 同一 group 内三种来源混用
-
-允许。例如 "RFCs" group 用 `files` 显式列出 4 条 RFC + DATA_SCHEMA 就是典型做法。如果想加一个"我手挑两篇 + 再扫一个目录"的 group,直接两个 block 都给:
-
-```yaml
-- name: Mixed
-  icon: M
-  color: graphite
-  files:
-    - { title: 主索引, path: "{repo}/INDEX.md" }
-  scan:
-    dir: "{repo}/docs/notes"
-    recursive: true
-```
+frontmatter 各字段语义见 `references/frontmatter_conventions.md`。
 
 ---
 
-## `frontmatter` · YAML 头治理 + 看板
+## `concepts` · 底部 Concept Grid
+
+```yaml
+concepts:
+  scan:
+    dir: "{repo}/docs/spec/concept"
+    title_transform: prefix-dot-titlecase
+```
+
+结构跟 `modules` 一样(`files` / `scan` / `glob` 三选 / 混用)。**区别**:concepts 卡片**只用** 5 字段(id / title / status / sprint / progress)· 即使 MD 写了 desc / docs / subtasks 也会被忽略。
+
+---
+
+## `frontmatter` · YAML 头治理
 
 ```yaml
 frontmatter:
   enabled: true                       # 默认 true · 关掉就完全不解析 frontmatter
-  status_progress_ranges:             # status × progress 一致性检查的区间
+  status_progress_ranges:             # status × progress 一致性区间
     not-started: [0, 0]
     planned: [0, 15]
     in-progress: [5, 95]
     blocked: [0, 100]
     done: [100, 100]
     deferred: [0, 100]
-  kanban:
-    enabled: false                    # 默认 false · 不开就只有文档视图
-    card_types: [module, concept]     # 默认空(所有 type 都进卡)
-    kpi_type: module                  # 默认 "module" · KPI 与 Kanban 主聚合
-    sprint_order: [M0, M1, M2, M3]    # 默认空 · timeline 排序的优先顺序
 ```
 
-### `status_progress_ranges`
+详细治理规则、自定义 status 词汇、subtasks 自动 progress 计算见 `references/frontmatter_conventions.md`。
 
-每行是 `<status>: [min_progress, max_progress]`(闭区间)。校验时:
-
-- `status` 不在表里 → warning `"unknown status 'xxx'"`
-- `progress` 在表里但越界 → warning `"progress=N out of range [a, b] for status=S"`
-
-警告只是 stderr 打印 + build 终端 `[!] N frontmatter warning(s)`,不会 fail build。
-
-如果你的项目用不同的 status 词汇(`todo` / `wip` / `shipped`),把整张表替换:
-
-```yaml
-status_progress_ranges:
-  todo: [0, 0]
-  wip: [1, 99]
-  shipped: [100, 100]
-```
-
-但要注意:前端 Kanban 的 5 列(`STATUS_ORDER`)硬编码了默认这套词(`planned` / `in-progress` / `blocked` / `done` / `deferred`)。换词汇就要同步改 `templates/index.html.tmpl` 里的 `STATUS_ORDER` / `STATUS_LABEL` / `STATUS_COLOR`。
-
-### `kanban.card_types`
-
-只有这些 `type:` 值的文档才作为卡片进入 dashboard。例:
-
-```yaml
-kanban:
-  card_types: [module, concept, task]
-```
-
-→ 一个 frontmatter `type: rfc` 的文档不会出现在 dashboard,但侧边栏照常列出。
-
-留空 / 不设就是**全部 type 都进卡**(只要文档有 `id`)。
-
-### `kanban.kpi_type`
-
-KPI bar + Module Kanban + Sprint Timeline 三个区块,都只统计 `type` 等于 `kpi_type` 的卡片。其他 type(比如 `concept`)会出现在底部的 Concept Grid。
-
-### `kanban.sprint_order`
-
-Sprint Timeline 排序时,这个列表里的 sprint 名优先(按列表顺序)· 不在列表里的 sprint 排到末尾,字母序。
-
-```yaml
-sprint_order: [M0, M1.1, M1.2, M2, M3, GA]
-```
-
-完整示例见 `examples/full.yaml`。
+**0.2.0 移除了** `frontmatter.kanban.*` 配置块。`card_types` / `kpi_type` / `sprint_order` 都不再需要 —— 因为现在 modules / concepts 是顶层独立 block,kpi 就是 modules · 不存在歧义。
 
 ---
 
-## `design` · 颜色 token override
+## 0.1.x → 0.2.0 迁移
 
-```yaml
-design:
-  colors:
-    primary: "#3b82f6"
-    primary_deep: "#1d4ed8"
-    primary_bright: "#60a5fa"
-    primary_soft: "#dbeafe"
-    # 任何 --colors-<name> token 都可覆盖
-```
+| 0.1.x | 0.2.0 |
+|---|---|
+| `project.glyph` | `project.mark` |
+| `project.subtitle` | `project.tagline` |
+| `project.description` | 删掉 · 不再使用 |
+| `groups[]` 含 `type: module` 的 group | `modules:` 顶层 block |
+| `groups[]` 含 `type: concept` 的 group | `concepts:` 顶层 block |
+| `groups[]` 普通文档 group | `system_docs:` 顶层 block(改 schema:逐条 `{id, title, path, desc, icon}`) |
+| `frontmatter.kanban.card_types: [module, concept]` | 删掉 · modules/concepts 已分开 |
+| `frontmatter.kanban.kpi_type: module` | 删掉 · kpi 始终统计 modules |
+| `frontmatter.kanban.sprint_order: [...]` | 删掉 · JS 自动按 locale 排序 |
+| `frontmatter.kanban.enabled: true/false` | 删掉 · 0.2.0 永远是 dashboard 形态 |
+| `design.colors.*` | 暂未支持 · 0.2.x 待加回 |
 
-实现机制:把 `colors.<name>: <value>` 写进 `:root { --colors-<name>: <value>; }` 末尾。CSS 后定义的同名变量会覆盖前面,所以无侵入。
-
-完整 token 列表见 `references/design_tokens.md`。
+完整迁移示例对照见 [CHANGELOG.md](../CHANGELOG.md) 0.2.0 入口。
 
 ---
 
@@ -259,11 +226,11 @@ design:
 build 流程:
 
 1. 加载配置 → 计算 `vars_` 字典(`repo` / `home` / `main_repo` + 自定义)
-2. 对每个 group,先处理 `files` → 再 `scan` → 再 `glob`
-3. 每条 entry 的 `path` 经过 `{var}` 替换 → 转 `pathlib.Path`
-4. `Path.exists()` 判断 → 不存在则 `exists: false` 进 payload(不丢)
+2. 各 block(`system_docs` / `modules` / `concepts`)分别处理
+3. 每条 entry 的 `path` 经过 `{var}` 替换 → `pathlib.Path`
+4. `Path.exists()` 判断 → 不存在则跳过(modules / concepts)或保留(system_docs)
 
-排错:`python -m docs_cockpit build --debug` 会打印解析后的 `vars_` 字典与 output 路径。最常见的问题是 `paths.repo` 写错(配置文件在 `<x>/docs-cockpit.yaml` · 但 repo 写了 `./..` 之类的相对路径)。绝大多数情况下,**把 `paths.repo` 干脆删掉**就行 — 默认就是配置文件所在目录。
+排错:`docs-cockpit build --debug` 打印解析后 `vars_` 字典 + output 路径。最常见的坑是 `paths.repo` 写错 —— 大多数情况下**把 `paths.repo` 干脆删掉**即可。
 
 ---
 
@@ -273,13 +240,10 @@ build 流程:
 project:
   name: MyProject
 
-groups:
-  - name: Docs
-    icon: D
-    color: primary
-    scan:
-      dir: docs
-      recursive: true
+modules:
+  scan:
+    dir: docs/spec/module
+    title_transform: prefix-dot-titlecase
 ```
 
-3 行真功夫。把所有 MD 都堆进一组,默认 `path-slash` transform 把子目录加进 title。看板未启用 · UI 自动隐藏 toggle,只显示文档视图。
+只要 `docs/spec/module/M*.md` 里有 frontmatter 带 `id` · 跑 `docs-cockpit build` 就出 dashboard。

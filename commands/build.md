@@ -23,13 +23,13 @@ Explicit invocation of the docs-cockpit build pipeline. Use this when the user w
    - `[WARN] frontmatter: ...` — frontmatter validation warnings
    - `[!] docs-cockpit X.Y.Z available` — version banner; if seen, suggest invoking `/docs-cockpit:update`
 
-5. **Report counts.** Pull the `groups: N | docs: X (Y exist, Z missing)` line and surface it. If `Z > 0`, list which paths are missing (the user probably wants to know).
+5. **Report counts.** Pull the `modules: N | concepts: N | system_docs: N` line and surface it. Also surface the `module status · done=X in-progress=Y ...` line and the `overall progress: N%` line so the user can see at-a-glance summary.
 
 6. **Suggest next move** based on output:
    - All clean → "open `docs/index.html` to verify"
    - Frontmatter warnings → suggest reading `references/frontmatter_conventions.md` for the offending field
    - Version banner → suggest `/docs-cockpit:update`
-   - 0 docs exist → diagnose `paths.repo` (usually the cause), suggest `--debug` rerun
+   - 0 items (no modules / concepts / system_docs visible) → diagnose `paths.repo` and scan paths (usually the cause), suggest `--debug` rerun
 
 ## Don't do these
 

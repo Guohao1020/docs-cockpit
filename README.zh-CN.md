@@ -2,17 +2,22 @@
 
 # docs-cockpit
 
-> 把项目里散落的 Markdown 汇总成单文件 HTML 看板 · 浏览器 `file://` 直接打开 · 改 md 重跑就同步。
+> 单文件项目**模块进度 dashboard** · 由 `docs/spec/module/M*.md` 的 YAML frontmatter 驱动 · 浏览器 `file://` 直接打开 · 改 md 重跑就同步。
 
-`docs-cockpit` 解决一个具体问题:**项目文档堆得到处都是,缺一个统一入口随时浏览**。它扫描你配置的目录(`docs/PRD/`、`docs/spec/`、`docs/plan/`、`docs/RFC/`、`docs/task/`、根 `README.md`、外部 `~/.claude/plans/...`、session memory…),把每篇 MD 序列化进**一个**自包含的 `index.html` —— 没有 web server,没有 build pipeline,直接拖进浏览器就能用。
+> **⚠️ 0.2.0 产品转型**:docs-cockpit 从 "MD 文档预览" 转为 "项目模块 dashboard"。0.1.x → 0.2.0 配置迁移见 [CHANGELOG.md](CHANGELOG.md)。
+
+`docs-cockpit` 解决一个具体问题:**项目有几十个模块 / 概念 spec 散落各处 · 你需要一个 dashboard 看哪些在做 / 哪些卡了 / 哪些做完了 · 但不想为此装 Jira / Notion / Linear**。它扫 `docs/spec/module/*.md` + `docs/spec/concept/*.md`,读 YAML frontmatter(id / status / sprint / progress / desc / subtasks),产出一个自包含的 `index.html` dashboard。
 
 亮点:
 
-- **侧边栏导航 + 文档视图** · marked.js + highlight.js 客户端渲染 · 锚点跳转 · 搜索框 · 浏览状态走 localStorage 持久化
-- **可选项目看板** · MD 文件加 YAML frontmatter(`status: in-progress` / `progress: 60` / `sprint: M1.2`)就自动出 KPI / 模块 Kanban / Sprint Timeline
-- **机器可读的 `state.json`** · 每次 build 在 `index.html` 旁同步写一份 sidecar JSON · 让其他工具 / sibling status skill 不解析 HTML 就能回答"哪些卡 blocked / sprint 进度 / 周报"
+- **模块 Kanban** · 5 列(not-started / planned / in-progress / blocked / done)· 点卡片弹 drawer 含 desc / status select / progress 滑块 / subtask checkbox · localStorage 持久化用户覆盖
+- **Sprint Timeline** · 按 frontmatter `sprint` 字段分组 · 平均 % 显示 · locale 排序
+- **概念 Grid** · 底部 grid · 5 字段简化卡片
+- **System Docs Drawer** · 手挑常驻入口(CLAUDE.md / PRD / DESIGN.md / RFC / memory / roadmap)· topbar 按钮弹出
+- **Subtask 自动 progress** · `manualProgress: false` 时按子任务完成率算 progress
+- **机器可读的 `state.json`** · sidecar JSON 给 sibling status skill 回答 blocker / 周报问题用
 - **跨平台** · 纯 Python 3.10+ + pyyaml · Windows / macOS / Linux 同一份 yaml 跑
-- **以 Claude Code plugin 形式发布** · 三个 skill 自动触发(`docs-cockpit` / `docs-cockpit-status` / `docs-cockpit-update`)+ 三个 slash command 显式调用(`/docs-cockpit:build` / `:status` / `:update`)· 两套入口任你挑
+- **以 Claude Code plugin 形式发布** · 三个 skill(`docs-cockpit` / `docs-cockpit-status` / `docs-cockpit-update`)+ 三个 slash command(`/docs-cockpit:build` / `:status` / `:update`)
 
 ---
 
@@ -43,24 +48,42 @@ xdg-open docs/index.html   # Linux
 ```yaml
 project:
   name: MyProject
-  glyph: M
+  mark: M
+  tagline: "项目进度概览"
 
-groups:
-  - name: Overview
-    icon: O
-    color: primary
-    files:
-      - { title: README, path: "{repo}/README.md" }
+system_docs:
+  - { id: readme, title: README, path: "{repo}/README.md", desc: "项目总览", icon: doc }
 
-  - name: Docs
-    icon: D
-    color: graphite
-    scan:
-      dir: "{repo}/docs"
-      recursive: true
+modules:
+  scan:
+    dir: "{repo}/docs/spec/module"
+    title_transform: prefix-dot-titlecase
+
+concepts:
+  scan:
+    dir: "{repo}/docs/spec/concept"
+    title_transform: prefix-dot-titlecase
 ```
 
-跑完打开 `docs/index.html` · 应该看到侧边栏列出 `docs/` 下所有 md。
+跑完打开 `docs/index.html` · 应该看到 topbar + KPI strip + 模块 Kanban(frontmatter 驱动)+ Sprint Timeline + 概念 grid。点 Kanban 卡片弹 drawer 含 subtask checkbox。
+
+模块要进卡板 · MD 顶部需 YAML frontmatter:
+
+```markdown
+---
+id: M07
+title: Job FSM
+status: in-progress
+sprint: M1.2
+progress: 45
+desc: "12 类 FSM 状态机"
+subtasks:
+  - { title: "核心实体定义", done: true }
+  - { title: "字段校验", done: false }
+---
+```
+
+完整 frontmatter 约定:[references/frontmatter_conventions.md](references/frontmatter_conventions.md)。
 
 ---
 
@@ -154,129 +177,20 @@ Claude Code 用户推荐这条路。Plugin 同时给两种调用入口 · **skil
 
 ---
 
-## 配置 · 三种典型项目结构
+## 配置
 
-### 配方 1 · 简单项目 · 一个 docs/ 目录
-
-```yaml
-project: { name: MyLib, glyph: L }
-
-groups:
-  - name: Overview
-    icon: O
-    color: primary
-    files:
-      - { title: README, path: "{repo}/README.md" }
-      - { title: CHANGELOG, path: "{repo}/CHANGELOG.md" }
-  - name: Docs
-    icon: D
-    color: graphite
-    scan:
-      dir: "{repo}/docs"
-      recursive: true
-```
-
-适合:开源库 · 内部小工具 · 文档不多。看板不启用 · 只有侧边栏 + 文档视图。
-
-### 配方 2 · 多 sub-spec · 含项目看板
+0.2.0 schema 有 4 个顶层 block:
 
 ```yaml
-project: { name: MyProduct, glyph: P, subtitle: 内部文档 }
-
-groups:
-  - name: Overview
-    icon: O
-    color: primary
-    files:
-      - { title: README, path: "{repo}/README.md" }
-      - { title: CHANGELOG, path: "{repo}/CHANGELOG.md" }
-
-  - name: Spec · Concepts
-    icon: C
-    color: primary-deep
-    scan:
-      dir: "{repo}/docs/spec/concept"
-      title_transform: prefix-dot-titlecase    # C03-foo-bar.md → C03 · Foo Bar
-
-  - name: Spec · Modules
-    icon: M
-    color: primary
-    scan:
-      dir: "{repo}/docs/spec/module"
-      title_transform: prefix-dot-titlecase
-
-  - name: Plans
-    icon: P
-    color: graphite
-    scan:
-      dir: "{repo}/docs/plan"
-      recursive: true
-      title_transform: path-slash              # roadmap/00-master.md → "roadmap / 00-master"
-
-  - name: Tasks
-    icon: T
-    color: bloom-coral
-    scan:
-      dir: "{repo}/docs/task"
-
-  - name: RFCs
-    icon: F
-    color: storm-deep
-    scan:
-      dir: "{repo}/docs/RFC"
-
-frontmatter:
-  enabled: true
-  kanban:
-    enabled: true
-    kpi_type: module                            # KPI bar 只算 module 类卡
-    sprint_order: [M0, M1, M2, M3, GA]
+project:        { name, mark, tagline, eyebrow, output }
+paths:          { repo, ... 任意自定义变量 }
+system_docs:    [ { id, title, path, desc, icon } ... ]   # 手挑常驻入口
+modules:        { files / scan / glob }                    # frontmatter 驱动 dashboard 卡片
+concepts:       { files / scan / glob }                    # 简化 grid 卡片
+frontmatter:    { enabled, status_progress_ranges }
 ```
 
-适合:中大型项目 · 需要按 spec / plan / RFC / task 分类。看板要求 md 文件加 YAML frontmatter:
-
-```markdown
----
-id: M07
-type: module
-title: Job FSM
-status: in-progress
-progress: 45
-sprint: M1.2
----
-
-# M07 · Job FSM ...
-```
-
-详细 frontmatter 字段见 `references/frontmatter_conventions.md`。
-
-### 配方 3 · 跨外部路径 · plans 在 home 目录
-
-```yaml
-project: { name: MyProject, glyph: M }
-
-paths:
-  repo: "."
-  plans: "{home}/.claude/plans/myproject"      # 外部路径变量
-
-groups:
-  - name: Internal docs
-    icon: I
-    color: primary
-    scan:
-      dir: "{repo}/docs"
-      recursive: true
-
-  - name: External plans
-    icon: E
-    color: storm-deep
-    glob:
-      - "{plans}/**/*.md"
-```
-
-适合:有些 plan/notes 不想 commit 进项目仓库 · 但希望在 cockpit 里能集中浏览。`{home}` 是内置变量(`$HOME` / `$USERPROFILE`)· 自定义变量在 `paths:` 下任意 key 即可。
-
-完整配置 schema 见 `references/config_reference.md`。
+完整参考配置 · 见 [`examples/full.yaml`](examples/full.yaml)(6 个 system_docs + 模块扫描 + 概念扫描 + frontmatter 治理)。每个字段语义和默认值 · 见 [`references/config_reference.md`](references/config_reference.md)。模块 / 概念的 frontmatter 字段约定(status × progress 校验 / subtask 自动 progress 推导等)· 见 [`references/frontmatter_conventions.md`](references/frontmatter_conventions.md)。
 
 ---
 

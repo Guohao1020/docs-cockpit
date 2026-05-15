@@ -1,116 +1,75 @@
-# docs-cockpit · 完整配置参考
+# docs-cockpit · 完整配置参考(0.2.0)
 #
-# 用途:展示 10 个 group + 看板的完整用法 · 含 files / scan / glob 三种来源 + frontmatter kanban。
-# 复制后改 project.name / paths.memory_dir / external_plans 这几行就能跑。
-#
-# 跑:
-#   cd <你的项目根>
-#   python -m docs_cockpit build --config <docs-cockpit 安装路径>/examples/full.yaml
-#
-# 或拷一份到项目里:
-#   cp examples/full.yaml /path/to/your/project/docs-cockpit.yaml
-#   cd /path/to/your/project
-#   python -m docs_cockpit build
+# 用途:展示 dashboard 模式所有能力 · 含 system_docs 多入口 + modules + concepts + frontmatter 治理。
+# 复制后改 project / paths / 各 group 的 dir 几行就能跑。
 
 project:
   name: MyProject
-  subtitle: 文档预览
-  glyph: M
-  description: 项目文档预览站
+  mark: M
+  tagline: "项目模块进度 + 概念覆盖 + Sprint 追踪 · 一站式可视"
+  eyebrow: "通用项目看板 · DASHBOARD"
   output: docs/index.html
 
 paths:
-  repo: "."                 # 默认 · 配置文件所在目录
-  # 在 worktree 内自动指回 main · 用于读 DESIGN.md
-  # main_repo 是内置 · 不用声明
+  repo: "."
+  # main_repo 在 worktree 内自动指回 main
+  # 可加任意自定义变量 · 后续在 groups/system_docs 用 {name}
   memory_dir: "{home}/.claude/projects/my-project/memory"
   external_plans: "{home}/.claude/plans/my-project"
 
-groups:
-  # ── 1. 总览 ─────────────────────────────────────────────
-  - name: 总览 · Overview
-    icon: O
-    color: primary
-    files:
-      - { title: README, path: "{repo}/README.md" }
-      - { title: CHANGELOG, path: "{repo}/CHANGELOG.md" }
+# ── 系统文档 · drawer 弹出 · 手挑常驻入口 ─────────────────────────
+system_docs:
+  - id: claude-md
+    title: CLAUDE.md
+    path: "{repo}/CLAUDE.md"
+    desc: 项目根级 AI 协作约定 · 任务流程 / 命名规范 / 提交规范
+    icon: memory
 
-  # ── 2. Spec · Concepts(PRD §5) ────────────────────────
-  - name: Spec · Concepts (PRD §5)
-    icon: "5"
-    color: primary-deep
-    scan:
-      dir: "{repo}/docs/spec/concept"
-      title_transform: prefix-dot-titlecase
-      # C03-site-adapter.md → C03 · Site Adapter
+  - id: memory
+    title: memory/
+    path: "{memory_dir}/"
+    desc: 持久化记忆与决策日志 · 跨会话上下文沉淀
+    icon: memory
 
-  # ── 3. Spec · Modules(PRD §6.3) ───────────────────────
-  - name: Spec · Modules (PRD §6 · M01-M24)
-    icon: "6"
-    color: primary
-    scan:
-      dir: "{repo}/docs/spec/module"
-      title_transform: prefix-dot-titlecase
+  - id: design-md
+    title: DESIGN.md
+    path: "{main_repo}/DESIGN.md"
+    desc: 设计系统 tokens、组件规范、视觉语言
+    icon: design
 
-  # ── 4. Plan ────────────────────────────────────────────
-  - name: Plan · 路线图与设计决策
-    icon: P
-    color: graphite
-    scan:
-      dir: "{repo}/docs/plan"
-      recursive: true
-      # 子目录前缀加进 title · roadmap/00-master.md → "roadmap / 00-master"
+  - id: prd
+    title: PRD.md
+    path: "{repo}/docs/PRD.md"
+    desc: 产品需求文档 · 功能矩阵、约束、优先级
+    icon: doc
 
-  # ── 5. Task · Sprint 任务卡 ────────────────────────────
-  - name: Task · Sprint 任务卡
-    icon: T
-    color: bloom-coral
-    scan:
-      dir: "{repo}/docs/task"
+  - id: rfc-index
+    title: RFC/
+    path: "{repo}/docs/RFC/"
+    desc: 技术决策记录 · 重大变更与权衡讨论
+    icon: doc
 
-  # ── 6. RFCs ────────────────────────────────────────────
-  - name: RFCs
-    icon: F
-    color: storm-deep
-    files:
-      - { title: "RFC 001 · 技术栈选型", path: "{repo}/docs/RFC/001-tech-stack.md" }
-      - { title: "RFC 002 · 核心组件设计", path: "{repo}/docs/RFC/002-core-design.md" }
-      - { title: "RFC 003 · 登录流程", path: "{repo}/docs/RFC/003-login-flow.md" }
-      - { title: DATA_SCHEMA, path: "{repo}/docs/DATA_SCHEMA.md" }
+  - id: roadmap
+    title: Roadmap
+    path: "{external_plans}/roadmap/"
+    desc: 里程碑分解 · M0 → M3 GA 计划与排期
+    icon: plan
 
-  # ── 7. Governance ──────────────────────────────────────
-  - name: Governance · 文档治理
-    icon: G
-    color: primary-bright
-    files:
-      - { title: 文档治理规范, path: "{repo}/docs/_meta/governance.md" }
-      - { title: "Template · concept", path: "{repo}/docs/_meta/templates/concept.md" }
-      - { title: "Template · module", path: "{repo}/docs/_meta/templates/module.md" }
-      - { title: "Template · task", path: "{repo}/docs/_meta/templates/task.md" }
+# ── 模块 · 主 dashboard 数据源 ──────────────────────────────────
+# 每模块 1 个 MD · frontmatter 带 id/title/status/sprint/progress/desc/docs/subtasks
+modules:
+  scan:
+    dir: "{repo}/docs/spec/module"
+    title_transform: prefix-dot-titlecase
+    # 同时支持 glob / files · 见 references/config_reference.md
 
-  # ── 8. Design System ───────────────────────────────────
-  - name: Design System
-    icon: D
-    color: primary
-    files:
-      # 在 worktree 内时 {main_repo} 自动指回 main · 拿到的是 main 的 DESIGN.md
-      - { title: "DESIGN spec(HP 风 token)", path: "{main_repo}/DESIGN.md" }
+# ── 概念 · 底部 grid · 简化卡片 ─────────────────────────────────
+concepts:
+  scan:
+    dir: "{repo}/docs/spec/concept"
+    title_transform: prefix-dot-titlecase
 
-  # ── 9. 项目说明 ────────────────────────────────────────
-  - name: 项目说明
-    icon: C
-    color: ink
-    files:
-      - { title: CLAUDE.md, path: "{repo}/CLAUDE.md" }
-
-  # ── 10. Session Memory ─────────────────────────────────
-  - name: Session Memory
-    icon: M
-    color: bloom-deep
-    glob:
-      - "{memory_dir}/*.md"
-
-# ── 看板 ──────────────────────────────────────────────
+# ── frontmatter 治理 ───────────────────────────────────────────
 frontmatter:
   enabled: true
   status_progress_ranges:
@@ -120,25 +79,3 @@ frontmatter:
     blocked: [0, 100]
     done: [100, 100]
     deferred: [0, 100]
-  kanban:
-    enabled: true
-    # card_types 留空 · 把所有有 id 的文档都做成卡(module/concept/plan/task/rfc/spec/meta 等)
-    # kpi_type: module 表示 KPI bar + Kanban + Sprint Timeline 只统计 module · 其他 type 进底部 Concept Grid
-    kpi_type: module
-    sprint_order:
-      - M0
-      - M1.1
-      - M1.1.2
-      - M1.1.3
-      - M1.1.4
-      - M1.2
-      - M1.3
-      - M1.4
-      - M1.5
-      - M2
-      - M3
-      - S
-      - TBD
-      - 装修期
-
-# design 不覆盖 · 用默认 HP-style token

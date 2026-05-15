@@ -2,17 +2,22 @@
 
 # docs-cockpit
 
-> Bundle a project's scattered Markdown into a single-file HTML cockpit — open it with `file://`, regenerate on every change.
+> Single-file project **dashboard** for module / sprint / progress tracking. Driven by YAML frontmatter in `docs/spec/module/M*.md`. Opens with `file://`. Regenerates on every change.
 
-`docs-cockpit` solves one specific problem: **your project's docs are scattered everywhere, and there's no single entry point to browse them.** It scans the directories you configure (`docs/PRD/`, `docs/spec/`, `docs/plan/`, `docs/RFC/`, `docs/task/`, root `README.md`, external `~/.claude/plans/...`, session memory, …) and serializes every MD into a self-contained `index.html` — no web server, no build pipeline, just drag-and-drop into a browser.
+> **⚠️ 0.2.0 product pivot:** docs-cockpit became a **project module dashboard** instead of a generic MD preview tool. See [CHANGELOG.md](CHANGELOG.md) for the 0.1.x → 0.2.0 migration table.
+
+`docs-cockpit` solves one specific problem: **your project has module specs / concept docs scattered across folders, and you need a single dashboard to see what's in-progress, what's blocked, what's done — without standing up Jira / Notion / Linear.** It scans `docs/spec/module/*.md` + `docs/spec/concept/*.md`, reads YAML frontmatter (id / status / sprint / progress / desc / subtasks), and produces a self-contained `index.html` dashboard.
 
 Highlights:
 
-- **Sidebar nav + doc view** — marked.js + highlight.js client-side rendering, anchor jumps, search box, navigation state persisted via localStorage
-- **Optional project kanban** — add YAML frontmatter (`status: in-progress` / `progress: 60` / `sprint: M1.2`) to any MD and you get a KPI bar / module kanban / sprint timeline for free
-- **Machine-readable `state.json`** — each build emits a sidecar JSON next to `index.html` so other tools (and the sibling status skill) can answer "what's blocked / sprint progress / standup" without re-parsing the HTML
-- **Cross-platform** — pure Python 3.10+ + pyyaml; the same YAML runs on Windows / macOS / Linux
-- **Ships as a Claude Code plugin** — three auto-triggered skills (`docs-cockpit` / `docs-cockpit-status` / `docs-cockpit-update`) for natural-language usage, plus three slash commands (`/docs-cockpit:build` / `:status` / `:update`) for explicit invocation with tab-completion
+- **Module Kanban** — 5 status columns; click a card → drawer with desc / status select / progress slider / subtask checklist (localStorage-persisted overrides)
+- **Sprint Timeline** — modules grouped by sprint with avg %, sorted by locale
+- **Concept Grid** — concept cards at bottom (simpler · just id / title / status / sprint / progress)
+- **System Docs Drawer** — curated entries (CLAUDE.md / PRD / DESIGN.md / RFC / memory / roadmap) accessed via topbar button
+- **Subtask auto-progress** — `manualProgress: false` → progress derived from `subtasks[*].done` ratio
+- **Machine-readable `state.json`** — sidecar JSON next to `index.html` · feeds the sibling status skill for "what's blocked / sprint progress / standup" queries
+- **Cross-platform** — pure Python 3.10+ + pyyaml; same YAML on Windows / macOS / Linux
+- **Ships as a Claude Code plugin** — three auto-triggered skills (`docs-cockpit` / `docs-cockpit-status` / `docs-cockpit-update`) plus three slash commands (`/docs-cockpit:build` / `:status` / `:update`)
 
 ---
 
@@ -43,24 +48,42 @@ The minimal template looks roughly like this (`docs-cockpit init` writes it for 
 ```yaml
 project:
   name: MyProject
-  glyph: M
+  mark: M
+  tagline: "项目进度概览"
 
-groups:
-  - name: Overview
-    icon: O
-    color: primary
-    files:
-      - { title: README, path: "{repo}/README.md" }
+system_docs:
+  - { id: readme, title: README, path: "{repo}/README.md", desc: "项目总览", icon: doc }
 
-  - name: Docs
-    icon: D
-    color: graphite
-    scan:
-      dir: "{repo}/docs"
-      recursive: true
+modules:
+  scan:
+    dir: "{repo}/docs/spec/module"
+    title_transform: prefix-dot-titlecase
+
+concepts:
+  scan:
+    dir: "{repo}/docs/spec/concept"
+    title_transform: prefix-dot-titlecase
 ```
 
-Run it and open `docs/index.html` — you should see a sidebar listing every md under `docs/`.
+Run it and open `docs/index.html` — you should see the topbar, KPI strip, module Kanban (populated from frontmatter), Sprint Timeline, and concept grid. Click a module card to open the drawer with subtask checklist.
+
+For modules to appear as cards, the MDs need YAML frontmatter:
+
+```markdown
+---
+id: M07
+title: Job FSM
+status: in-progress
+sprint: M1.2
+progress: 45
+desc: "12 类 FSM 状态机"
+subtasks:
+  - { title: "核心实体定义", done: true }
+  - { title: "字段校验", done: false }
+---
+```
+
+Full frontmatter reference: [references/frontmatter_conventions.md](references/frontmatter_conventions.md).
 
 ---
 
@@ -154,129 +177,20 @@ If `extraKnownMarketplaces` or `enabledPlugins` already exist in your settings, 
 
 ---
 
-## Configuration — three typical project shapes
+## Configuration
 
-### Recipe 1 — Simple project with one docs/ directory
-
-```yaml
-project: { name: MyLib, glyph: L }
-
-groups:
-  - name: Overview
-    icon: O
-    color: primary
-    files:
-      - { title: README, path: "{repo}/README.md" }
-      - { title: CHANGELOG, path: "{repo}/CHANGELOG.md" }
-  - name: Docs
-    icon: D
-    color: graphite
-    scan:
-      dir: "{repo}/docs"
-      recursive: true
-```
-
-Good fit: open-source libraries, internal tools, small doc footprint. Kanban disabled — just sidebar + doc view.
-
-### Recipe 2 — Multi-spec project with kanban
+The 0.2.0 schema has 4 top-level blocks:
 
 ```yaml
-project: { name: MyProduct, glyph: P, subtitle: Internal docs }
-
-groups:
-  - name: Overview
-    icon: O
-    color: primary
-    files:
-      - { title: README, path: "{repo}/README.md" }
-      - { title: CHANGELOG, path: "{repo}/CHANGELOG.md" }
-
-  - name: Spec — Concepts
-    icon: C
-    color: primary-deep
-    scan:
-      dir: "{repo}/docs/spec/concept"
-      title_transform: prefix-dot-titlecase    # C03-foo-bar.md → C03 · Foo Bar
-
-  - name: Spec — Modules
-    icon: M
-    color: primary
-    scan:
-      dir: "{repo}/docs/spec/module"
-      title_transform: prefix-dot-titlecase
-
-  - name: Plans
-    icon: P
-    color: graphite
-    scan:
-      dir: "{repo}/docs/plan"
-      recursive: true
-      title_transform: path-slash              # roadmap/00-master.md → "roadmap / 00-master"
-
-  - name: Tasks
-    icon: T
-    color: bloom-coral
-    scan:
-      dir: "{repo}/docs/task"
-
-  - name: RFCs
-    icon: F
-    color: storm-deep
-    scan:
-      dir: "{repo}/docs/RFC"
-
-frontmatter:
-  enabled: true
-  kanban:
-    enabled: true
-    kpi_type: module                            # KPI bar only counts module-type cards
-    sprint_order: [M0, M1, M2, M3, GA]
+project:        { name, mark, tagline, eyebrow, output }
+paths:          { repo, ... custom-named vars }
+system_docs:    [ { id, title, path, desc, icon } ... ]   # hand-curated drawer entries
+modules:        { files / scan / glob }                    # frontmatter-driven dashboard cards
+concepts:       { files / scan / glob }                    # simpler grid cards
+frontmatter:    { enabled, status_progress_ranges }
 ```
 
-Good fit: medium-to-large projects with spec / plan / RFC / task buckets. Kanban requires MD files to carry YAML frontmatter:
-
-```markdown
----
-id: M07
-type: module
-title: Job FSM
-status: in-progress
-progress: 45
-sprint: M1.2
----
-
-# M07 — Job FSM ...
-```
-
-Full frontmatter field reference in `references/frontmatter_conventions.md`.
-
-### Recipe 3 — Cross-path aggregation, plans living under $HOME
-
-```yaml
-project: { name: MyProject, glyph: M }
-
-paths:
-  repo: "."
-  plans: "{home}/.claude/plans/myproject"      # external path variable
-
-groups:
-  - name: Internal docs
-    icon: I
-    color: primary
-    scan:
-      dir: "{repo}/docs"
-      recursive: true
-
-  - name: External plans
-    icon: E
-    color: storm-deep
-    glob:
-      - "{plans}/**/*.md"
-```
-
-Good fit: plans / notes you don't want to commit into the project repo but still want centralized in the cockpit. `{home}` is a built-in variable (`$HOME` / `$USERPROFILE`); add any custom variable under `paths:`.
-
-Full config schema in `references/config_reference.md`.
+See [`examples/full.yaml`](examples/full.yaml) for a complete reference config (6 system_docs + module scan + concept scan + frontmatter governance). See [`references/config_reference.md`](references/config_reference.md) for every field's semantics and defaults. See [`references/frontmatter_conventions.md`](references/frontmatter_conventions.md) for the module / concept frontmatter spec (status × progress validation, subtask auto-progress derivation, etc.).
 
 ---
 
