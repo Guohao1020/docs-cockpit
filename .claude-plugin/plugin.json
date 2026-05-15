@@ -1,7 +1,7 @@
 {
   "name": "docs-cockpit",
   "description": "Project dashboard (Kanban + Sprint + KPI) + tree-sidebar markdown browser in self-contained HTML files. Bilingual EN/中 toggle. Frontmatter-driven with auto body extraction. Ships 3 auto-triggered skills + 6 slash commands including `/docs-cockpit:upgrade` — gstack-inspired one-command CLI+plugin upgrade with atomic cache-clear + restart (no more ghost state).",
-  "version": "0.7.0",
+  "version": "0.7.1",
   "author": {
     "name": "Guohao1020"
   },

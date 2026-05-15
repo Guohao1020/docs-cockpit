@@ -4,6 +4,71 @@
 
 ## [Unreleased]
 
+## [0.7.1] · 2026-05-15
+
+Dashboard 内 docs 路径修复 + 内联 MD 预览 · 点击 `docs:` 链接不再跳出浏览器
+（即文档放在哪个目录都能正确解析,并在抽屉内直接 marked 渲染）。
+
+### Why
+
+用户实测两个直接相关的痛点:
+
+1. **Path doubling**:frontmatter 写 `docs: [{path: docs/plans/foo.md}]`
+   （repo-relative · 自然写法），看板渲染在 `<repo>/docs/index.html`,浏览器
+   把 `href` 当成"相对于 HTML 自己"解析,实际请求成了
+   `<repo>/docs/docs/plans/foo.md` → `ERR_FILE_NOT_FOUND`。链接打不开。
+2. **不再是"预览"**:点 docs 链接走 file:// 跳出抽屉、跳出看板、跳到浏览器
+   raw view(原文 MD 或乱码),完全失去看板的连贯性。用户原话:
+   *"我不是让你做实时预览吗,为什么还是浏览器预览"*
+
+### Fixed · path resolution 三级回退
+
+`docs_cockpit/build.py` 新增 `_resolve_doc_path(raw, module_path, repo_root, vars_)`,
+按以下顺序解析:
+
+1. `{repo}/{home}/{env:X}` 变量展开
+2. 绝对路径 → 直接用
+3. 相对路径 → 依次试 `[module_path.parent, repo_root]`
+
+解析后的绝对路径写到 payload 的 `resolved` 字段(老 `path` 不动 · 兼容旧前端)。
+配合 `exists: bool` 标记,缺失的 docs 在 UI 上显示 `404` chip + 斜纹背景。
+
+### Added · drawer 内联 MD 预览(`showDocPreview`)
+
+`docs_cockpit/build.py · _resolve_and_embed_docs()` 把每条 docs 的 MD 文本
+读进 payload(`content` 字段 · 上限 100KB · 超过截断 + 提示)。
+`docs_cockpit/templates/index.html.tmpl` 集成:
+
+- `<head>` 加 highlight.js github.min.css 样式
+- `</body>` 前加 marked@12.0.2 + highlight.js@11.9.0(python/javascript/typescript/bash/yaml/json/markdown 7 种语言)
+- 新增 `.doc-preview-head` / `.doc-preview-body` / `.doc-preview-missing` 三套 CSS
+- 新增 `showDocPreview(moduleId, docIndex)` JS:
+  - 有 `content` → `marked.parse` 渲染 + `hljs.highlightElement` 高亮 · 替换 `#md-body`
+  - 文件不存在(`exists: false`)→ 红底虚框面板提示"找不到文件"+ 已尝试的路径
+  - 非 .md / 超大文件 → 用 `file:///` 在浏览器新标签打开(图片 / PDF 走这条)
+- drawer-head 不动(还是模块上下文)· `← Back to module` 按钮一键回模块视图
+
+### Changed · docs-row 视觉
+
+- 从 `<a href>` 改成 `<button>`(配合 JS 路由,不再依赖浏览器 file:// 行为)
+- 加 `Preview` / `Open` action chip · 一眼能看出会内联还是跳出
+- 缺失文件:`404` chip + 斜纹背景 · 鼠标悬停 tooltip 显示用户原始写的 path
+
+### Added · i18n 词条
+
+新增 7 条 EN/ZH 键:`drawer.docs_preview` / `docs_open` / `docs_back` /
+`docs_missing_title` / `docs_missing_hint` / `docs_missing_tooltip` /
+`docs_open_external`。
+
+### Notes
+
+- 老 payload 兼容:`d.exists` 缺省视为存在 · `d.content` 缺省走 file:// 打开 ·
+  老 build 的 HTML 直接换新 build 即可恢复完整体验,不需要前端单独升级。
+- HTML 文件会因为内嵌 doc content 变大(Bastion 仓库 588KB · 之前约 400KB)·
+  对单文件分发是可接受的折衷,换来零网络请求 + 抽屉内 instant 预览。
+- 100KB embed 上限是经验值 · 超过的 MD 仍能浏览(截断 + 提示),只是看不全。
+  下游想调可以改 `docs_cockpit/build.py · _MAX_EMBED_BYTES`。
+
 ## [0.7.0] · 2026-05-15
 
 Gstack-inspired upgrade architecture · 新增 `docs-cockpit upgrade` CLI 子命令 ·

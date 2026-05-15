@@ -328,6 +328,100 @@ def extract_docs_from_body(body: str) -> list[dict]:
     return out
 
 
+# ── docs 路径解析 + 内容嵌入 (0.7.1) ─────────────────────────────────
+#
+# 0.7.0 之前:`docs:` frontmatter 的 path 原样塞进 state.json · 前端 <a href>
+# 直接当 URL 用 · 在 file:// 上下文里相对路径以"看板 HTML 自己的位置"为根 ·
+# 导致 frontmatter 写 `docs/plans/foo.md`(repo-relative) · 看板放在
+# <repo>/docs/index.html → 实际请求成了 <repo>/docs/docs/plans/foo.md ·
+# 浏览器报 ERR_FILE_NOT_FOUND。
+#
+# 0.7.1 修法:build 阶段把每个 doc path 解析成绝对路径(候选:绝对 → 相对
+# MD 自身目录 → 相对 repo 根) · 并把 MD 文本一同内嵌到 payload(≤100KB) ·
+# 前端拿到 content 直接 marked.parse 渲染(看板内 drawer 预览 · 不再走 file://
+# 浏览器原生展开)。
+_MAX_EMBED_BYTES = 100 * 1024  # 100KB per doc · 超过截断 + 提示
+
+
+def _resolve_doc_path(
+    raw_path: str,
+    module_path: pathlib.Path,
+    repo_root: pathlib.Path,
+    vars_: dict[str, str],
+) -> pathlib.Path | None:
+    """把 docs 条目的 path 解析成绝对路径 · 找不到返回 None.
+
+    顺序:
+    1. 先展开 {repo}/{home}/{env:X} 等变量
+    2. 绝对路径 → 直接用
+    3. 相对路径 → 依次尝试 [module 同级目录, repo 根]
+    """
+    if not raw_path:
+        return None
+    expanded = _expand(raw_path, vars_)
+    p = pathlib.Path(expanded)
+    if p.is_absolute():
+        return p if p.exists() else None
+    for base in (module_path.parent, repo_root):
+        cand = (base / p).resolve()
+        if cand.exists():
+            return cand
+    return None
+
+
+def _resolve_and_embed_docs(
+    docs_list: list[dict],
+    module_path: pathlib.Path,
+    repo_root: pathlib.Path,
+    vars_: dict[str, str],
+) -> list[dict]:
+    """把 frontmatter `docs:` 列表增强:解析 path + 内嵌 MD 文本.
+
+    输入条目 {title, path} · 输出每条多 4 个字段:
+      resolved · 绝对路径字符串 · 找不到时空串
+      exists   · 文件是否存在(bool)
+      content  · MD 文本 · 仅当 .md/.markdown 且 ≤100KB 时填 · 否则空串
+      mtime    · YYYY-MM-DD HH:MM · 找不到为 None
+    """
+    out: list[dict] = []
+    for d in docs_list or []:
+        title = (d.get("title") or "").strip()
+        raw_path = (d.get("path") or "").strip()
+        resolved = _resolve_doc_path(raw_path, module_path, repo_root, vars_)
+        entry: dict[str, Any] = {
+            "title": title,
+            "path": raw_path,                         # 保留用户原始写法 · 不破坏老前端
+            "resolved": str(resolved) if resolved else "",
+            "exists": bool(resolved),
+            "content": "",
+            "mtime": None,
+        }
+        if resolved and resolved.is_file():
+            try:
+                entry["mtime"] = _dt.datetime.fromtimestamp(
+                    resolved.stat().st_mtime
+                ).strftime("%Y-%m-%d %H:%M")
+                # 只内嵌 .md / .markdown · 图片 / PDF 等让浏览器自己处理(走 resolved 路径)
+                if resolved.suffix.lower() in (".md", ".markdown"):
+                    raw_bytes = resolved.read_bytes()
+                    if len(raw_bytes) <= _MAX_EMBED_BYTES:
+                        entry["content"] = raw_bytes.decode("utf-8", errors="replace")
+                    else:
+                        truncated = raw_bytes[:_MAX_EMBED_BYTES].decode(
+                            "utf-8", errors="replace"
+                        )
+                        kb = len(raw_bytes) // 1024
+                        entry["content"] = (
+                            truncated
+                            + f"\n\n---\n\n*[Content truncated · file is {kb} KB · "
+                            f"embed limit 100 KB. Open the file directly to read the rest.]*\n"
+                        )
+            except (OSError, UnicodeError):
+                pass
+        out.append(entry)
+    return out
+
+
 # ── payload 组装 (0.2.0 dashboard 形状) ──────────────────────────────
 def _build_card(
     title: str,
@@ -337,6 +431,7 @@ def _build_card(
     body: str = "",
     *,
     full: bool,
+    vars_: dict[str, str] | None = None,
 ) -> dict | None:
     """从 frontmatter 拼一张 card · None = 跳过(无 id / 占位 id).
 
@@ -371,7 +466,13 @@ def _build_card(
         docs = meta.get("docs")
         if not docs and body:
             docs = extract_docs_from_body(body)
-        card["docs"] = docs or []
+        # 0.7.1:解析 path → 绝对路径 + 内嵌 MD 文本(便于 drawer 内联渲染)
+        if vars_ is not None:
+            repo_root = pathlib.Path(vars_.get("repo", "."))
+            card["docs"] = _resolve_and_embed_docs(docs or [], path, repo_root, vars_)
+        else:
+            # 兜底:没拿到 vars_ 走老形状(只有 title/path)· 不该走到这条
+            card["docs"] = docs or []
 
         card["desc"] = meta.get("desc") or ""
         card["manualProgress"] = bool(meta.get("manualProgress"))
@@ -407,7 +508,8 @@ def _build_card_list(
             warnings.extend(validate_meta(path, meta, ranges))
         # 0.4.0:把 body 单独切出来 · _build_card 用它做 subtasks/docs 兜底提取
         _, body = split_frontmatter(content)
-        card = _build_card(title, path, meta, mtime, body, full=full)
+        # 0.7.1:vars_ 透传 · _build_card 用 repo_root 解析 docs 相对路径
+        card = _build_card(title, path, meta, mtime, body, full=full, vars_=vars_)
         if card is not None:
             out.append(card)
     return out

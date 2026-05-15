@@ -7,6 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/github.min.css" />
 <style>
 /* ───── design tokens ───────────────────────────── */
 :root {
@@ -730,6 +731,189 @@ a:hover { text-decoration: underline; }
   font-size: 12px;
   color: var(--c-graphite);
 }
+/* 0.7.1:doc-row 状态指示 */
+.doc-list .doc-row.missing {
+  background: repeating-linear-gradient(45deg, transparent 0 6px, rgba(220,38,38,0.04) 6px 8px);
+}
+.doc-list .doc-row.missing .doc-title::after {
+  content: "404";
+  font-family: var(--f-mono);
+  font-size: 9.5px;
+  background: rgba(220,38,38,0.12);
+  color: #b91c1c;
+  margin-left: 8px;
+  padding: 1px 5px;
+  border-radius: 3px;
+  letter-spacing: 0.04em;
+}
+.doc-list .doc-row.has-content:hover {
+  background: var(--c-primary-soft);
+}
+.doc-list .doc-row .doc-action {
+  font-family: var(--f-mono);
+  font-size: 9.5px;
+  font-weight: 600;
+  color: var(--c-primary);
+  background: var(--c-primary-soft);
+  padding: 2px 6px;
+  border-radius: 3px;
+  flex-shrink: 0;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.doc-list .doc-row.missing .doc-action {
+  display: none;
+}
+
+/* 0.7.1:drawer 内联 MD 预览 ───────────────────────── */
+.doc-preview-head {
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 14px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--c-hairline);
+}
+.doc-preview-head .pv-back {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: var(--c-paper);
+  border: 1px solid var(--c-hairline);
+  border-radius: var(--r-md);
+  padding: 6px 12px;
+  cursor: pointer;
+  font: 500 12px/1 var(--f-sans);
+  color: var(--c-charcoal);
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+.doc-preview-head .pv-back:hover {
+  background: var(--c-tint);
+  border-color: var(--c-steel);
+  color: var(--c-ink);
+}
+.doc-preview-head .pv-back svg { width: 12px; height: 12px; }
+.doc-preview-head .pv-meta {
+  flex: 1; min-width: 0;
+  display: flex; flex-direction: column; gap: 2px;
+  text-align: right;
+}
+.doc-preview-head .pv-title {
+  font-size: 13px; font-weight: 600;
+  color: var(--c-ink);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.doc-preview-head .pv-path {
+  font-family: var(--f-mono);
+  font-size: 10.5px;
+  color: var(--c-graphite);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.doc-preview-head .pv-mtime {
+  font-family: var(--f-mono);
+  font-size: 10px;
+  color: var(--c-graphite);
+}
+.doc-preview-body {
+  font-size: 14px; line-height: 1.65;
+  color: var(--c-ink);
+}
+.doc-preview-body h1, .doc-preview-body h2, .doc-preview-body h3,
+.doc-preview-body h4, .doc-preview-body h5, .doc-preview-body h6 {
+  font-weight: 600;
+  margin: 1.4em 0 0.5em;
+  line-height: 1.3;
+}
+.doc-preview-body h1 { font-size: 22px; border-bottom: 1px solid var(--c-hairline); padding-bottom: 0.3em; }
+.doc-preview-body h2 { font-size: 18px; border-bottom: 1px solid var(--c-hairline); padding-bottom: 0.25em; }
+.doc-preview-body h3 { font-size: 16px; }
+.doc-preview-body h4 { font-size: 14.5px; }
+.doc-preview-body h5, .doc-preview-body h6 { font-size: 13.5px; color: var(--c-charcoal); }
+.doc-preview-body p { margin: 0.75em 0; }
+.doc-preview-body ul, .doc-preview-body ol { margin: 0.6em 0; padding-left: 1.6em; }
+.doc-preview-body li { margin: 0.25em 0; }
+.doc-preview-body li > ul, .doc-preview-body li > ol { margin: 0.25em 0; }
+.doc-preview-body code {
+  font-family: var(--f-mono);
+  font-size: 0.88em;
+  background: var(--c-cloud);
+  padding: 1px 5px;
+  border-radius: 3px;
+}
+.doc-preview-body pre {
+  background: var(--c-tint);
+  border: 1px solid var(--c-hairline);
+  border-radius: var(--r-md);
+  padding: 12px 14px;
+  overflow-x: auto;
+  margin: 0.8em 0;
+  font-size: 12.5px;
+  line-height: 1.55;
+}
+.doc-preview-body pre code {
+  background: transparent;
+  padding: 0;
+  border-radius: 0;
+  font-size: 1em;
+}
+.doc-preview-body blockquote {
+  margin: 0.8em 0;
+  padding: 4px 14px;
+  border-left: 3px solid var(--c-primary);
+  background: var(--c-primary-soft);
+  color: var(--c-charcoal);
+  border-radius: 0 var(--r-md) var(--r-md) 0;
+}
+.doc-preview-body blockquote p:first-child { margin-top: 0; }
+.doc-preview-body blockquote p:last-child { margin-bottom: 0; }
+.doc-preview-body table {
+  border-collapse: collapse;
+  margin: 0.9em 0;
+  font-size: 12.5px;
+  width: 100%;
+}
+.doc-preview-body th, .doc-preview-body td {
+  border: 1px solid var(--c-hairline);
+  padding: 7px 10px;
+  text-align: left;
+}
+.doc-preview-body th {
+  background: var(--c-tint);
+  font-weight: 600;
+}
+.doc-preview-body a {
+  color: var(--c-primary);
+  text-decoration: none;
+}
+.doc-preview-body a:hover { text-decoration: underline; }
+.doc-preview-body hr {
+  border: none;
+  border-top: 1px solid var(--c-hairline);
+  margin: 1.6em 0;
+}
+.doc-preview-body img {
+  max-width: 100%;
+  border-radius: var(--r-md);
+}
+.doc-preview-body input[type="checkbox"] {
+  margin-right: 6px;
+  vertical-align: middle;
+}
+.doc-preview-missing {
+  padding: 28px 18px;
+  border: 1px dashed #fecaca;
+  background: rgba(220,38,38,0.04);
+  border-radius: var(--r-md);
+  text-align: center;
+  color: #b91c1c;
+  font-size: 13px;
+}
+.doc-preview-missing .pv-missing-title {
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+.doc-preview-missing .pv-missing-path {
+  font-family: var(--f-mono);
+  font-size: 11px;
+  color: var(--c-graphite);
+  word-break: break-all;
+}
 
 /* status select */
 .status-select {
@@ -1167,6 +1351,17 @@ a:hover { text-decoration: underline; }
   <span id="toast-msg">已保存</span>
 </div>
 
+<!-- 0.7.1 · marked + hljs · 用于 drawer 内联 MD 文档预览(点击 docs 链接不再跳出浏览器) -->
+<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/core.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/languages/python.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/languages/javascript.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/languages/typescript.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/languages/bash.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/languages/yaml.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/languages/json.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/languages/markdown.min.js"></script>
+
 <script id="project-data" type="application/json">__DOCS_JSON__</script>
 
 <script>
@@ -1270,6 +1465,13 @@ a:hover { text-decoration: underline; }
       'drawer.docs_label': 'Linked Docs',
       'drawer.docs_meta_items': '{n} items',
       'drawer.docs_empty': 'No linked docs',
+      'drawer.docs_preview': 'Preview',
+      'drawer.docs_open': 'Open',
+      'drawer.docs_back': '← Back to module',
+      'drawer.docs_missing_title': 'File not found',
+      'drawer.docs_missing_hint': 'The linked doc was not found at any of the candidate paths (absolute · relative to the source MD · relative to the repo root).',
+      'drawer.docs_missing_tooltip': 'Not found: {path}',
+      'drawer.docs_open_external': 'Opening in a new tab · this file type is not rendered inline.',
       'sysdocs.eyebrow': 'SYSTEM DOCS · MEMORY & GUIDES',
       'sysdocs.title': 'Project-level Docs & Memory',
       'sysdocs.section_label': 'Permanent Docs',
@@ -1331,6 +1533,13 @@ a:hover { text-decoration: underline; }
       'drawer.docs_label': '关联文档',
       'drawer.docs_meta_items': '{n} 项',
       'drawer.docs_empty': '尚未关联文档',
+      'drawer.docs_preview': '预览',
+      'drawer.docs_open': '打开',
+      'drawer.docs_back': '← 返回模块',
+      'drawer.docs_missing_title': '找不到文件',
+      'drawer.docs_missing_hint': '已依次尝试:绝对路径 · 相对源 MD · 相对仓库根 · 均未找到该文件。',
+      'drawer.docs_missing_tooltip': '未找到:{path}',
+      'drawer.docs_open_external': '正在用浏览器新标签打开此文件 · 该类型不在抽屉内联渲染。',
       'sysdocs.eyebrow': '系统文档 · MEMORY & GUIDES',
       'sysdocs.title': '项目级文档与记忆',
       'sysdocs.section_label': '常驻文档',
@@ -1561,16 +1770,40 @@ a:hover { text-decoration: underline; }
       ? '<div class="desc">' + escapeHtml(m.desc) + '</div>'
       : '<div class="desc empty">' + escapeHtml(t('drawer.desc_empty')) + '</div>';
 
-    // docs
+    // docs · 0.7.1:button + 内联预览(有 content 时 marked 渲染 · 否则 file:// 打开)
     let docsHtml;
     if (m.docs && m.docs.length) {
-      docsHtml = '<div class="doc-list">' + m.docs.map(d => (
-        '<a class="doc-row" href="' + escapeHtml(d.path) + '" target="_blank" rel="noopener">' +
-          '<svg class="doc-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2.5h7l3 3V13a.5.5 0 0 1-.5.5h-9A.5.5 0 0 1 3 13V2.5Z"/><path d="M10 2.5V5.5h3"/><line x1="5.5" y1="8" x2="10.5" y2="8"/><line x1="5.5" y1="10.5" x2="9" y2="10.5"/></svg>' +
-          '<div class="doc-info"><div class="doc-title">' + escapeHtml(d.title) + '</div><div class="doc-path">' + escapeHtml(d.path) + '</div></div>' +
-          '<span class="doc-ext">' + escapeHtml(fileExt(d.path)) + '</span>' +
-        '</a>'
-      )).join('') + '</div>';
+      docsHtml = '<div class="doc-list">' + m.docs.map((d, i) => {
+        // 兼容老 payload:exists 未定义视为存在 · content 未定义视为不可内联
+        const exists = (d.exists !== false);
+        const hasContent = !!(d.content && d.content.length);
+        const rowClasses = ['doc-row'];
+        if (!exists) rowClasses.push('missing');
+        if (hasContent) rowClasses.push('has-content');
+        const action = !exists
+          ? ''
+          : (hasContent
+              ? t('drawer.docs_preview')
+              : t('drawer.docs_open'));
+        const actionSpan = action
+          ? '<span class="doc-action">' + escapeHtml(action) + '</span>'
+          : '';
+        // 展示用 path:优先用解析后的绝对路径(用户能看到 docs/docs/ 这种 bug 的真实位置)
+        const showPath = d.resolved || d.path || '';
+        const titleAttr = !exists
+          ? t('drawer.docs_missing_tooltip', { path: d.path || '' })
+          : (d.mtime || '');
+        return (
+          '<button type="button" class="' + rowClasses.join(' ') + '"' +
+            ' data-doc-i="' + i + '"' +
+            ' title="' + escapeHtml(titleAttr) + '">' +
+            '<svg class="doc-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2.5h7l3 3V13a.5.5 0 0 1-.5.5h-9A.5.5 0 0 1 3 13V2.5Z"/><path d="M10 2.5V5.5h3"/><line x1="5.5" y1="8" x2="10.5" y2="8"/><line x1="5.5" y1="10.5" x2="9" y2="10.5"/></svg>' +
+            '<div class="doc-info"><div class="doc-title">' + escapeHtml(d.title) + '</div><div class="doc-path">' + escapeHtml(showPath) + '</div></div>' +
+            actionSpan +
+            '<span class="doc-ext">' + escapeHtml(fileExt(showPath)) + '</span>' +
+          '</button>'
+        );
+      }).join('') + '</div>';
     } else {
       docsHtml = '<div class="doc-list-empty">' + escapeHtml(t('drawer.docs_empty')) + '</div>';
     }
@@ -1731,7 +1964,98 @@ a:hover { text-decoration: underline; }
       });
     });
 
+    // 0.7.1:绑 docs 按钮 · 有 content 走内联预览 · 否则尝试 file:// 打开 · 缺失则弹错
+    body.querySelectorAll('.doc-list button.doc-row').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const i = parseInt(btn.dataset.docI, 10);
+        const d = (m.docs || [])[i];
+        if (!d) return;
+        showDocPreview(id, i);
+      });
+    });
+
     openDrawer('module-drawer');
+  }
+
+  // ── 0.7.1 · drawer 内联 MD 预览 ──────────────────────────
+  // 不重开 drawer · 只换 #md-body 内容(drawer-head 保持模块上下文 · 标识"还在这个模块")
+  // back 按钮 → 调 openModuleDrawer(_activeModuleId) 恢复模块视图
+  function showDocPreview(moduleId, docIndex) {
+    const m = getModule(moduleId);
+    if (!m) return;
+    const d = (m.docs || [])[docIndex];
+    if (!d) return;
+    const body = document.getElementById('md-body');
+    if (!body) return;
+
+    const backBtnHtml =
+      '<button type="button" class="pv-back" id="pv-back">' +
+        '<svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2.5L4 6l4 3.5"/></svg>' +
+        '<span>' + escapeHtml(t('drawer.docs_back')) + '</span>' +
+      '</button>';
+
+    const exists = (d.exists !== false);
+    const showPath = d.resolved || d.path || '';
+    const headHtml =
+      '<div class="doc-preview-head">' +
+        backBtnHtml +
+        '<div class="pv-meta">' +
+          '<div class="pv-title">' + escapeHtml(d.title || '') + '</div>' +
+          '<div class="pv-path">' + escapeHtml(showPath) + '</div>' +
+          (d.mtime ? '<div class="pv-mtime">' + escapeHtml(d.mtime) + '</div>' : '') +
+        '</div>' +
+      '</div>';
+
+    let contentHtml;
+    if (!exists) {
+      // 文件不存在 · drawer 内提示 · 不跳出浏览器
+      contentHtml =
+        '<div class="doc-preview-missing">' +
+          '<div class="pv-missing-title">' + escapeHtml(t('drawer.docs_missing_title')) + '</div>' +
+          '<div>' + escapeHtml(t('drawer.docs_missing_hint')) + '</div>' +
+          '<div class="pv-missing-path">' + escapeHtml(d.path || '') + '</div>' +
+        '</div>';
+    } else if (d.content) {
+      // 有 content → marked 渲染(CDN 失败时 fallback 到 <pre> · 见底部 CDN guard)
+      let rendered;
+      try {
+        rendered = (typeof marked !== 'undefined' && marked.parse)
+          ? marked.parse(d.content)
+          : '<pre>' + escapeHtml(d.content) + '</pre>';
+      } catch (e) {
+        rendered = '<pre>' + escapeHtml(d.content) + '</pre>';
+      }
+      contentHtml = '<div class="doc-preview-body">' + rendered + '</div>';
+    } else {
+      // 非 .md / .markdown 或文件过大 → 尝试浏览器原生打开(图片 / PDF 等)
+      // 用 file:// URL(resolved 是绝对路径)
+      const url = d.resolved
+        ? 'file:///' + d.resolved.replace(/\\/g, '/').replace(/^\/+/, '')
+        : d.path;
+      try { window.open(url, '_blank'); } catch (e) {}
+      contentHtml =
+        '<div class="doc-list-empty">' +
+          escapeHtml(t('drawer.docs_open_external')) +
+        '</div>';
+    }
+
+    body.innerHTML = headHtml + contentHtml;
+
+    // 语法高亮
+    if (d.content && typeof hljs !== 'undefined' && hljs.highlightElement) {
+      body.querySelectorAll('.doc-preview-body pre code').forEach(b => {
+        try { hljs.highlightElement(b); } catch (e) {}
+      });
+    }
+
+    // 绑 back
+    const backBtn = body.querySelector('#pv-back');
+    if (backBtn) {
+      backBtn.addEventListener('click', () => openModuleDrawer(moduleId));
+    }
+
+    // 滚到顶
+    body.scrollTop = 0;
   }
 
   // ── System Docs Drawer ───────────────────────────────
