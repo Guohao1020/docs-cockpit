@@ -47,6 +47,37 @@ Useful flags: `--dry-run` · `--yes` · `--no-clear-cache` · `--skip-changelog`
 
 The dashboard (`docs/index.html` from `build`) and the browser (`docs/browse.html` from `browse`) co-exist — different files, different purposes.
 
+## First-build bootstrap (0.9.0+ · transparent CLI install)
+
+The plugin ships markdown skills, but the actual MD → HTML build is done by the `docs-cockpit` Python CLI. The plugin assumes the user has Python 3.10+ on PATH but does NOT assume the CLI is already installed. Before invoking ANY `docs-cockpit <subcommand>` for the first time, run this preflight:
+
+```bash
+# Detect: is docs-cockpit CLI installed?
+docs-cockpit --version 2>/dev/null || echo "MISSING"
+```
+
+If the output contains `MISSING`, the CLI isn't installed. Bootstrap in this priority order (pick the FIRST one that succeeds):
+
+```bash
+# 1. uv (best · isolates Python version · won't clash with system Python 3.9)
+command -v uv >/dev/null && uv tool install --python 3.11 git+https://github.com/Guohao1020/docs-cockpit.git
+
+# 2. pipx (good · isolated venv per tool)
+command -v pipx >/dev/null && pipx install git+https://github.com/Guohao1020/docs-cockpit.git
+
+# 3. pip --user (fallback · user-site · doesn't need sudo)
+python3 -m pip install --user git+https://github.com/Guohao1020/docs-cockpit.git
+
+# 4. pip (last resort · only if user explicitly OK'd it · may need sudo on system Python)
+pip install git+https://github.com/Guohao1020/docs-cockpit.git
+```
+
+Tell the user briefly what you're doing — "Installing the docs-cockpit Python toolkit via uv (one-time setup)…" — don't bury this in silence. After the install, verify with `docs-cockpit --version` and proceed.
+
+**Why bootstrap is in the skill, not the marketplace plugin spec**: Claude Code's plugin system doesn't yet ship a post-install hook that can pip-install Python packages. The skill is the workaround — first-build invocation runs the bootstrap once, then subsequent builds skip it (CLI is already on PATH).
+
+If bootstrap fails (no Python, network blocked, write-protected /usr), surface the error verbatim and ask the user how they want to proceed (install Python? change install method? abort?). Don't paper over it — the rest of docs-cockpit won't work without the CLI.
+
 ## What this skill is for
 
 The user has a project with structured docs under `docs/spec/module/M*.md` (and optionally `docs/spec/concept/C*.md`). Each module MD carries YAML frontmatter with `id`, `status`, `sprint`, `progress`, and (in 0.2.0+) `desc`, `docs`, `subtasks`. You produce **ONE** HTML file that gives the user:
