@@ -4,6 +4,59 @@
 
 ## [Unreleased]
 
+## [0.3.1] · 2026-05-15
+
+修升级 skill 的实战盲点 · 用户实测 0.2.0 → 0.3.0 时,CLI 升上去了但 plugin 层
+没跟上(autoUpdate: true + 重启 Claude Code 不够 · plugin 缓存依然显示 0.2.0)。
+
+### Fixed
+
+- **`docs-cockpit-update` SKILL.md + `commands/update.md` 加 cache 强清 + 多
+  backend 检测**:
+  - **新 Step 4(CLI 升级)** · 自动检测 install backend(pip / uv tool / pipx)·
+    Python < 3.10 自动切 `uv tool install --python 3.11 --force git+...`
+    回退路径,不再盲目假设 pip 能跑。
+  - **新 Step 6(强清 plugin 缓存)** · 重启前主动跑
+    `rm -rf ~/.claude/plugins/cache/*docs-cockpit*` · 不再相信 autoUpdate ·
+    cache 没了 · 重启时被迫从 GitHub 重新 fetch。
+  - **新 Step 8(用户侧验证)** · 明确告诉用户 restart 后检查:`/plugin`
+    UI 的 version 字段 + Skills 列表里 `/docs-cockpit:migrate` 是否出现(0.3.0+
+    的标志性 slash command)· 若还是老版本 → 跑兜底 `/plugin marketplace
+    remove docs-cockpit && /plugin marketplace add Guohao1020/docs-cockpit`
+    强制 remove+re-add。
+
+### Why this matters
+
+0.2.x 升级到 0.3.0 的"plugin 升级失败"是真实 reproducible 的:
+- autoUpdate: true 已开 · 重启完 plugin 依然 0.2.0
+- 用户必须手动 remove + re-add marketplace 才能拿到 0.3.0
+
+0.3.1 的 update skill 现在**默认就替你做这事** · 不用等用户发现升级没成功
+来回排查。
+
+### Migration · 0.3.0 → 0.3.1
+
+无 breaking · 配置 / state.json / template 全不变。直接升:
+
+```bash
+# 任一 backend 都能升
+pip install --upgrade git+https://github.com/Guohao1020/docs-cockpit.git
+# 或
+uv tool upgrade docs-cockpit
+```
+
+升完后**强清 plugin 缓存**(0.3.1 新流程):
+
+```bash
+# POSIX
+rm -rf ~/.claude/plugins/cache/*docs-cockpit*
+
+# Windows PowerShell
+Remove-Item -Recurse -Force "$env:USERPROFILE\.claude\plugins\cache\*docs-cockpit*"
+```
+
+重启 Claude Code · 验证 plugin 升到 0.3.1(`/plugin` UI 看 version)。
+
 ## [0.3.0] · 2026-05-15
 
 新增 `docs-cockpit migrate` 命令 · 解决"非 canonical 布局的现有项目怎么 bootstrap"
@@ -247,7 +300,8 @@ manualProgress: false
 - Python 依赖只有 `pyyaml`,装 plugin 后仍需 `pip install git+https://github.com/Guohao1020/docs-cockpit.git` 让 `docs-cockpit` CLI 进 PATH。
 - 离线 mode(CDN 拉不到 marked.js)目前需手工 vendor `_assets/` · 见 `references/design_tokens.md` "Offline mode" 节。
 
-[Unreleased]: https://github.com/Guohao1020/docs-cockpit/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/Guohao1020/docs-cockpit/compare/v0.3.1...HEAD
+[0.3.1]: https://github.com/Guohao1020/docs-cockpit/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/Guohao1020/docs-cockpit/compare/v0.2.1...v0.3.0
 [0.2.1]: https://github.com/Guohao1020/docs-cockpit/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/Guohao1020/docs-cockpit/compare/v0.1.3...v0.2.0
