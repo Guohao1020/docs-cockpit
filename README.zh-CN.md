@@ -43,7 +43,7 @@ Claude 自动触发 `docs-cockpit` skill,**帮你写 `docs-cockpit.yaml`,跑 `do
 
 **就这样。三条命令 · 配置和 build 都是 Claude 做。**
 
-> 不用 Claude Code(Codex / Cursor / Gemini / 单纯 Python CLI)?跳到 [Install · 按工具选](#install--按工具选)。
+> 不用 Claude Code?跳到 [Install · 按工具选](#install--按工具选) 看 Codex / Cursor / Gemini / OpenCode 的手动 skill 复制步骤。
 
 ### Dashboard 长啥样
 
@@ -140,30 +140,7 @@ pip install git+https://github.com/Guohao1020/docs-cockpit.git
 
 重启你的工具。skill 会按同样的自然语言短语触发(SKILL.md 里的 Claude-specific 路径语法可能需要微调)。
 
-### C. 单纯 Python CLI(不用 AI 工具)
-
-只想用命令行 · 自己写 `docs-cockpit.yaml`:
-
-```bash
-pip install git+https://github.com/Guohao1020/docs-cockpit.git
-docs-cockpit init                          # 生成起步 yaml
-# 编辑 docs-cockpit.yaml
-docs-cockpit build                         # 默认读 ./docs-cockpit.yaml
-```
-
-开发 / fork 用 editable 模式:
-
-```bash
-git clone https://github.com/Guohao1020/docs-cockpit.git
-cd docs-cockpit
-pip install -e .
-```
-
-**需要 Python ≥ 3.10**。系统默认 Python 是 3.9 或更老 · 用 [`uv`](https://docs.astral.sh/uv/):
-
-```bash
-uv tool install --python 3.11 git+https://github.com/Guohao1020/docs-cockpit.git
-```
+> **提示**:`pip install` 需要 **Python ≥ 3.10**。系统默认 Python 更老 · 用 [`uv`](https://docs.astral.sh/uv/):`uv tool install --python 3.11 git+https://github.com/Guohao1020/docs-cockpit.git`。
 
 ---
 

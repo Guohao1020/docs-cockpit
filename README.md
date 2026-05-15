@@ -43,7 +43,7 @@ Claude auto-triggers the `docs-cockpit` skill, writes a `docs-cockpit.yaml` for 
 
 **That's it.** Three commands total, and **Claude handles the config writing + build for you**.
 
-> If you're not a Claude Code user (Codex / Cursor / Gemini / standalone Python), jump to the [Install](#install--by-tool) section.
+> Not on Claude Code? See the [Install](#install--by-tool) section for Codex / Cursor / Gemini / OpenCode (manual skill copy).
 
 ### What the dashboard looks like
 
@@ -140,30 +140,7 @@ pip install git+https://github.com/Guohao1020/docs-cockpit.git
 
 Restart your tool. The skills should auto-trigger on the same natural-language phrases (Claude-specific path syntax in the skills may need light adaptation).
 
-### C. Standalone Python CLI (no AI tool)
-
-If you just want the CLI and will write `docs-cockpit.yaml` by hand:
-
-```bash
-pip install git+https://github.com/Guohao1020/docs-cockpit.git
-docs-cockpit init                          # generates a starter yaml
-# edit docs-cockpit.yaml
-docs-cockpit build                         # default reads ./docs-cockpit.yaml
-```
-
-For development / forking, use editable mode:
-
-```bash
-git clone https://github.com/Guohao1020/docs-cockpit.git
-cd docs-cockpit
-pip install -e .
-```
-
-**Python ≥ 3.10** required. If your system default is Python 3.9 or older, use [`uv`](https://docs.astral.sh/uv/):
-
-```bash
-uv tool install --python 3.11 git+https://github.com/Guohao1020/docs-cockpit.git
-```
+> **Note**: `pip install` requires **Python ≥ 3.10**. If your system default is older, use [`uv`](https://docs.astral.sh/uv/): `uv tool install --python 3.11 git+https://github.com/Guohao1020/docs-cockpit.git`.
 
 ---
 
