@@ -127,36 +127,40 @@ Edit `~/.claude/settings.json` (Linux/macOS) or `%USERPROFILE%\.claude\settings.
 
 If `autoUpdate: true` is already there, skip this step.
 
-### Step 6 — Force-refresh the plugin cache (critical!)
+### Step 6+7 — Cache clear + restart (ATOMIC · do these together)
 
-**Don't rely on autoUpdate alone** — it sometimes doesn't actually fetch the new version even after restart. Proactively clear the local plugin cache so Claude Code is FORCED to re-clone from GitHub on next startup.
+> ⚠️ **HARD RULE**: cache clear and Claude Code restart must happen as **ONE atomic operation**. Clearing cache without restarting **immediately after** leaves Claude Code in a **ghost state** where the plugin shows as "installed" in Directory but disappears from the sidebar — and re-install attempts fail because the system thinks it's still installed. **Don't tell the user "clear cache, restart whenever convenient"**. Tell them: clear cache, then quit Claude Code in the next 30 seconds.
+
+The reason: Claude Code's in-memory plugin state diverges from disk reality the moment you delete the cache. Sidebar / Directory read different sources. Without a restart, the inconsistency persists.
+
+**Right way to phrase this to the user**:
+
+> Run these two commands together (in order, no pause in between):
+>
+> 1. `Remove-Item -Recurse -Force "$env:USERPROFILE\.claude\plugins\cache\*docs-cockpit*" -ErrorAction SilentlyContinue`
+> 2. **Quit Claude Code completely** (not just the chat window — the whole app / CLI process). Then reopen it.
+>
+> On startup it'll pull fresh `.claude-plugin/marketplace.json` + `plugin.json` + SKILL.md + commands from GitHub.
+
+**Cache-clear command per platform**:
 
 ```bash
 # POSIX (Linux/macOS):
-rm -rf ~/.claude/plugins/cache/docs-cockpit* 2>/dev/null || true
 rm -rf ~/.claude/plugins/cache/*docs-cockpit* 2>/dev/null || true
 
 # Windows PowerShell:
-Remove-Item -Recurse -Force "$env:USERPROFILE\.claude\plugins\cache\docs-cockpit*" -ErrorAction SilentlyContinue
 Remove-Item -Recurse -Force "$env:USERPROFILE\.claude\plugins\cache\*docs-cockpit*" -ErrorAction SilentlyContinue
 ```
 
-If the cache directory layout is unfamiliar, use:
+If the cache directory layout is unfamiliar, find it first:
 ```bash
 # POSIX:
 find ~/.claude -type d -name "*docs-cockpit*" 2>/dev/null
 # Windows:
 Get-ChildItem "$env:USERPROFILE\.claude" -Recurse -Directory -Name | Select-String "docs-cockpit"
 ```
-… and delete what shows up.
 
-### Step 7 — Restart Claude Code
-
-Now that the cache is empty, restart Claude Code so it re-fetches the marketplace from GitHub:
-
-> **Please quit Claude Code completely and reopen it.** Cache was cleared, so on startup it must pull the fresh `.claude-plugin/marketplace.json` + `plugin.json` + SKILL.md + commands from GitHub.
-
-If user has `/plugin marketplace update docs-cockpit` available (newer Claude Code versions), they can use that *instead* of clearing cache + restarting — but cache clear is more reliable.
+If `/plugin marketplace update docs-cockpit` is available (newer Claude Code versions), prefer that — no cache clear needed, no ghost state risk.
 
 ### Step 8 — Verify the upgrade landed (USER ACTION after restart)
 
@@ -225,13 +229,37 @@ Tell them: "I can't reach GitHub from this environment. To upgrade, you'd need a
 
 - **`pip install` fails because Python < 3.10** → switch to uv: `uv tool install --python 3.11 --force git+https://github.com/Guohao1020/docs-cockpit.git`. Do NOT try to install Python 3.10+ system-wide — uv handles its own Python.
 - **`pip install` fails with permission error** → suggest `pip install --user --upgrade ...` OR use uv tool instead.
-- **Plugin version doesn't change after restart** (the issue this skill is built to handle!) → cache clear (Step 6) wasn't aggressive enough or path was wrong. Use the `/plugin marketplace remove + add` slash-command fallback in Step 8.
+- **Plugin version doesn't change after restart** → cache clear (Step 6+7) wasn't aggressive enough or path was wrong. Use the `/plugin marketplace remove + add` slash-command fallback in Step 8.
+- **Plugin disappeared from sidebar but Directory says "installed" / Uninstall button** → **GHOST STATE**. User cleared cache without restarting (or restart happened too long after clear). See "Ghost state recovery" below.
 - **Version mismatch between import and CLI binary** → multiple Python environments. Run `which python` and `which docs-cockpit` to see which interpreter the CLI binary uses. Usually the CLI binary's shebang points to the right Python.
 - **uv tool list shows old version but CLI works as new version** → `__version__` in `__init__.py` may be out of sync with pyproject.toml dynamic version. Trust `--version`-style import check over `uv tool list`.
 
+## Ghost state recovery
+
+**Symptom**: After running cache clear, the user sees:
+- Plugin NOT in `Customize → Personal plugins` sidebar list
+- BUT in `Directory → Plugins` it shows "Docs cockpit" with Uninstall + Manage buttons (treated as installed)
+- `/plugin install` reports "already installed"
+
+**Why**: Claude Code's plugin state has two surfaces (in-memory sidebar vs settings.json registry). Clearing the disk cache without an immediate restart makes them diverge. The sidebar reads from in-memory state which got blown away; the Directory reads from settings.json which still says "installed".
+
+**Recovery (try in this order)**:
+
+1. **Restart Claude Code first** (full quit · 30% chance fixes by itself). On startup the system re-reconciles state from disk.
+
+2. **If still wrong after restart**: in `Directory → Plugins → Docs cockpit` click **Uninstall**. Then restart again. Then `/plugin marketplace add Guohao1020/docs-cockpit` + `/plugin install docs-cockpit@docs-cockpit`.
+
+3. **If even that fails**: manually edit `~/.claude/settings.json` (Windows: `%USERPROFILE%\.claude\settings.json`):
+   - Remove the `docs-cockpit` entry from `extraKnownMarketplaces`
+   - Remove the `"docs-cockpit@docs-cockpit": true` entry from `enabledPlugins`
+   - Save. Restart Claude Code (state is now clean). Then re-add marketplace fresh.
+
+**Prevent**: The HARD RULE in Step 6+7 — cache clear and restart are ATOMIC. Don't let the user defer the restart. The window between cache-clear and restart is where the ghost state forms.
+
 ## Don't do these things
 
+- **Don't separate cache clear from restart in time** — see Step 6+7 HARD RULE. The two are atomic. If you say "clear cache" first and "restart" later in a different message, the user will pause in between → ghost state. Present them as one continuous instruction.
 - **Don't try to update the plugin by editing files under `~/.claude/plugins/cache/` directly** — that's the cache and gets blown away. The fresh content comes from GitHub on next fetch.
 - **Don't run `pip install --upgrade` without showing the user what's changing (CHANGELOG diff)** — surprises break trust.
-- **Don't promise "next time autoUpdate will just work"** without doing Step 6 (cache clear) — autoUpdate is unreliable. Cache clear is what actually forces the re-fetch.
-- **Don't skip the verification** in Step 8 — if you don't tell the user what to check post-restart, they don't know if it worked. The new slash command (`/docs-cockpit:migrate` for 0.3.0) is the easiest "did the plugin update" signal.
+- **Don't promise "next time autoUpdate will just work"** without doing Step 6+7 (cache clear + restart) — autoUpdate is unreliable. Cache clear is what actually forces the re-fetch.
+- **Don't skip the verification** in Step 8 — if you don't tell the user what to check post-restart, they don't know if it worked. A new slash command appearing in `/plugin` UI is the easiest "did the plugin update" signal.

@@ -4,6 +4,50 @@
 
 ## [Unreleased]
 
+## [0.6.1] · 2026-05-15
+
+修 update skill 的实战盲点 · "清缓存 + 重启" 之前是两个独立 Step · 用户实测
+清完没立即重启 → 进入 ghost state(plugin Directory 显示已装 · 但 sidebar 消失 ·
+reinstall 报"已安装")。
+
+### Fixed
+
+- **`docs-cockpit-update` SKILL.md + `commands/update.md` 加 atomic 规则**:
+  - 原 Step 6(清缓存)和 Step 7(重启)合并为 **Step 6+7 · atomic**
+  - 加 ⚠️ **HARD RULE** banner:cache clear 和 restart 必须连着做 · 中间不能停
+  - 解释 ghost state 成因:Claude Code 的 plugin 状态有 in-memory sidebar 和
+    settings.json registry 两个来源 · 清缓存 + 不重启 = 两边发散
+  - "Right way to phrase to the user" 段:让 Claude 把两步打包成一句话给用户 ·
+    避免用户在中间暂停
+
+- **新增 "Ghost state recovery" 整段**:
+  - 症状清单(Directory 有 / sidebar 没 / reinstall 报"已安装")
+  - 3 步恢复路径(restart → uninstall + restart → 手工删 settings.json 条目)
+  - 写明 "prevent" 节 · 告诉 Claude 怎么从源头避免
+
+- **`Don't do these things`** 节加新条:
+  > Don't separate cache clear from restart in time — Step 7+8 is ONE atomic
+  > action. If user pauses between, they get ghost state.
+
+### Why this matters
+
+之前 SKILL.md 的 Step 6 / Step 7 是两段 · Claude 给用户时也是两条命令分发 ·
+用户清完缓存忙别的去了 · 半小时后再重启 → ghost state。0.6.1 把它绑死成
+**一个原子操作** · Claude 不能拆开告诉用户。
+
+### Migration · 0.6.0 → 0.6.1
+
+无 breaking · 现有产出 + 配置全不变。这版纯文档 / skill 加固。
+
+```bash
+# 升 CLI(可选 · 0.6.0 → 0.6.1 没代码差异 · 只是文档)
+pip install --upgrade git+https://github.com/Guohao1020/docs-cockpit.git
+
+# 强清 plugin cache + 立即重启 Claude Code(0.6.1 的 atomic rule)
+Remove-Item -Recurse -Force "$env:USERPROFILE\.claude\plugins\cache\*docs-cockpit*" -ErrorAction SilentlyContinue
+# ⬆ 跑完立即退 Claude Code 重开 · 不要拖延
+```
+
 ## [0.6.0] · 2026-05-15
 
 加 i18n 多语言切换 · 默认英文 · 顶部 toggle 切中文。dashboard 和 browse
@@ -501,7 +545,8 @@ manualProgress: false
 - Python 依赖只有 `pyyaml`,装 plugin 后仍需 `pip install git+https://github.com/Guohao1020/docs-cockpit.git` 让 `docs-cockpit` CLI 进 PATH。
 - 离线 mode(CDN 拉不到 marked.js)目前需手工 vendor `_assets/` · 见 `references/design_tokens.md` "Offline mode" 节。
 
-[Unreleased]: https://github.com/Guohao1020/docs-cockpit/compare/v0.6.0...HEAD
+[Unreleased]: https://github.com/Guohao1020/docs-cockpit/compare/v0.6.1...HEAD
+[0.6.1]: https://github.com/Guohao1020/docs-cockpit/compare/v0.6.0...v0.6.1
 [0.6.0]: https://github.com/Guohao1020/docs-cockpit/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/Guohao1020/docs-cockpit/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/Guohao1020/docs-cockpit/compare/v0.3.1...v0.4.0

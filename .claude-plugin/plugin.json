@@ -1,7 +1,7 @@
 {
   "name": "docs-cockpit",
   "description": "Project module / sprint / progress dashboard in a single self-contained HTML file (Kanban + Sprint Timeline + KPI · frontmatter-driven from docs/spec/module/*.md). Plus `docs-cockpit browse` — separate single-HTML markdown viewer with tree sidebar + marked.js render · for projects whose docs don't fit the dashboard model (ADRs, plans, scattered MDs). Plus `docs-cockpit migrate` — one-shot bootstrap for legacy layouts. Ships 3 auto-triggered skills + 5 slash commands.",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "author": {
     "name": "Guohao1020"
   },

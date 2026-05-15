@@ -55,24 +55,25 @@ Explicit invocation of the `docs-cockpit-update` skill's two-layer upgrade workf
 
 6. **Wire up plugin `autoUpdate: true`.** Edit `~/.claude/settings.json` (or `%USERPROFILE%\.claude\settings.json` on Windows). Find `extraKnownMarketplaces.docs-cockpit`. If `"autoUpdate": true` is missing, add it.
 
-7. **Force-clear the plugin cache.** Critical step — `autoUpdate` alone is unreliable, restart often doesn't actually refresh the plugin layer.
+7+8. **Force-clear the plugin cache, THEN restart Claude Code — as ONE atomic step.**
 
+   ⚠️ **HARD RULE**: cache clear and restart must happen together (in this order, no pause between). If the user clears cache then doesn't restart, Claude Code enters a **ghost state** — plugin shows as "installed" in Directory but disappears from the sidebar, and reinstall fails. See "Ghost state recovery" below.
+
+   **Right way to phrase to the user**:
+
+   > Run these two commands in order, no pause in between:
+   >
+   > 1. (POSIX) `rm -rf ~/.claude/plugins/cache/*docs-cockpit*`
+   >    (Windows) `Remove-Item -Recurse -Force "$env:USERPROFILE\.claude\plugins\cache\*docs-cockpit*" -ErrorAction SilentlyContinue`
+   > 2. Quit Claude Code completely (the whole app, not just the chat window). Reopen.
+
+   If unsure of the cache path:
    ```bash
-   # POSIX:
-   rm -rf ~/.claude/plugins/cache/*docs-cockpit* 2>/dev/null || true
-
-   # Windows PowerShell:
-   Remove-Item -Recurse -Force "$env:USERPROFILE\.claude\plugins\cache\*docs-cockpit*" -ErrorAction SilentlyContinue
+   find ~/.claude -type d -name "*docs-cockpit*" 2>/dev/null      # POSIX
+   Get-ChildItem "$env:USERPROFILE\.claude" -Recurse -Directory -Name | Select-String "docs-cockpit"   # Windows
    ```
 
-   If unsure of the path, find it:
-   ```bash
-   find ~/.claude -type d -name "*docs-cockpit*" 2>/dev/null
-   # Windows:
-   # Get-ChildItem "$env:USERPROFILE\.claude" -Recurse -Directory -Name | Select-String "docs-cockpit"
-   ```
-
-8. **Tell the user to restart Claude Code.** Now cache is empty, the marketplace and plugin will be re-cloned fresh on startup.
+   If `/plugin marketplace update docs-cockpit` slash command is available (newer Claude Code), prefer that — no cache clear, no ghost state risk.
 
 9. **Suggest verification (USER ACTION post-restart).** Tell the user explicitly what to check:
    - In `/plugin` UI, version should be `REMOTE_VERSION`
@@ -94,9 +95,23 @@ Explicit invocation of the `docs-cockpit-update` skill's two-layer upgrade workf
 - **Multiple Python environments** → CLI binary's shebang points to its Python; `which docs-cockpit` then `head -1` that file (POSIX) or check `where.exe` output (Windows)
 - **GitHub unreachable** → tell user network is the blocker, no fix here
 
+## Ghost state recovery
+
+If the user already separated cache clear from restart and is now stuck:
+
+- Plugin NOT in `Customize → Personal plugins` sidebar
+- BUT Directory shows "Docs cockpit" with Uninstall + Manage buttons (treated as installed)
+- `/plugin install` says "already installed"
+
+Recovery (in order):
+
+1. **Restart Claude Code first** (full quit). State often re-reconciles on startup.
+2. **If still wrong**: in `Directory → Plugins → Docs cockpit` click **Uninstall**. Restart again. Then `/plugin marketplace add Guohao1020/docs-cockpit` + `/plugin install docs-cockpit@docs-cockpit`.
+3. **Nuclear**: edit `~/.claude/settings.json` (Windows: `%USERPROFILE%\.claude\settings.json`), remove the `docs-cockpit` entries from both `extraKnownMarketplaces` and `enabledPlugins`. Save. Restart. Re-add marketplace fresh.
+
 ## Don't do these
 
-- **Don't skip Step 7 (cache clear)** — that's the whole point of this revised flow. Without it, plugin upgrade is unreliable.
-- **Don't edit settings.json to add brand-new keys** you didn't see before. Only add `autoUpdate: true` inside the existing `docs-cockpit` marketplace block.
+- **Don't separate cache clear from restart in time** — Step 7+8 is ONE atomic action. If user pauses between, they get ghost state. See above.
+- **Don't edit settings.json to add brand-new keys** you didn't see before. Only add `autoUpdate: true` inside the existing `docs-cockpit` marketplace block (unless executing the nuclear recovery in "Ghost state recovery" above).
 - **Don't run `pip install --upgrade` without showing the CHANGELOG diff first** — surprises break trust.
-- **Don't claim the upgrade succeeded** until the user has restarted AND verified via the `/plugin` UI or the new slash command (`/docs-cockpit:migrate` etc.) being visible. CLI upgrade alone is not enough.
+- **Don't claim the upgrade succeeded** until the user has restarted AND verified via the `/plugin` UI or a new slash command being visible. CLI upgrade alone is not enough.
