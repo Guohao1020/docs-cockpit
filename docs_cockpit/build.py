@@ -261,12 +261,80 @@ def validate_meta(
     return warnings
 
 
+# ── MD body extraction (0.4.0 · 让 frontmatter 缺字段时自动从正文提取) ──
+#
+# 用户常常已经在 MD body 里维护 `## 待办` + `- [ ]` checklist 或 `## 关联`
+# section 列相关文档 link · 但 frontmatter 没有 subtasks/docs 字段。这里
+# 提供 fallback:frontmatter 缺这俩字段时 · 扫 body 自动提。
+#
+# 优先级:frontmatter 字段 > body 提取。用户想精控直接写 frontmatter 接管。
+
+_SUBTASK_SECTION_RE = re.compile(
+    r"^##\s+(?:\d+\s*[·.\-]?\s*)?(?:待办|TODO|To[- ]?do|Subtasks?|Tasks?|任务)\b",
+    re.MULTILINE | re.IGNORECASE,
+)
+_DOCS_SECTION_RE = re.compile(
+    r"^##\s+(?:\d+\s*[·.\-]?\s*)?"
+    r"(?:关联(?:文档)?|Related(?:\s+(?:docs|documents))?|"
+    r"Docs?|See\s+also|参考|链接|Links?)\b",
+    re.MULTILINE | re.IGNORECASE,
+)
+# 任意 H1-H6 或 horizontal-rule(---/***/___) 作为 section 边界
+_SECTION_BOUNDARY_RE = re.compile(r"^(#{1,6}\s|[-*_]{3,}\s*$)", re.MULTILINE)
+_CHECKBOX_LINE_RE = re.compile(r"^\s*[-*+]\s+\[([ xX])\]\s+(.+?)\s*$")
+_MD_LINK_RE = re.compile(r"\[([^\]]+)\]\(([^)]+)\)")
+
+
+def _section_after(body: str, header_re: re.Pattern) -> str:
+    """找到 header_re 匹配的 H2 · 返回该 section 的正文(到下一个边界为止)."""
+    m = header_re.search(body)
+    if not m:
+        return ""
+    section_start = body.find("\n", m.end()) + 1
+    tail = body[section_start:]
+    next_boundary = _SECTION_BOUNDARY_RE.search(tail)
+    if next_boundary:
+        return tail[: next_boundary.start()]
+    return tail
+
+
+def extract_subtasks_from_body(body: str) -> list[dict]:
+    """扫 ## 待办/TODO/Subtasks 段 · 提 `- [x]` / `- [ ]` 行为 subtasks."""
+    section = _section_after(body, _SUBTASK_SECTION_RE)
+    if not section:
+        return []
+    out: list[dict] = []
+    for line in section.split("\n"):
+        m = _CHECKBOX_LINE_RE.match(line)
+        if m:
+            done = m.group(1).lower() == "x"
+            title = m.group(2).strip()
+            if title:
+                out.append({"title": title, "done": done})
+    return out
+
+
+def extract_docs_from_body(body: str) -> list[dict]:
+    """扫 ## 关联/Related/Docs 段 · 提 MD link `[title](path)` 为 docs."""
+    section = _section_after(body, _DOCS_SECTION_RE)
+    if not section:
+        return []
+    out: list[dict] = []
+    for m in _MD_LINK_RE.finditer(section):
+        title = m.group(1).strip()
+        path = m.group(2).strip()
+        if title and path and not path.startswith("#"):  # 跳锚点链接
+            out.append({"title": title, "path": path})
+    return out
+
+
 # ── payload 组装 (0.2.0 dashboard 形状) ──────────────────────────────
 def _build_card(
     title: str,
     path: pathlib.Path,
     meta: dict,
     mtime: str | None,
+    body: str = "",
     *,
     full: bool,
 ) -> dict | None:
@@ -274,6 +342,10 @@ def _build_card(
 
     full=True → modules 用 · 含 desc / docs / subtasks / manualProgress 等扩展字段
     full=False → concepts 用 · 仅核心 5 字段(id/title/status/sprint/progress)
+
+    0.4.0 起 · 当 full=True 且 frontmatter 缺 subtasks/docs 时 · 自动从 body
+    扫 `## 待办` / `## 关联` 等 section 提取(见 extract_subtasks_from_body /
+    extract_docs_from_body)。
     """
     doc_id = meta.get("id")
     if not doc_id:
@@ -290,9 +362,18 @@ def _build_card(
         "progress": meta.get("progress") if isinstance(meta.get("progress"), (int, float)) else 0,
     }
     if full:
+        # subtasks · docs · 0.4.0:frontmatter 缺则从 body 提取
+        subtasks = meta.get("subtasks")
+        if not subtasks and body:
+            subtasks = extract_subtasks_from_body(body)
+        card["subtasks"] = subtasks or []
+
+        docs = meta.get("docs")
+        if not docs and body:
+            docs = extract_docs_from_body(body)
+        card["docs"] = docs or []
+
         card["desc"] = meta.get("desc") or ""
-        card["docs"] = meta.get("docs") or []
-        card["subtasks"] = meta.get("subtasks") or []
         card["manualProgress"] = bool(meta.get("manualProgress"))
         # 额外 metadata · status skill 读 state.json 时也能拿到
         card["path"] = str(path)
@@ -319,12 +400,14 @@ def _build_card_list(
         return []
     out: list[dict] = []
     for title, path in _resolve_group_files(group_cfg, vars_):
-        _content, meta, mtime, exists = read_md(path)
+        content, meta, mtime, exists = read_md(path)
         if not exists:
             continue
         if fm_enabled:
             warnings.extend(validate_meta(path, meta, ranges))
-        card = _build_card(title, path, meta, mtime, full=full)
+        # 0.4.0:把 body 单独切出来 · _build_card 用它做 subtasks/docs 兜底提取
+        _, body = split_frontmatter(content)
+        card = _build_card(title, path, meta, mtime, body, full=full)
         if card is not None:
             out.append(card)
     return out

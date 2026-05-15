@@ -28,7 +28,13 @@ from typing import Any
 
 import yaml
 
-from .build import _safe_print, slugify, split_frontmatter
+from .build import (
+    _safe_print,
+    slugify,
+    split_frontmatter,
+    extract_subtasks_from_body,
+    extract_docs_from_body,
+)
 
 # ── 启发式分类规则 ────────────────────────────────────────────────────
 # 这些目录里的 *.md 文件 · 默认视为 module candidate
@@ -285,9 +291,14 @@ def _git_mv(src: pathlib.Path, dst: pathlib.Path, repo: pathlib.Path) -> bool:
 
 
 def _inject_frontmatter(path: pathlib.Path, item: dict) -> None:
-    """Merge frontmatter into target file · existing 字段优先 · 缺的填默认."""
-    body = path.read_text(encoding="utf-8")
-    existing_meta, content = split_frontmatter(body)
+    """Merge frontmatter into target file · existing 字段优先 · 缺的填默认.
+
+    0.4.0 起 · frontmatter 没有 subtasks / docs 时 · 自动从 MD body 的
+    `## 待办` / `## 关联` 段提取并写入 frontmatter(让用户跑 build 后
+    dashboard drawer 直接看到 · 不用再编辑 MD)。
+    """
+    raw = path.read_text(encoding="utf-8")
+    existing_meta, content = split_frontmatter(raw)
     existing_meta = existing_meta or {}
 
     progress = existing_meta.get("progress")
@@ -301,6 +312,17 @@ def _inject_frontmatter(path: pathlib.Path, item: dict) -> None:
         "sprint": existing_meta.get("sprint") or "M0",
         "progress": progress,
     }
+
+    # 0.4.0:body 提取 subtasks / docs 补进 frontmatter
+    if not existing_meta.get("subtasks"):
+        body_subtasks = extract_subtasks_from_body(content)
+        if body_subtasks:
+            new_meta["subtasks"] = body_subtasks
+    if not existing_meta.get("docs"):
+        body_docs = extract_docs_from_body(content)
+        if body_docs:
+            new_meta["docs"] = body_docs
+
     # 保留 user 已有的其他字段(desc / docs / subtasks / owner / etc.)
     for k, v in existing_meta.items():
         if k not in new_meta:

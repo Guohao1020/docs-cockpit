@@ -1,7 +1,7 @@
 {
   "name": "docs-cockpit",
   "description": "Project module / sprint / progress dashboard in a single self-contained HTML file. Aggregates `docs/spec/module/M*.md` + `docs/spec/concept/C*.md` (frontmatter-driven: id / status / sprint / progress / desc / subtasks / docs) into a `file://`-openable page with topbar, hero gauge, KPI strip, module Kanban (5 status columns, click for drawer with subtask checklist + progress slider), Sprint Timeline, Concept Grid. System docs (CLAUDE.md / PRD / DESIGN.md / RFC / memory / roadmap) appear in a separate drawer. Plus state.json sidecar for the status skill. Ships 3 auto-triggered skills + 4 slash commands including `/docs-cockpit:migrate` — one-shot scan + frontmatter injection + canonical-layout migration for legacy projects (docs/plans/, docs/adrs/, etc).",
-  "version": "0.3.1",
+  "version": "0.4.0",
   "author": {
     "name": "Guohao1020"
   },

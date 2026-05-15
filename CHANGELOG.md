@@ -4,6 +4,67 @@
 
 ## [Unreleased]
 
+## [0.4.0] · 2026-05-15
+
+加 MD body 自动 fallback 提取 · 解决"老项目用 body 写 `## 待办` checklist
+但 frontmatter 没 subtasks 字段 · dashboard drawer 显示空"的痛点。
+
+### Added
+
+- **`extract_subtasks_from_body(body)`**:扫 H2 section 标题匹配 `(待办|TODO|
+  To-do|Subtasks|Tasks|任务)` · 在该 section 下提取 `- [x]` / `- [ ]`
+  checklist 项作 subtasks(完成标 done: true)。section 在下一 H1-H6 /
+  `---` 分隔线终止。
+- **`extract_docs_from_body(body)`**:扫 H2 section 标题匹配 `(关联(文档)?|
+  Related(docs)?|Docs?|See also|参考|链接|Links?)` · 提取该 section 下的
+  MD link `[title](path)` 作 docs。锚点链接 `#xxx` 跳过。
+- **`_build_card` body 兜底**(0.4.0):当 frontmatter 缺 subtasks/docs 时 ·
+  自动从 body 提取填充。frontmatter > body 优先级。`desc` 字段不参与 body
+  提取(body 首段往往是引用 / metadata · 不可靠)。
+- **`docs-cockpit migrate _inject_frontmatter` body 提取**:迁移时同样跑 body
+  提取 · 把 subtasks / docs **写进** frontmatter · 让迁移后 frontmatter
+  成为 source of truth。
+
+### Why this matters
+
+之前的 dashboard drawer 严格依赖 frontmatter 字段 · 实战中:
+
+- Sourcery / Bastion 这种老项目 · MD body 已经用 `## 待办` 写好 checklist
+- 让用户**再复制一份**到 frontmatter 是重复维护 · 不合理
+- 而且用户经常忘改 · 或两份不同步
+
+0.4.0 让 docs-cockpit "更智能":frontmatter 没写就**自动读 body** · 用户什么
+都不用做 dashboard drawer 就能显示 checklist 和关联文档。想精控就显式写
+frontmatter 接管。
+
+### 实测 · Sourcery
+
+- 24 个 module MD · 之前 dashboard drawer 全部"无子任务"
+- 0.4.0 build · **24/24** 自动捞到 3 个 subtask(各自的 `## 3 · 待办` 段)
+- `docs: 0`(Sourcery MDs 没 `## 关联` section · 符合预期 · 不强造)
+
+### Bug fix
+
+- 移除 `_build_card` 老的"frontmatter only" 行为不变 · 但去除了不必要的
+  manualProgress check 边界 case。
+
+### Migration · 0.3.x → 0.4.0
+
+无 breaking change · 现有 frontmatter / state.json / template 全不动。
+
+升级即得益:
+```bash
+pip install --upgrade git+https://github.com/Guohao1020/docs-cockpit.git
+# 或 uv tool upgrade docs-cockpit
+
+# Plugin 层强清缓存 + 重启
+rm -rf ~/.claude/plugins/cache/*docs-cockpit*    # POSIX
+# Windows: Remove-Item -Recurse -Force "$env:USERPROFILE\.claude\plugins\cache\*docs-cockpit*"
+# 然后退出 Claude Code 重开
+```
+
+升完跑一次 `docs-cockpit build` · 模块卡的 drawer 应该开始显示 subtasks。
+
 ## [0.3.1] · 2026-05-15
 
 修升级 skill 的实战盲点 · 用户实测 0.2.0 → 0.3.0 时,CLI 升上去了但 plugin 层
@@ -300,7 +361,8 @@ manualProgress: false
 - Python 依赖只有 `pyyaml`,装 plugin 后仍需 `pip install git+https://github.com/Guohao1020/docs-cockpit.git` 让 `docs-cockpit` CLI 进 PATH。
 - 离线 mode(CDN 拉不到 marked.js)目前需手工 vendor `_assets/` · 见 `references/design_tokens.md` "Offline mode" 节。
 
-[Unreleased]: https://github.com/Guohao1020/docs-cockpit/compare/v0.3.1...HEAD
+[Unreleased]: https://github.com/Guohao1020/docs-cockpit/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/Guohao1020/docs-cockpit/compare/v0.3.1...v0.4.0
 [0.3.1]: https://github.com/Guohao1020/docs-cockpit/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/Guohao1020/docs-cockpit/compare/v0.2.1...v0.3.0
 [0.2.1]: https://github.com/Guohao1020/docs-cockpit/compare/v0.2.0...v0.2.1

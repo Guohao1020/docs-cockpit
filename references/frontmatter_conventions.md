@@ -138,6 +138,62 @@ progress = round(已完成 subtask 数 / 总 subtask 数 × 100)
 
 如果你的 MD 是从模板复制来的 · id 还没填(写成 `MXX` / `CXXX` 等),build 会**跳过这条**不报错。避免模板半成品污染 dashboard。
 
+## Body fallback · 0.4.0 起
+
+如果你的 module MD **frontmatter 没有 `subtasks` 或 `docs` 字段** · 但 **body 里有相应内容** · 0.4.0 起 build 会**自动从 body 提取**:
+
+### subtasks 抽取规则
+
+找 H2 section 标题匹配以下任一(大小写不敏感)`:
+
+- `## 待办` · `## TODO` · `## To-do` · `## Subtasks` · `## Tasks` · `## 任务`
+- 允许前面带数字编号 · 如 `## 3 · 待办`
+
+在该 section 下 · 每行 `- [x]` 或 `- [ ]` 的 checklist 项目就是一个 subtask:
+
+```markdown
+## 3 · 待办
+
+- [ ] 与 PRD 对照,标记偏离之处
+- [x] 在 Sprint 启动时建立 spec 框架
+- [ ] 关联 RFC / plan / task
+```
+
+→ 提取出 3 个 subtasks · 已完成的一个标 `done: true`。section 在下一个 `## H2` / `### H3` / `---` 分隔线处终止。
+
+### docs 抽取规则
+
+找 H2 section 标题匹配:
+
+- `## 关联` · `## 关联文档` · `## Related` · `## Related docs` · `## Docs` · `## See also` · `## 参考` · `## 链接`
+
+抽 markdown link `[title](path)` 为 docs:
+
+```markdown
+## 关联文档
+
+- [Schema 设计文档](docs/design/schemas.md)
+- [RFC 003 · 模型边界](docs/RFC/003-model-boundaries.md)
+```
+
+→ 提取 2 个 docs。锚点链接(`#section`)跳过。
+
+### 优先级
+
+**frontmatter > body**。如果 frontmatter 已经写了 `subtasks: [...]` · body 抽取**不再触发** · frontmatter 接管。想精控就显式写 frontmatter。
+
+### `desc` 不参与 body 提取
+
+只 `subtasks` / `docs` 走 body fallback。`desc` 字段始终只看 frontmatter · 因为 body 的首段往往是引用块 / metadata 行 · 不靠谱。想要 desc 显式写 frontmatter。
+
+### 配合 `docs-cockpit migrate`
+
+`docs-cockpit migrate --apply` 在迁移 MD 文件时 · 也会跑同样的 body 提取 · 把 subtasks / docs **写进** frontmatter。这样:
+
+- 迁移后 frontmatter 是 source of truth
+- 用户在 dashboard drawer 上 toggle 子任务 · 将来可以(roadmap)同步回 frontmatter
+- body 的 `## 待办` checklist 仍然存在 · 但 dashboard 不再读它(因为 frontmatter 接管了)
+
 ## ID 命名约定
 
 一种典型约定:
