@@ -3,4 +3,4 @@
 入口:python -m docs_cockpit build --config docs-cockpit.yaml
 """
 
-__version__ = "0.5.0"
+__version__ = "0.6.0"

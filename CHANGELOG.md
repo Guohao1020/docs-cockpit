@@ -4,6 +4,63 @@
 
 ## [Unreleased]
 
+## [0.6.0] · 2026-05-15
+
+加 i18n 多语言切换 · 默认英文 · 顶部 toggle 切中文。dashboard 和 browse
+两个产出都支持。
+
+### Added
+
+- **顶部语言切换器** `[EN] [中]`:
+  - 位置:dashboard topbar 右上 / browse topbar 右上 · 一致
+  - 样式:深色方块 toggle · active 用 ink 底白字 · `font-family: var(--f-mono)`
+  - 默认 lang: **EN**(0.5.x 默认是中文)
+  - 切换记 localStorage(`<storage-key>::lang`)· 跨会话持久化
+- **完整 i18n 字典**:
+  - dashboard 60+ 个 key · en/zh 双语 · 覆盖 topbar / hero / KPI / Kanban /
+    Sprint / Concept / Module Drawer / SystemDocs Drawer / Toast / Status labels
+  - browse 6 个 key · 覆盖 topbar / search / empty state / CDN banner
+- **新 i18n 基础设施**(两个 template 都加):
+  - `I18N = { en: {...}, zh: {...} }` JS 字典
+  - `t(key, vars)` 函数 · 支持 `{n}` 占位
+  - `applyI18nStatic()` 扫所有 `data-i18n` / `data-i18n-placeholder` /
+    `data-i18n-title` / `data-i18n-aria` 节点 · 注入对应文本
+  - `STATUS_LABEL` 改成 Proxy · 老 `STATUS_LABEL[s]` bracket 访问无需改 · 自动
+    走当前 LANG
+  - 切换时同步 `<html lang>` 属性
+- **dynamic JS render 全 i18n 化**:
+  - renderKpi / renderKanban / renderSprints / renderConcepts / renderProject
+    Meta / renderSystemDocs / openModuleDrawer 全部用 `t()`
+  - toast 消息("Status updated" / "Progress set to 80%")用 `t()` + 变量插值
+
+### Changed
+
+- `<html lang="zh-CN">` → `<html lang="en">`(默认)· JS 切换时改为 `zh-CN`
+- 静态 HTML fallback 文本全部翻成英文 · ZH 切换由 JS 注入
+
+### 实测
+
+dashboard build 验证 9/9 关键检查通过:
+- I18N 字典 en/zh 各 60+ 条
+- 24 个 `data-i18n` 静态 attr
+- STATUS_LABEL Proxy 模式 · 老代码无需改
+- 124 个 i18n 条目(en + zh 合计)
+- 0 个 Chinese leak in JS render literals
+
+### Migration · 0.5.0 → 0.6.0
+
+无 breaking · 现有 build / browse / migrate / state.json 全不变。
+
+```bash
+pip install --upgrade git+https://github.com/Guohao1020/docs-cockpit.git
+rm -rf ~/.claude/plugins/cache/*docs-cockpit*    # POSIX 强清 cache
+# Windows: Remove-Item -Recurse -Force "$env:USERPROFILE\.claude\plugins\cache\*docs-cockpit*"
+# 重启 Claude Code
+```
+
+升完跑一次 `docs-cockpit build` · 打开 HTML · 右上角看到 `[EN] [中]` toggle ·
+点切换中英文。同样适用 `docs-cockpit browse` 的产出。
+
 ## [0.5.0] · 2026-05-15
 
 加 `docs-cockpit browse` 命令 + `/docs-cockpit:browse` slash command · 单 HTML
@@ -444,7 +501,8 @@ manualProgress: false
 - Python 依赖只有 `pyyaml`,装 plugin 后仍需 `pip install git+https://github.com/Guohao1020/docs-cockpit.git` 让 `docs-cockpit` CLI 进 PATH。
 - 离线 mode(CDN 拉不到 marked.js)目前需手工 vendor `_assets/` · 见 `references/design_tokens.md` "Offline mode" 节。
 
-[Unreleased]: https://github.com/Guohao1020/docs-cockpit/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/Guohao1020/docs-cockpit/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/Guohao1020/docs-cockpit/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/Guohao1020/docs-cockpit/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/Guohao1020/docs-cockpit/compare/v0.3.1...v0.4.0
 [0.3.1]: https://github.com/Guohao1020/docs-cockpit/compare/v0.3.0...v0.3.1
