@@ -90,7 +90,7 @@ subtasks:
 pip install git+https://github.com/Guohao1020/docs-cockpit.git
 ```
 
-重启 Claude Code → plugin 自动从 GitHub fetch → 3 个 skill(`docs-cockpit` / `docs-cockpit-status` / `docs-cockpit-update`)+ 3 个 slash command(`/docs-cockpit:build` / `:status` / `:update`)生效。
+重启 Claude Code → plugin 自动从 GitHub fetch → 3 个 skill(`docs-cockpit` / `docs-cockpit-status` / `docs-cockpit-update`)+ 4 个 slash command(`/docs-cockpit:build` / `:status` / `:update` / `:migrate`)生效。
 
 **自动升级**:在 `~/.claude/settings.json` 的 marketplace 条目加 `"autoUpdate": true`(或者直接说 *"升级 docs-cockpit"* · Claude 一气呵成)。Plugin 层重启时自动 re-fetch · CLI 层偶尔需要 `pip install --upgrade git+https://github.com/Guohao1020/docs-cockpit.git`。
 
@@ -115,10 +115,15 @@ pip install git+https://github.com/Guohao1020/docs-cockpit.git
 | 你说 | Claude 触发 |
 |---|---|
 | "把 docs 做成 dashboard" / "bundle docs into a dashboard" | `docs-cockpit`(写 yaml + 跑 build) |
+| "迁移这个项目到 docs-cockpit" / "set up dashboard for this legacy project" | `docs-cockpit` → 跑 `migrate` 自动处理 non-canonical 布局(扫 `docs/plans/`、`docs/adrs/` 等 → 注入 frontmatter → 移到 `docs/spec/module/`) |
 | "这周 sprint M1.2 进度" / "哪些 module 卡了" / "weekly status" | `docs-cockpit-status`(读 state.json · 输出叙述) |
 | "升级 docs-cockpit" / "update docs-cockpit" | `docs-cockpit-update`(pip + plugin re-fetch + autoUpdate 翻 flag) |
 
-或者直接 slash command:`/docs-cockpit:build`、`/docs-cockpit:status weekly`、`/docs-cockpit:update`。
+显式 slash command:
+- `/docs-cockpit:build` · 跑一次 build
+- `/docs-cockpit:status [问题]` · 读 state.json 答状态问题
+- `/docs-cockpit:migrate` · 一键迁移 legacy 项目布局到 canonical(默认 dry-run · `--apply` 真执行)
+- `/docs-cockpit:update` · 升级 docs-cockpit
 
 ### B. 其他 vibe coding 工具 · 手动复制 skill
 

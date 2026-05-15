@@ -66,6 +66,9 @@ Decide which workflow you're in and skip to that section.
 
 ### Workflow A — Bootstrap a cockpit for a new project
 
+**Decide first**: does the project already have `docs/spec/module/M*.md` with frontmatter (canonical layout) or NOT?
+
+**A.1 · Project already in canonical layout** (or close):
 1. **Look at the doc layout.** `ls docs/` and skim a few MD files. Identify:
    - **modules** (typically `docs/spec/module/` or similar)
    - **concepts** (typically `docs/spec/concept/`)
@@ -78,6 +81,28 @@ Decide which workflow you're in and skip to that section.
    ```
    Open the resulting HTML. Verify modules appear in Kanban, concept grid populates, system docs drawer shows the curated entries.
 5. **Wire it into the workflow.** Tell the user about the forcing-function pattern: PR-touching-MD must re-run `docs-cockpit build` and commit the regenerated HTML. This is what keeps the dashboard "live".
+
+**A.2 · Project uses non-canonical layout** (e.g. `docs/plans/`, `docs/adrs/`, `docs/superpowers/plans/`, scattered PRDs, no frontmatter):
+
+This is the **common case for legacy projects**. Use the `migrate` workflow instead of hand-writing yaml:
+
+```bash
+docs-cockpit migrate                # dry-run · prints plan · no file changes
+docs-cockpit migrate --apply        # execute · git mv files + inject frontmatter + write yaml
+```
+
+The migrate command:
+- Auto-detects: `docs/plans/` / `docs/adrs/` / `docs/superpowers/plans/` etc → modules; `docs/PRD/` / `docs/RFC/` etc → system_docs
+- Generates IDs (M01..MN) and frontmatter (id / title from H1 / status: not-started / sprint: M0)
+- `git mv`'s files into `docs/spec/module/M{NN}-{slug}.md` (preserves git history)
+- Writes a tailored `docs-cockpit.yaml`
+- Use `--keep-originals` to copy instead of move
+
+After migrate, you're in the A.1 state — run `docs-cockpit build` and iterate on frontmatter (status, progress, subtasks) per module.
+
+**Always show the user the dry-run output first**, get explicit confirmation, THEN run `--apply`. Migration physically moves files.
+
+See `commands/migrate.md` for the full slash-command spec.
 
 ### Workflow B — Extend / migrate a config
 

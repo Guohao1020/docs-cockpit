@@ -635,5 +635,21 @@ def main(argv: list[str] | None = None) -> int:
     init_p.add_argument("--force", action="store_true")
     init_p.set_defaults(func=cmd_init)
 
+    mig_p = sub.add_parser(
+        "migrate",
+        help="一键迁移现有项目散落 MD → docs-cockpit canonical 布局",
+    )
+    mig_p.add_argument("--repo", default=".", help="目标项目根 · 默认当前目录")
+    mig_p.add_argument(
+        "--apply", action="store_true",
+        help="真执行迁移(默认 dry-run · 只 print 计划不动文件)",
+    )
+    mig_p.add_argument(
+        "--keep-originals", action="store_true",
+        help="复制而非移动原文件(保留 docs/plans/ 等原 dir)",
+    )
+    from . import migrate as _migrate_mod
+    mig_p.set_defaults(func=_migrate_mod.cmd_migrate)
+
     args = parser.parse_args(argv)
     return args.func(args)

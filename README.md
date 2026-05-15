@@ -90,7 +90,7 @@ Full frontmatter reference: [references/frontmatter_conventions.md](references/f
 pip install git+https://github.com/Guohao1020/docs-cockpit.git
 ```
 
-Restart Claude Code → plugin auto-fetches from GitHub → 3 skills (`docs-cockpit` / `docs-cockpit-status` / `docs-cockpit-update`) + 3 slash commands (`/docs-cockpit:build` / `:status` / `:update`) become available.
+Restart Claude Code → plugin auto-fetches from GitHub → 3 skills (`docs-cockpit` / `docs-cockpit-status` / `docs-cockpit-update`) + 4 slash commands (`/docs-cockpit:build` / `:status` / `:update` / `:migrate`) become available.
 
 **Auto-update**: add `"autoUpdate": true` to the marketplace entry in `~/.claude/settings.json` (or just ask Claude *"update docs-cockpit"* whenever you want). Plugin layer auto-refreshes on restart; the CLI side still needs an occasional `pip install --upgrade git+https://github.com/Guohao1020/docs-cockpit.git`.
 
@@ -115,10 +115,15 @@ Restart Claude Code → plugin auto-fetches from GitHub → 3 skills (`docs-cock
 | You say | Claude triggers |
 |---|---|
 | "把 docs 做成 dashboard" / "bundle docs into a dashboard" | `docs-cockpit` (writes yaml + runs build) |
+| "迁移这个项目到 docs-cockpit" / "set up dashboard for this legacy project" | `docs-cockpit` → invokes `migrate` for non-canonical layouts (scans `docs/plans/`, `docs/adrs/`, etc → injects frontmatter → moves to `docs/spec/module/`) |
 | "weekly status from docs" / "哪些 module 卡了" / "sprint M1.2 进度" | `docs-cockpit-status` (reads `state.json`, produces narrative) |
 | "升级 docs-cockpit" / "update docs-cockpit" | `docs-cockpit-update` (pip + plugin re-fetch + autoUpdate flip) |
 
-Or use the explicit slash commands: `/docs-cockpit:build`, `/docs-cockpit:status weekly`, `/docs-cockpit:update`.
+Or use the explicit slash commands:
+- `/docs-cockpit:build` — run a build
+- `/docs-cockpit:status [question]` — read state.json, answer status query
+- `/docs-cockpit:migrate` — one-shot migrate legacy project layout → canonical (dry-run by default, `--apply` to execute)
+- `/docs-cockpit:update` — upgrade docs-cockpit
 
 ### B. Other vibe-coding tools — manual skill copy
 

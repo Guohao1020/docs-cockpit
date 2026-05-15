@@ -4,6 +4,59 @@
 
 ## [Unreleased]
 
+## [0.3.0] · 2026-05-15
+
+新增 `docs-cockpit migrate` 命令 · 解决"非 canonical 布局的现有项目怎么 bootstrap"
+的痛点。无 breaking change · 老用户照常用。
+
+### Added
+
+- **`docs-cockpit migrate` CLI**:扫现有项目的散落 MD(`docs/plans/` /
+  `docs/adrs/` / `docs/superpowers/plans/` / `docs/PRD/` 等)· 启发式分类
+  + 生成 frontmatter + `git mv` 到 `docs/spec/module/M{NN}-{slug}.md`
+  canonical 布局 + 写出 tailored `docs-cockpit.yaml`。dry-run by default ·
+  `--apply` 才真改。`--keep-originals` 复制不动。
+- **`/docs-cockpit:migrate` slash command**:显式触发上面那个 workflow ·
+  Claude 强制先 dry-run → 给用户看 plan → 等确认 → 才 --apply。
+- **`docs_cockpit/migrate.py`**:实现文件 · ~330 行 · 含分类启发式表 +
+  H1 title 提取 + slug 生成 + frontmatter merge(已有字段优先 · 默认填
+  status=not-started / sprint=M0 / progress=0)+ git mv with rename fallback。
+- **operational SKILL.md 拆 Bootstrap workflow 为 A.1 / A.2**:
+  - A.1:project 已是 canonical → 手写 yaml + 加 frontmatter
+  - A.2:project 不是 canonical(legacy 散落布局)→ 用 `docs-cockpit migrate`
+
+### Classification heuristics (migrate)
+
+  modules:    docs/spec/module/, docs/plans/, docs/tasks/, docs/adrs/,
+              docs/superpowers/plans/, docs/superpowers/specs/
+  concepts:   docs/spec/concept/, docs/concepts/
+  system_docs (root files): README.md, CLAUDE.md, AGENTS.md, GEMINI.md,
+              PROGRESS.md, CHANGELOG.md, PRE-LAUNCH-CHECKLIST.md,
+              dogfood-onboarding.md, DESIGN.md
+  system_docs (dirs): docs/PRD/, docs/RFC/, docs/architecture/,
+                      docs/DESIGN/, docs/audits/, docs/review/
+  icon mapping:  memory(claude/agents/gemini) · design(design/architecture)
+                 · plan(plan/roadmap/checklist/rfc/adr) · doc(其他)
+
+### 实测
+
+- Sourcery(已 canonical · 24 modules + 11 concepts + 6 system_docs):
+  dry-run 正确识别 + 标 ✓(已有 frontmatter)+ 标 source=target(idempotent)·
+  --apply 时 dst.exists() 会全 SKIP · 安全。
+- Bastion(legacy · docs/plans/ + docs/adrs/ + docs/superpowers/plans/):
+  现在能一键迁 · 之前要手动写 16+ 个 frontmatter。
+
+### Migration · 0.2.x → 0.3.0
+
+无 breaking change。配置 schema / state.json shape / template 都不变。直接升:
+
+```bash
+pip install --upgrade git+https://github.com/Guohao1020/docs-cockpit.git
+```
+
+Claude Code plugin 用户重启 Claude Code · 自动重 fetch · 新 `/docs-cockpit:migrate`
+slash command 即上线。
+
 ## [0.2.1] · 2026-05-15
 
 打包修复 + metadata 同步 · 让 `pip install`(以及 `uv tool install`)装出来的
@@ -194,7 +247,8 @@ manualProgress: false
 - Python 依赖只有 `pyyaml`,装 plugin 后仍需 `pip install git+https://github.com/Guohao1020/docs-cockpit.git` 让 `docs-cockpit` CLI 进 PATH。
 - 离线 mode(CDN 拉不到 marked.js)目前需手工 vendor `_assets/` · 见 `references/design_tokens.md` "Offline mode" 节。
 
-[Unreleased]: https://github.com/Guohao1020/docs-cockpit/compare/v0.2.1...HEAD
+[Unreleased]: https://github.com/Guohao1020/docs-cockpit/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/Guohao1020/docs-cockpit/compare/v0.2.1...v0.3.0
 [0.2.1]: https://github.com/Guohao1020/docs-cockpit/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/Guohao1020/docs-cockpit/compare/v0.1.3...v0.2.0
 [0.1.3]: https://github.com/Guohao1020/docs-cockpit/compare/v0.1.2...v0.1.3
