@@ -20,6 +20,13 @@ description: |
 
 **Sibling `docs-cockpit-update`** — **handles upgrades**. Triggers when the user asks to update / upgrade docs-cockpit, OR when a `docs-cockpit build` run prints a banner like `[!] docs-cockpit X.Y.Z available (current: …)`. **If you see such a banner in build output, surface it to the user and hand off** — don't try to limp along with a stale install.
 
+**Related CLI · `docs-cockpit browse`** — when the user wants to **just read** the project's scattered MD files (no dashboard), use `docs-cockpit browse` (or `/docs-cockpit:browse`) instead. It generates a separate `docs/browse.html` with a tree-organized file browser + marked.js rendering. Use when:
+- User asks to "browse / 浏览 / 预览 / 读" project docs
+- Project has no `docs/spec/module/*.md` frontmatter (so dashboard would be empty) but user still wants something readable
+- `docs/adrs/`, `docs/plans/`, scattered MD without frontmatter
+
+The dashboard (`docs/index.html` from `build`) and the browser (`docs/browse.html` from `browse`) co-exist — different files, different purposes.
+
 ## What this skill is for
 
 The user has a project with structured docs under `docs/spec/module/M*.md` (and optionally `docs/spec/concept/C*.md`). Each module MD carries YAML frontmatter with `id`, `status`, `sprint`, `progress`, and (in 0.2.0+) `desc`, `docs`, `subtasks`. You produce **ONE** HTML file that gives the user:

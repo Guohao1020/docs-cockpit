@@ -734,5 +734,29 @@ def main(argv: list[str] | None = None) -> int:
     from . import migrate as _migrate_mod
     mig_p.set_defaults(func=_migrate_mod.cmd_migrate)
 
+    browse_p = sub.add_parser(
+        "browse",
+        help="生成单 HTML markdown 浏览器(树形侧边栏 + marked.js 渲染)",
+    )
+    browse_p.add_argument("--repo", default=".", help="项目根 · 默认当前目录")
+    browse_p.add_argument(
+        "--dir", action="append",
+        help="指定扫描目录(可多次)· 不指定时默认扫项目+~/.claude",
+    )
+    browse_p.add_argument(
+        "--no-claude", action="store_true",
+        help="跳过 ~/.claude/{plans,projects} 扫描",
+    )
+    browse_p.add_argument(
+        "-o", "--output", default=None,
+        help="输出 HTML 路径(默认 docs/browse.html)",
+    )
+    browse_p.add_argument(
+        "--project", default=None,
+        help="项目名(显示在 topbar · 默认从 repo 目录名推)",
+    )
+    from . import browse as _browse_mod
+    browse_p.set_defaults(func=_browse_mod.cmd_browse)
+
     args = parser.parse_args(argv)
     return args.func(args)

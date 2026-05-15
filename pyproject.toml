@@ -60,5 +60,6 @@ include = ["docs_cockpit*"]
 [tool.setuptools.package-data]
 docs_cockpit = [
   "templates/*.tmpl",
+  "templates/*.html",
   "examples/*.yaml",
 ]

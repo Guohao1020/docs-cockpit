@@ -120,9 +120,10 @@ pip install git+https://github.com/Guohao1020/docs-cockpit.git
 | "升级 docs-cockpit" / "update docs-cockpit" | `docs-cockpit-update`(pip + plugin re-fetch + autoUpdate 翻 flag) |
 
 显式 slash command:
-- `/docs-cockpit:build` · 跑一次 build
+- `/docs-cockpit:build` · 跑一次 dashboard build(产出 `docs/index.html`)
 - `/docs-cockpit:status [问题]` · 读 state.json 答状态问题
 - `/docs-cockpit:migrate` · 一键迁移 legacy 项目布局到 canonical(默认 dry-run · `--apply` 真执行)
+- `/docs-cockpit:browse` · 生成单 HTML markdown 浏览器(`docs/browse.html`)· 树形侧边栏 + marked.js 渲染 · 适合 ADR/plan 这种不进 dashboard 但要读的 MD
 - `/docs-cockpit:update` · 升级 docs-cockpit
 
 ### B. 其他 vibe coding 工具 · 手动复制 skill

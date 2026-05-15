@@ -120,9 +120,10 @@ Restart Claude Code → plugin auto-fetches from GitHub → 3 skills (`docs-cock
 | "升级 docs-cockpit" / "update docs-cockpit" | `docs-cockpit-update` (pip + plugin re-fetch + autoUpdate flip) |
 
 Or use the explicit slash commands:
-- `/docs-cockpit:build` — run a build
+- `/docs-cockpit:build` — run a dashboard build (produces `docs/index.html`)
 - `/docs-cockpit:status [question]` — read state.json, answer status query
 - `/docs-cockpit:migrate` — one-shot migrate legacy project layout → canonical (dry-run by default, `--apply` to execute)
+- `/docs-cockpit:browse` — generate a single-HTML markdown browser (`docs/browse.html`) with tree sidebar + marked.js render · for reading raw MDs that don't fit the dashboard model
 - `/docs-cockpit:update` — upgrade docs-cockpit
 
 ### B. Other vibe-coding tools — manual skill copy

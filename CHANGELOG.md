@@ -4,6 +4,89 @@
 
 ## [Unreleased]
 
+## [0.5.0] · 2026-05-15
+
+加 `docs-cockpit browse` 命令 + `/docs-cockpit:browse` slash command · 单 HTML
+markdown 浏览器 · 树形侧边栏 + marked.js 渲染。解决"项目 ADR/plan 散落 MD
+不进 dashboard 但用户想读"的痛点。
+
+### Added
+
+- **`docs-cockpit browse` CLI**:
+  ```
+  docs-cockpit browse                    # 默认扫:项目 + ~/.claude/{plans,projects}
+  docs-cockpit browse --dir docs/adrs    # 限定扫某子目录(可多次)
+  docs-cockpit browse --no-claude        # 跳过 ~/.claude 扫描
+  docs-cockpit browse -o docs/browse.html
+  docs-cockpit browse --project Bastion  # 显示在 topbar
+  ```
+- **`/docs-cockpit:browse` slash command**:Claude 直接触发 · 适合"我想读这
+  个项目所有文档"的需求。
+- **新模板 `docs_cockpit/templates/browse.html.tmpl`**:
+  - **树形侧边栏**:按目录嵌套展示 · 文件夹可折叠 · 折叠状态 localStorage
+    持久化
+  - **多 root 区分**:项目 root / project docs/ / ~/.claude/plans/ /
+    ~/.claude/projects/memory/ 各自一个 section · 标签 + 路径 + 文件数
+  - **主区渲染**:marked.js + highlight.js 9 种语言(py/js/ts/bash/yaml/
+    json/markdown 等)+ GFM table + blockquote 样式
+  - **搜索**:`/` 或 `k` 聚焦搜索框 · 实时过滤文件路径
+  - **localStorage**:记上次看哪个文件 + 哪些文件夹展开
+- **`docs_cockpit/browse.py`**:扫 + 启发式分组 + payload 序列化。
+
+### 默认扫描覆盖
+
+| Root | 路径 | 说明 |
+|---|---|---|
+| `project-root` | `<repo>/` 顶层 *.md | README, CLAUDE.md, CHANGELOG 等 |
+| `project-docs` | `<repo>/docs/` 递归 | 项目所有文档 |
+| `claude-plans` | `~/.claude/plans/<project-name>/` | Claude session plan 笔记 |
+| `claude-memory` | `~/.claude/projects/<sanitized-cwd>/memory/` | Claude session memory 沉淀 |
+
+`--no-claude` 跳过最后两条 · `--dir` 完全自定义。
+
+### 实测 · Bastion docs/adrs/
+
+```
+docs-cockpit browse --repo D:/shulex_work/bastion --dir docs/adrs
+→ 13 files · 1 root · HTML 113 KB
+→ 浏览器开 docs/adrs.html · 左侧 13 个 ADR 整齐排列 · 点开右侧 marked.js
+  渲染 · localStorage 记上次看哪个
+```
+
+### Why this matters
+
+之前的产品只解决"frontmatter-driven 模块 dashboard"(0.2.0+)· 但用户实际
+需求覆盖更广:
+
+- ADR(架构决策记录)· 没 frontmatter · 大段长文本 · 需要读
+- Plan / Roadmap · 没 frontmatter · 大段长文本 · 需要读
+- ~/.claude/plans / memory · Claude 攒下的笔记 · 想集中读
+
+这些都**不适合 dashboard** · 但需要**单 HTML 浏览器**。0.5.0 补齐这块。
+
+### Migration · 0.4.x → 0.5.0
+
+无 breaking · 现有 dashboard 输出 + 配置不变。
+
+```bash
+# 升 CLI
+pip install --upgrade git+https://github.com/Guohao1020/docs-cockpit.git
+# 或 uv tool upgrade docs-cockpit
+
+# 强清 plugin 缓存(沿用 0.3.1 的标准流程)
+rm -rf ~/.claude/plugins/cache/*docs-cockpit*    # POSIX
+# Windows: Remove-Item -Recurse -Force "$env:USERPROFILE\.claude\plugins\cache\*docs-cockpit*"
+# 重启 Claude Code
+
+# 试新命令
+docs-cockpit browse                              # 当前项目
+```
+
+### Package update
+
+- `pyproject.toml package-data` 加 `templates/*.html`(以前只有 `*.tmpl`)·
+  确保 wheel 装出来也带 browse 模板。
+
 ## [0.4.0] · 2026-05-15
 
 加 MD body 自动 fallback 提取 · 解决"老项目用 body 写 `## 待办` checklist
@@ -361,7 +444,8 @@ manualProgress: false
 - Python 依赖只有 `pyyaml`,装 plugin 后仍需 `pip install git+https://github.com/Guohao1020/docs-cockpit.git` 让 `docs-cockpit` CLI 进 PATH。
 - 离线 mode(CDN 拉不到 marked.js)目前需手工 vendor `_assets/` · 见 `references/design_tokens.md` "Offline mode" 节。
 
-[Unreleased]: https://github.com/Guohao1020/docs-cockpit/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/Guohao1020/docs-cockpit/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/Guohao1020/docs-cockpit/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/Guohao1020/docs-cockpit/compare/v0.3.1...v0.4.0
 [0.3.1]: https://github.com/Guohao1020/docs-cockpit/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/Guohao1020/docs-cockpit/compare/v0.2.1...v0.3.0
