@@ -1,0 +1,50 @@
+你正在修一个 bug 子任务 · 属于 docs-cockpit module **{{ module.id }} · {{ module.title }}**。
+
+## 上下文 · Module
+
+- **Sprint**:{{ module.sprint or "(unscheduled)" }} · Status: {{ module.status }}
+- **Desc**:{{ module.desc or "(empty)" }}
+
+## 上下文 · Bug 子任务 `{{ subtask.id }}`
+
+**{{ subtask.title }}**
+
+{% if subtask.code_anchors %}
+**疑似问题位置**:
+{% for ca in subtask.code_anchors %}
+- `{{ ca.path }}`{% if ca.lines %}:{{ ca.lines }}{% endif %}
+{% if ca.preview %}
+
+```
+{{ ca.preview }}
+```
+{% endif %}
+{% endfor %}
+{% endif %}
+
+{% if linked_docs %}
+## 上下文 · 关联文档
+
+{% for doc in linked_docs %}
+### {{ doc.title or doc.path }}
+
+{{ doc.summary or "(no content)" }}
+
+{% endfor %}
+{% endif %}
+
+## 任务
+
+修这个 bug:**{{ subtask.title }}**
+
+调试流程:
+1. 复现 bug · 给 minimal repro
+2. 找 root cause · **不要只修 demo path · 修整个失败模式**
+3. 加 regression test · 防同一 bug 再回来
+4. 完成后输出 frontmatter patch
+
+```yaml
+subtasks:
+  - id: {{ subtask.id }}
+    status: done
+```

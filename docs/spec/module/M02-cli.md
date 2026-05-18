@@ -2,9 +2,9 @@
 id: M02
 type: module
 title: "CLI"
-status: in-progress
+status: done
 sprint: "0.11"
-progress: 44
+progress: 100
 desc: "argparse dispatcher + 7 subcommands · v0.11 加 prompt / migrate-subtasks / lint --prompts"
 owner: harvey
 prd_ref: "v0.11 driver-seat plan §6.2 + §11 Step 2-3"
@@ -49,9 +49,9 @@ docs-cockpit <subcommand> [args]
 - [x] v0.10 build / lint / init / migrate / browse / portfolio / upgrade 全部上线
 - [x] First-build bootstrap(plugin 检测 CLI 缺失 → uv tool / pipx / pip --user)
 - [x] @plan-eng-review 1A · `cli.py` 从 build.py 拆出 @code:docs_cockpit/build.py
-- [ ] W3 · `docs-cockpit prompt <module-id> [<subtask-id>]` 子命令 @docs:docs/plans/P-v0.11-driver-seat.md
-- [ ] W3 · `--copy` flag + pyperclip optional dep · 未装时输出 stdout + stderr 提示
-- [ ] W3 · `--list` 列内置 prompt templates
+- [x] W3 · `docs-cockpit prompt <module-id> [<subtask-id>]` 子命令 @docs:docs/plans/P-v0.11-driver-seat.md
+- [x] W3 · `--copy` flag + pyperclip optional dep · 未装时输出 stdout + stderr 提示
+- [x] W3 · `--list` 列内置 prompt templates
 - [x] W1 · `docs-cockpit migrate-subtasks <file>` · dry-run / --apply
-- [ ] W3 · `docs-cockpit lint --prompts` · Jinja2 语法 + template path 校验
-- [ ] tests/integration/test_cli_v011.py · CliRunner 覆盖新子命令
+- [x] W3 · `docs-cockpit lint --prompts` · Jinja2 语法 + template path 校验
+- [x] tests/integration/test_cli_v011.py · CliRunner 覆盖新子命令

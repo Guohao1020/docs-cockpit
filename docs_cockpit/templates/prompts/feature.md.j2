@@ -1,0 +1,52 @@
+你正在实现 docs-cockpit module **{{ module.id }} · {{ module.title }}** 的一个新 feature 子任务。
+
+## 上下文 · Module
+
+- **Sprint**:{{ module.sprint or "(unscheduled)" }} · Status: {{ module.status }} · Progress: {{ module.progress }}%
+- **Desc**:{{ module.desc or "(empty)" }}
+
+## 上下文 · 子任务 `{{ subtask.id }}`
+
+**{{ subtask.title }}**
+
+{% if subtask.code_anchors %}
+**预期落地代码位置**:
+{% for ca in subtask.code_anchors %}
+- `{{ ca.path }}`{% if ca.lines %} · 第 {{ ca.lines }} 行附近{% endif %}
+{% if ca.preview %}
+
+```
+{{ ca.preview }}
+```
+{% endif %}
+{% endfor %}
+{% endif %}
+
+{% if linked_docs %}
+## 上下文 · 关联设计 / spec
+
+{% for doc in linked_docs %}
+### {{ doc.title or doc.path }}
+
+{{ doc.summary or "(no content)" }}
+
+{% endfor %}
+{% endif %}
+
+## 任务
+
+实现这个 feature 子任务:**{{ subtask.title }}**
+
+要点:
+1. 阅读上面的代码 anchor + 关联设计 · 理解上下文
+2. 写代码 + 单元测试覆盖
+3. 完成后给我看 diff
+4. 输出 frontmatter patch 让我勾上 `status: done`
+
+输出 patch:
+
+```yaml
+subtasks:
+  - id: {{ subtask.id }}
+    status: done
+```

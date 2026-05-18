@@ -40,6 +40,9 @@ classifiers = [
 ]
 dependencies = [
   "pyyaml>=6.0",
+  # 0.11.0-alpha.3:W3 prompt scaffolding · plan §6.2
+  # SandboxedEnvironment + ChoiceLoader + 4 个内置 templates
+  "jinja2>=3.1",
 ]
 
 # 0.11.0-alpha.1:测试 / 类型检查 dev dep · plan §11 Step 1 + plan-eng-review 4A
@@ -82,5 +85,6 @@ include = ["docs_cockpit*"]
 docs_cockpit = [
   "templates/*.tmpl",
   "templates/*.html",
+  "templates/prompts/*.j2",
   "examples/*.yaml",
 ]

@@ -425,6 +425,24 @@ def cmd_build(args: argparse.Namespace) -> int:
         encoding="utf-8",
     )
 
+    # ── 0.11.0-alpha.3 · W3 sidecar:prompts.js (plan §6.3) ────────
+    # 给所有 subtask 渲染 prompt · 输出 docs/prompts.js 让 drawer 「Copy
+    # prompt」按钮 fetch · 主 HTML 不 inline 这些 · 保单文件体积稳定。
+    try:
+        from .prompt import render_all_subtask_prompts
+        repo_root = pathlib.Path(vars_.get("repo", "."))
+        prompts_map = render_all_subtask_prompts(payload["modules"], repo_root)
+        if prompts_map:
+            prompts_js_path = output.parent / "prompts.js"
+            prompts_json = json.dumps(prompts_map, ensure_ascii=False)
+            # JS sidecar · 浏览器 file:// fetch JSON 受限 · 用 window 全局
+            prompts_js_path.write_text(
+                f"window.__PROMPTS__ = {prompts_json};\n",
+                encoding="utf-8",
+            )
+    except Exception as exc:  # noqa: BLE001
+        _safe_print(f"     [warn] prompts.js sidecar 生成失败:{exc}")
+
     # ── 统计 + 输出 ───────────────────────────────────────────
     n_modules = len(payload["modules"])
     n_concepts = len(payload["concepts"])
@@ -536,6 +554,39 @@ def cmd_lint(args: argparse.Namespace) -> int:
             _, body = split_frontmatter(content)
             if fm_enabled:
                 issues.extend(validate_meta(path, meta, ranges, body=body))
+
+    # 0.11.0-alpha.3 · W3:--prompts 校验 prompt template syntax
+    if getattr(args, "prompts", False):
+        try:
+            import jinja2
+            from .prompt import _build_jinja_env, list_builtin_templates
+            repo_root = pathlib.Path(vars_.get("repo", "."))
+            env = _build_jinja_env(repo_root)
+            # 校验内置 + user override 所有 .md.j2
+            user_dir = repo_root / "docs" / "prompts"
+            builtin_dir = pathlib.Path(__file__).parent / "templates" / "prompts"
+            checked = set()
+            for src_dir in [user_dir, builtin_dir]:
+                if not src_dir.exists():
+                    continue
+                for tpl in sorted(src_dir.glob("*.md.j2")):
+                    name = tpl.name
+                    if name in checked:
+                        continue
+                    checked.add(name)
+                    try:
+                        env.get_template(name)
+                    except jinja2.TemplateSyntaxError as e:
+                        issues.append(Issue(
+                            "error", tpl, "prompt-template",
+                            f"Jinja2 syntax error at line {e.lineno}: {e.message}",
+                            suggestion="check `{% %}` / `{{ }}` balancing · refer to internal generic.md.j2",
+                            reference="docs-cockpit-author · §10 prompt templates",
+                        ))
+            if not checked:
+                _safe_print("     [warn] --prompts: no templates found (neither in docs/prompts/ nor builtin)")
+        except ImportError:
+            _safe_print("     [warn] --prompts: jinja2 not installed · skipping prompt lint")
 
     # 仅在 lint 时按 severity 排序 · error 在前 · 修起来按重要性
     severity_rank = {"error": 0, "warn": 1, "hint": 2}
@@ -658,6 +709,101 @@ def cmd_migrate_subtasks(args: argparse.Namespace) -> int:
     else:
         _safe_print("")
         _safe_print("dry-run · use --apply to write changes")
+    return 0
+
+
+# 0.11.0-alpha.3 · W3:渲染 subtask 的可执行 prompt
+def cmd_prompt(args: argparse.Namespace) -> int:
+    """`docs-cockpit prompt <module-id> [<subtask-id>]` · plan §6.2.
+
+    寻找顺序:
+      docs-cockpit prompt --list           列内置 templates
+      docs-cockpit prompt M01              列 M01 所有 subtask · 让用户选
+      docs-cockpit prompt M01 M01-9222d2   渲染指定 subtask 的 prompt
+    """
+    from .prompt import list_builtin_templates, render_prompt
+
+    if args.list:
+        templates = list_builtin_templates()
+        _safe_print("Built-in prompt templates:")
+        for t in templates:
+            _safe_print(f"  · {t}")
+        _safe_print("")
+        _safe_print("User override: <repo>/docs/prompts/<name>.md.j2")
+        return 0
+
+    # 走完整 build payload 拿 module / subtask 数据(复用现有 build pipeline)
+    config_path = pathlib.Path(args.config).resolve()
+    if not config_path.exists():
+        _safe_print(f"[ERR] config not found: {config_path}")
+        return 1
+    cfg = yaml.safe_load(config_path.read_text(encoding="utf-8")) or {}
+    vars_ = _build_vars(config_path, cfg.get("paths", {}))
+    fm_cfg = cfg.get("frontmatter", {}) or {}
+    fm_enabled = fm_cfg.get("enabled", True)
+    ranges = {
+        k: tuple(v) for k, v in (fm_cfg.get("status_progress_ranges") or {}).items()
+    } or DEFAULT_STATUS_RANGES
+    issues: list[Issue] = []
+    modules = _build_card_list(
+        cfg.get("modules"), vars_, fm_enabled, ranges, issues, full=True
+    )
+    if not modules:
+        _safe_print("[ERR] no modules found · check docs-cockpit.yaml::modules.scan")
+        return 1
+
+    mod_id = args.module_id
+    if not mod_id:
+        _safe_print("Usage: docs-cockpit prompt <module-id> [<subtask-id>]")
+        _safe_print("       docs-cockpit prompt --list")
+        _safe_print("")
+        _safe_print("Available modules:")
+        for m in modules:
+            _safe_print(f"  · {m['id']} · {m['title']}({m['status']} · {len(m.get('subtasks',[]))} subtasks)")
+        return 0
+
+    module = next((m for m in modules if m["id"] == mod_id), None)
+    if not module:
+        _safe_print(f"[ERR] module not found: {mod_id}")
+        _safe_print("Available: " + ", ".join(m["id"] for m in modules))
+        return 1
+
+    sub_id = args.subtask_id
+    if not sub_id:
+        _safe_print(f"Module {mod_id} · {module['title']}")
+        _safe_print(f"  Subtasks ({len(module.get('subtasks',[]))}):")
+        for s in module.get("subtasks", []):
+            mark = "[x]" if s.get("status") == "done" else "[ ]"
+            _safe_print(f"    {mark} {s['id']:20} {s['title'][:60]}")
+        _safe_print("")
+        _safe_print(f"Pick one: docs-cockpit prompt {mod_id} <subtask-id>")
+        return 0
+
+    subtask = next((s for s in module.get("subtasks", []) if s["id"] == sub_id), None)
+    if not subtask:
+        _safe_print(f"[ERR] subtask not found in {mod_id}: {sub_id}")
+        return 1
+
+    repo_root = pathlib.Path(vars_.get("repo", "."))
+    prompt_text = render_prompt(
+        module, subtask, repo_root,
+        template_name=args.template,
+        linked_docs=module.get("docs", []),
+    )
+
+    if args.copy:
+        try:
+            import pyperclip
+            pyperclip.copy(prompt_text)
+            _safe_print(f"[OK] copied {len(prompt_text)} chars to clipboard", )
+            # 不走 stdout · 仅 stderr 提示(避免 pipe 收到 'copied OK' 当 prompt)
+        except ImportError:
+            sys.stderr.write(
+                "--copy disabled · pip install pyperclip to enable\n"
+            )
+            sys.stdout.write(prompt_text)
+    else:
+        sys.stdout.write(prompt_text)
     return 0
 
 

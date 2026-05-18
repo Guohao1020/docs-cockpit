@@ -1,0 +1,56 @@
+你正在 docs-cockpit 驱动的 sprint **{{ module.sprint or "(unscheduled)" }}** 中执行子任务 `{{ subtask.id }}`。
+
+## 上下文 · Module {{ module.id }}
+
+- **Title**:{{ module.title }}
+- **Status**:{{ module.status }} · Progress: {{ module.progress }}%
+- **Desc**:{{ module.desc or "(empty)" }}
+{% if module.depends_on %}
+- **Depends on**:{{ module.depends_on | join(", ") }}
+{% endif %}
+{% if module.blocks %}
+- **Blocks**:{{ module.blocks | join(", ") }}
+{% endif %}
+
+## 上下文 · 子任务 {{ subtask.id }}
+
+- **Title**:{{ subtask.title }}
+- **Status**:{{ subtask.status }}
+{% if subtask.code_anchors %}
+- **代码定位**:
+{% for ca in subtask.code_anchors %}
+  - `{{ ca.path }}`{% if ca.exists %} · ({{ ca.resolved }}){% else %} · ⚠ {{ ca.warning }}{% endif %}
+{% if ca.preview %}
+
+```
+{{ ca.preview }}
+```
+{% endif %}
+{% endfor %}
+{% endif %}
+
+{% if linked_docs %}
+## 上下文 · 关联文档
+
+{% for doc in linked_docs %}
+### {{ doc.title or doc.path }}
+
+`{{ doc.path }}`
+
+{{ doc.summary or "(no content embedded)" }}
+
+{% endfor %}
+{% endif %}
+
+## 任务
+
+请完成 `{{ subtask.id }}`:**{{ subtask.title }}**。
+
+完成后,请输出 frontmatter patch(只输出变更字段),格式如下,供用户复制回 MD:
+
+```yaml
+# patch for {{ module._source_path or module.id }}
+subtasks:
+  - id: {{ subtask.id }}
+    status: done   # 改这里
+```

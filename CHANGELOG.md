@@ -4,6 +4,90 @@
 
 ## [Unreleased]
 
+## [0.11.0-alpha.3] · 2026-05-18
+
+v0.11 W3 prompt scaffolding 完成 · **M01 + M02 两个 module 全部 done(100%)**。这两个 module 是用户在 dashboard 上明确指要完成的(用户实测反馈)。Step 2 UI split-view 仍待后续 alpha.4。
+
+### Added · `docs_cockpit/prompt.py` · W3 核心
+
+- `render_prompt(module, subtask, repo_root, *, template_name, linked_docs)`
+- 用 Jinja2 `SandboxedEnvironment` + `ChoiceLoader` (plan §6.2 + plan-eng-review issue 6)
+  - 优先 user override `<repo>/docs/prompts/<name>.md.j2`
+  - 回退内置 `docs_cockpit/templates/prompts/<name>.md.j2`
+- Context vars stability contract(plan-eng-review 2A):
+  - v0.11 提供 5 个:module / subtask / linked_docs / repo_root / current_branch
+  - `current_branch` lazy + try/except · CI / shallow / 非 git 场景 None · template 用 `{% if current_branch %}` 守护
+- linked_docs 单 doc 摘要 hard cap 2000 char(plan §6.2)
+- `render_all_subtask_prompts(modules, repo_root)` · 给 build sidecar 用
+
+### Added · 4 个内置 prompt templates(`docs_cockpit/templates/prompts/`)
+
+- `generic.md.j2` · 通用 · plan §6.2 标准模板
+- `feature.md.j2` · 实现新 feature
+- `fix.md.j2` · bug fix · 强调 root cause + regression test
+- `refactor.md.j2` · behavior preserving · Beck make-the-change-easy 原则
+
+### Added · `docs-cockpit prompt` CLI(M02 subtask 4/5/6)
+
+```bash
+docs-cockpit prompt --list                          # 列内置 4 个 template
+docs-cockpit prompt                                  # 列所有 module
+docs-cockpit prompt M01                              # 列 M01 所有 subtask
+docs-cockpit prompt M01 M01-S1                       # 渲染 subtask prompt 到 stdout
+docs-cockpit prompt M01 M01-S1 --copy                # 复制到剪贴板(pyperclip)
+docs-cockpit prompt M01 M01-S1 -t feature            # 显式指定 template
+```
+
+- `--copy` 时 pyperclip 未装 → stderr 提示 + stdout 输出 prompt(不 raise)
+- 用 sys.stdout.write(不走 _safe_print)· 让 `| pbcopy` / `| clip` 管道工作
+
+### Added · sidecar `docs/prompts.js`(M01 subtask 8 · plan §6.3)
+
+build 时把每个 subtask 渲染好的 prompt 写到 `docs/prompts.js`:
+
+```js
+window.__PROMPTS__ = {
+  "M01-f0bd29": "你正在 docs-cockpit ...",
+  ...
+};
+```
+
+主 HTML 通过 `<script src="prompts.js" defer>` 引入 · drawer 「Copy prompt」按钮直接读 `window.__PROMPTS__[subtask.id]` · 不走 fetch 避免 file:// 限制。
+
+实测 docs-cockpit 自身 dogfood:`prompts.js` 344KB · 43 个 subtask × 平均 ~8KB prompt。
+
+### Added · `docs-cockpit lint --prompts`(M02 subtask 8)
+
+跑完 frontmatter lint 后 · 额外校验 prompt template syntax:
+- 扫 `docs_cockpit/templates/prompts/*.md.j2` 内置
+- 扫 `<repo>/docs/prompts/*.md.j2` user override
+- Jinja2 `TemplateSyntaxError` → 加 Issue · 报 lineno + message
+- 单测 + integration 覆盖
+
+### Added · `tests/integration/test_cli_v011.py`(M02 subtask 9)
+
+10 个 integration 测 · 跑真 subprocess:
+- `prompt --list` / `prompt` / `prompt M01` / `prompt M01 M01-S1` / 错 module / 错 subtask = 6 测
+- `migrate-subtasks` dry-run / `--apply` + backup / 已 v0.11 不动 = 3 测
+- `lint --prompts` 通过 = 1 测
+
+总 pytest 计:**103 passed in 6.43s**(93 unit + 10 integration)
+
+### Changed · `pyproject.toml`
+
+- 加 runtime dep `jinja2>=3.1`(W3 必需)
+- `[tool.setuptools.package-data]` 包含 `templates/prompts/*.j2`(让 pip install 把 4 个内置 template 装到 site-packages)
+
+### Changed · M01 + M02 全部 done
+
+- M01:9/10 → 10/10 (90% → 100%) · status: in-progress → **done**
+- M02:4/9 → 9/9 (44% → 100%) · status: in-progress → **done**
+- overall progress 83.2% → ~88%
+
+### What's next
+
+剩 Step 2 UI split-view 二级页面 + Step 5 收口 + 0.11.0 正式 release。这俩跟 M01 / M02 的 subtask 无关 · 单独 alpha.4 / 0.11.0。
+
 ## [0.11.0-alpha.2] · 2026-05-18
 
 v0.11 W1 数据层完成 · subtask 升级为一等公民。M01 从 70% → 90% · M02 从 33% → 44%。仍按 plan §11 走 Step 3 → Step 4(W3 prompt scaffolding)。

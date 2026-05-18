@@ -57,6 +57,8 @@ def main(argv: list[str] | None = None) -> int:
                        help="JSON 输出 · 给 IDE / CI 消费")
     lint_p.add_argument("--strict-warn", action="store_true",
                        help="把 warning 也升级成 error(默认只 error 非零退出)")
+    lint_p.add_argument("--prompts", action="store_true",
+                       help="0.11.0-alpha.3 · 额外校验 prompt template syntax(Jinja2)+ user override 文件存在性")
     lint_p.set_defaults(func=cmd_lint)
 
     init_p = sub.add_parser("init", help="生成最小可用配置模板")
@@ -76,6 +78,38 @@ def main(argv: list[str] | None = None) -> int:
     )
     from .build import cmd_migrate_subtasks
     ms_p.set_defaults(func=cmd_migrate_subtasks)
+
+    # 0.11.0-alpha.3 · W3:render prompt for a subtask (plan §6.2)
+    pr_p = sub.add_parser(
+        "prompt",
+        help="渲染 subtask 的可执行 prompt · 给 Claude / Cursor / Codex 跑",
+    )
+    pr_p.add_argument(
+        "module_id", nargs="?", default=None,
+        help="module id(例如 M01)· 不传则配 --list",
+    )
+    pr_p.add_argument(
+        "subtask_id", nargs="?", default=None,
+        help="subtask id · 不传则列 module 下所有 subtask · 选一个看",
+    )
+    pr_p.add_argument(
+        "--config", "-c", default="docs-cockpit.yaml",
+        help="YAML 配置文件路径(默认:当前目录 docs-cockpit.yaml)",
+    )
+    pr_p.add_argument(
+        "--template", "-t", default=None,
+        help="显式指定 template 名(generic / feature / fix / refactor 或自定义)",
+    )
+    pr_p.add_argument(
+        "--copy", action="store_true",
+        help="复制到剪贴板(需要 pyperclip · 未装时输出到 stdout + stderr 提示)",
+    )
+    pr_p.add_argument(
+        "--list", action="store_true",
+        help="列内置 prompt template 名 · 不渲染",
+    )
+    from .build import cmd_prompt
+    pr_p.set_defaults(func=cmd_prompt)
 
     mig_p = sub.add_parser(
         "migrate",
