@@ -556,114 +556,20 @@ def cmd_init(args: argparse.Namespace) -> int:
     return 0
 
 
-def main(argv: list[str] | None = None) -> int:
-    try:
-        if hasattr(sys.stdout, "reconfigure"):
-            sys.stdout.reconfigure(encoding="utf-8", errors="replace")
-    except Exception:
-        pass
+# 0.11.0-alpha.1:main() argparse dispatcher 已搬到 cli.py
+#   (plan-eng-review 1A · build.py 减肥)
+from .cli import main  # re-export · pyproject.toml entry-point 仍走 build:main
 
-    parser = argparse.ArgumentParser(
-        prog="docs-cockpit",
-        description="把项目 MD 文档汇总成单文件 HTML 看板",
-    )
-    sub = parser.add_subparsers(dest="cmd", required=True)
-
-    build_p = sub.add_parser("build", help="按 config 生成 HTML 看板")
-    build_p.add_argument("--config", "-c", default="docs-cockpit.yaml",
-                        help="YAML 配置文件路径(默认:当前目录 docs-cockpit.yaml)")
-    build_p.add_argument("--debug", action="store_true",
-                        help="打印解析后的路径变量与每条 entry 的绝对路径")
-    build_p.add_argument("--no-version-check", action="store_true",
-                        help="跳过新版本检测(也可设 DOCS_COCKPIT_NO_VERSION_CHECK=1)")
-    build_p.add_argument("--strict", action="store_true",
-                        help="0.9.0:任何 frontmatter error 非零退出(CI 用 · warn/hint 不算)")
-    build_p.set_defaults(func=cmd_build)
-
-    # 0.9.0:lint 子命令 · 只校验不 build · 配合 docs-cockpit-author skill 使用
-    lint_p = sub.add_parser(
-        "lint",
-        help="校验 frontmatter 是否符合 docs-cockpit-author 规范(不 build · CI / pre-commit 用)",
-    )
-    lint_p.add_argument("--config", "-c", default="docs-cockpit.yaml",
-                       help="YAML 配置文件路径")
-    lint_p.add_argument("--json", action="store_true",
-                       help="JSON 输出 · 给 IDE / CI 消费")
-    lint_p.add_argument("--strict-warn", action="store_true",
-                       help="把 warning 也升级成 error(默认只 error 非零退出)")
-    lint_p.set_defaults(func=cmd_lint)
-
-    init_p = sub.add_parser("init", help="生成最小可用配置模板")
-    init_p.add_argument("-o", "--output", default="docs-cockpit.yaml")
-    init_p.add_argument("--force", action="store_true")
-    init_p.set_defaults(func=cmd_init)
-
-    mig_p = sub.add_parser(
-        "migrate",
-        help="一键迁移现有项目散落 MD → docs-cockpit canonical 布局",
-    )
-    mig_p.add_argument("--repo", default=".", help="目标项目根 · 默认当前目录")
-    mig_p.add_argument(
-        "--apply", action="store_true",
-        help="真执行迁移(默认 dry-run · 只 print 计划不动文件)",
-    )
-    mig_p.add_argument(
-        "--keep-originals", action="store_true",
-        help="复制而非移动原文件(保留 docs/plans/ 等原 dir)",
-    )
-    from . import migrate as _migrate_mod
-    mig_p.set_defaults(func=_migrate_mod.cmd_migrate)
-
-    browse_p = sub.add_parser(
-        "browse",
-        help="生成单 HTML markdown 浏览器(树形侧边栏 + marked.js 渲染)",
-    )
-    browse_p.add_argument("--repo", default=".", help="项目根 · 默认当前目录")
-    browse_p.add_argument(
-        "--dir", action="append",
-        help="指定扫描目录(可多次)· 不指定时默认扫项目+~/.claude",
-    )
-    browse_p.add_argument(
-        "--no-claude", action="store_true",
-        help="跳过 ~/.claude/{plans,projects} 扫描",
-    )
-    browse_p.add_argument(
-        "-o", "--output", default=None,
-        help="输出 HTML 路径(默认 docs/browse.html)",
-    )
-    browse_p.add_argument(
-        "--project", default=None,
-        help="项目名(显示在 topbar · 默认从 repo 目录名推)",
-    )
-    from . import browse as _browse_mod
-    browse_p.set_defaults(func=_browse_mod.cmd_browse)
-
-    # 0.10.0:portfolio · 多项目注册表 + 周快照
-    from . import portfolio as _portfolio_mod
-    _portfolio_mod.add_portfolio_parser(sub)
-
-    up_p = sub.add_parser(
-        "upgrade",
-        help="一条命令升级 CLI + plugin (auto-detect backend · 智能判断要不要重启)",
-    )
-    up_p.add_argument(
-        "--dry-run", action="store_true",
-        help="只 print 升级计划 · 不执行 · 不动文件",
-    )
-    up_p.add_argument(
-        "--yes", "-y", action="store_true",
-        help="非交互模式 · 跳过 'Proceed? [Y/n]' 确认",
-    )
-    up_p.add_argument(
-        "--no-clear-cache", action="store_true",
-        help="不自动清 plugin cache · 让用户手工处理(给老姿势兜底)",
-    )
-    up_p.add_argument(
-        "--skip-changelog", action="store_true",
-        help="不 fetch + 显示 CHANGELOG diff(网络差时加速)",
-    )
-    from . import upgrade as _upgrade_mod
-    up_p.set_defaults(func=_upgrade_mod.cmd_upgrade)
-
-    args = parser.parse_args(argv)
-    return args.func(args)
+__all__ = [
+    # schema 层(0.11.0-alpha.1 re-export)
+    "Issue", "validate_meta", "split_frontmatter", "slugify",
+    "extract_subtasks_from_body", "extract_docs_from_body",
+    "DEFAULT_STATUS_RANGES", "VALID_STATUSES", "VALID_DOC_TYPES",
+    # paths 层(0.11.0-alpha.1 re-export)
+    "_build_vars", "_expand", "_resolve_doc_path",
+    "_resolve_and_embed_docs", "_resolve_group_files", "read_md",
+    # CLI(0.11.0-alpha.1 re-export)
+    "main",
+    # build engine 本体(留在 build.py)
+    "build_payload", "render_html", "cmd_build", "cmd_lint", "cmd_init",
+]
