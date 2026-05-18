@@ -1,0 +1,72 @@
+你正在 **refine** docs-cockpit module **{{ module.id }} · {{ module.title }}**(sprint {{ module.sprint or "(unscheduled)" }})。
+
+我已经写了这个 module 的 frontmatter + subtasks + linked docs · 现在需要你 **检查 anchor 精度** · 输出 YAML patch 让我复制回 MD frontmatter。
+
+## 不要改的字段(out of scope)
+
+- `id` · `title` · `sprint` · `status` · `progress` · `desc`
+- subtask 的 `title` / `status` · 这些反映工作意图 · 不在 anchor 精度范畴
+
+## 要 refine 的字段
+
+- subtask 的 `code:` · 应该精确到 `path:start-end` 行号 · 不是 `directory/` 整目录
+- subtask 的 `docs:` · 应该精确到 `path.md#§N.M` heading 或 `:start-end` 行号 · 不是整个 doc
+- subtask 的 `docs:` · 检查是否漏了相关 plan / RFC 引用(`linked_docs` 列表里有但 subtask 没引用)
+
+## 当前 module frontmatter
+
+```yaml
+id: {{ module.id }}
+title: "{{ module.title }}"
+status: {{ module.status }}
+sprint: "{{ module.sprint or '' }}"
+progress: {{ module.progress or 0 }}
+{% if module.desc %}desc: "{{ module.desc }}"{% endif %}
+{% if module.depends_on %}depends_on: {{ module.depends_on | tojson }}{% endif %}
+{% if module.blocks %}blocks: {{ module.blocks | tojson }}{% endif %}
+subtasks:
+{% for sub in module.subtasks %}
+  - id: {{ sub.id }}
+    title: "{{ sub.title }}"
+    status: {{ sub.status }}
+{% if sub.code %}    code: {{ sub.code | tojson }}{% endif %}
+{% if sub.docs %}    docs: {{ sub.docs | tojson }}{% endif %}
+{% endfor %}
+```
+
+## 当前 linked docs(已 embed 摘要 · 完整 doc 在 repo)
+
+{% for doc in linked_docs %}
+### {{ doc.title or doc.path }}
+
+`{{ doc.path }}`
+
+{{ doc.summary or "(no content)" }}
+
+---
+{% endfor %}
+
+{% if repo_root %}
+## Repo 根路径
+`{{ repo_root }}`
+{% if current_branch %}当前分支:`{{ current_branch }}`{% endif %}
+{% endif %}
+
+## 你的任务
+
+1. **读 linked docs 的内容** · 理解每个 plan / RFC 的章节布局
+2. **对每个 subtask** · 判断它在做什么 · 然后:
+   - 找出 plan / RFC 里对应的具体 section(`#§N.M` heading slug 或 `:start-end` 行号)
+   - 找出 repo 里对应的代码 file + 行号(如果 code 已经存在;新代码留 `code: <path>` 不带行号)
+3. **输出 YAML patch** · 只列要变的 subtask · 格式:
+
+```yaml
+subtasks:
+  - id: <现有 subtask id>
+    code: "<更精确的 code anchor · 或 list>"
+    docs: ["<更精确的 docs anchor>", ...]
+```
+
+只输出 patch · 不要 wrap 在解释 prose 里。我会复制粘贴回 module MD 然后跑 `docs-cockpit build` 看 dashboard refresh。
+
+如果某个 subtask 在 linked docs 里找不到对应 section · 输出 `# TODO: ...` 注释行 · 不要瞎猜 anchor(driver-seat 信任来自精度 · 错 anchor 比缺 anchor 伤害更大)。

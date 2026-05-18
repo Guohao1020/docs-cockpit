@@ -483,16 +483,25 @@ def cmd_build(args: argparse.Namespace) -> int:
     # ── 0.11.0-alpha.3 · W3 sidecar:prompts.js (plan §6.3) ────────
     # 给所有 subtask 渲染 prompt · 输出 docs/prompts.js 让 drawer 「Copy
     # prompt」按钮 fetch · 主 HTML 不 inline 这些 · 保单文件体积稳定。
+    # 0.11.0-alpha.7 · 模式 2:额外输出 prompts-refine.js · 给「🤖 Refine」按钮
     try:
-        from .prompt import render_all_subtask_prompts
+        from .prompt import render_all_refine_prompts, render_all_subtask_prompts
         repo_root = pathlib.Path(vars_.get("repo", "."))
         prompts_map = render_all_subtask_prompts(payload["modules"], repo_root)
         if prompts_map:
             prompts_js_path = output.parent / "prompts.js"
             prompts_json = json.dumps(prompts_map, ensure_ascii=False)
-            # JS sidecar · 浏览器 file:// fetch JSON 受限 · 用 window 全局
             prompts_js_path.write_text(
                 f"window.__PROMPTS__ = {prompts_json};\n",
+                encoding="utf-8",
+            )
+        # alpha.7 §4.b · refine prompts(module-level)
+        refine_map = render_all_refine_prompts(payload["modules"], repo_root)
+        if refine_map:
+            refine_js_path = output.parent / "prompts-refine.js"
+            refine_json = json.dumps(refine_map, ensure_ascii=False)
+            refine_js_path.write_text(
+                f"window.__REFINE_PROMPTS__ = {refine_json};\n",
                 encoding="utf-8",
             )
     except Exception as exc:  # noqa: BLE001

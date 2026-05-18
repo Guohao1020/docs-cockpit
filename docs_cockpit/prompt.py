@@ -209,3 +209,102 @@ def render_all_subtask_prompts(
                 continue
             out[sub_id] = render_prompt(mod, sub, repo_root, linked_docs=linked)
     return out
+
+
+# ── 0.11.0-alpha.7 · 模式 2 · refine prompt(全 module 范围) ──
+# alpha.7 §4.b · plan §6.2 + author skill §11/§12
+#
+# render_refine_prompt 跟 render_prompt 不同:
+# - 输入是「整个 module」· 不是单 subtask
+# - 输出 prompt 包含 module + ALL subtasks + ALL linked docs full body(摘要 cap 更宽)
+# - 指令告诉 AI:检查 anchor 精度 · 输出 YAML patch · 不要改 status/title
+# 用户场景:在 split-view 点「🤖 Ask AI to refine」· 复制 prompt 到 Claude ·
+# Claude 输出 YAML patch · 用户复制回 module MD。
+
+# refine prompt 单 doc 摘要 cap 更宽 · 因为是「全 module 范围」需要更多 context
+_REFINE_LINKED_DOC_SUMMARY_MAX = 5000
+
+
+def _truncate_refine_summary(text: str) -> str:
+    """refine prompt 单 doc 摘要 hard cap 5000 char(比 single subtask prompt 2000 更宽)."""
+    if not text:
+        return ""
+    if len(text) <= _REFINE_LINKED_DOC_SUMMARY_MAX:
+        return text
+    return text[:_REFINE_LINKED_DOC_SUMMARY_MAX] + (
+        f"\n… [truncated · {len(text)} chars total]"
+    )
+
+
+def render_refine_prompt(
+    module: dict,
+    repo_root: pathlib.Path,
+    *,
+    linked_docs: list[dict] | None = None,
+) -> str:
+    """渲染 module-level refine prompt · alpha.7 模式 2.
+
+    Args:
+        module: module 完整 dict(含 id / title / status / sprint / desc / subtasks / docs ...)
+        repo_root: 用于 git branch detection
+        linked_docs: 关联文档 list(每条含 title / path / content)· 不传则空
+
+    Returns:
+        渲染后的 refine prompt 字符串(可能 10-30KB · 因为含多 linked doc 全文摘要)
+        · 不抛 · template 错也只返 fallback 提示
+    """
+    if not _JINJA2_AVAILABLE:
+        return f"# Refine prompt for {module.get('id', '?')}\n\n(Jinja2 not installed · run `pip install jinja2` for full prompt)"
+
+    # 摘要 linked_docs · 用 refine 专属更宽 cap(5000 char)
+    docs_for_template = []
+    for d in linked_docs or []:
+        if not isinstance(d, dict):
+            continue
+        docs_for_template.append({
+            "title": d.get("title") or d.get("path") or "(untitled)",
+            "path": d.get("path") or "",
+            "summary": _truncate_refine_summary(d.get("content") or ""),
+        })
+
+    env = _build_jinja_env(repo_root)
+    try:
+        tmpl = env.get_template("refine.md.j2")
+    except jinja2.TemplateNotFound:
+        return (
+            "# Refine prompt template not found: refine.md.j2\n\n"
+            "Check docs_cockpit/templates/prompts/refine.md.j2 is shipped with the package.\n"
+        )
+
+    branch = _get_current_branch(repo_root)
+    try:
+        return tmpl.render(
+            module=module,
+            linked_docs=docs_for_template,
+            repo_root=str(repo_root),
+            current_branch=branch,
+        )
+    except jinja2.TemplateError as e:
+        return (
+            "# Refine prompt render failed\n\n"
+            f"```\n{e}\n```\n"
+        )
+
+
+def render_all_refine_prompts(
+    modules: list[dict],
+    repo_root: pathlib.Path,
+) -> dict[str, str]:
+    """给所有 module 渲染 refine prompt · 返 {module_id: refine_prompt_str}.
+
+    build_payload 用这个生成 prompts-refine.js sidecar(plan alpha.7 §4.b)。
+    用户在 split-view 点「🤖 Refine」按钮 · 取 window.__REFINE_PROMPTS__[id]。
+    """
+    out: dict[str, str] = {}
+    for mod in modules:
+        mod_id = mod.get("id")
+        if not mod_id:
+            continue
+        linked = mod.get("docs", []) or []
+        out[mod_id] = render_refine_prompt(mod, repo_root, linked_docs=linked)
+    return out

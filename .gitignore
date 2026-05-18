@@ -39,6 +39,7 @@ Thumbs.db
 # v0.11 sidecar artifacts(prompts.js / code_previews.js)— 同样是 build 产物
 /docs/prompts.js
 /docs/prompts.json
+/docs/prompts-refine.js
 /docs/code_previews.js
 /docs/code_previews.json
 

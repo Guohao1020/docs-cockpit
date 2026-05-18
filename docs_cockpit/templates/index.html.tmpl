@@ -232,6 +232,37 @@ body.split-mode .sysdoc-list .sysdoc-row.active {
   color: var(--s-blocked, #c43);
 }
 
+/* 0.11.0-alpha.7 §4.b · split-view 顶部 Refine with AI 按钮(模式 2)*/
+body.split-mode #module-drawer .drawer-head .refine-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  padding: 6px 12px;
+  font-family: var(--f-sans);
+  font-size: 12px;
+  font-weight: 500;
+  color: white;
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+body.split-mode #module-drawer .drawer-head .refine-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+}
+body.split-mode #module-drawer .drawer-head .refine-btn svg {
+  width: 14px;
+  height: 14px;
+}
+body.split-mode #module-drawer .drawer-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
 /* §4.e · 右栏 code-anchor preview 渲染 */
 .code-anchor-block {
   margin-bottom: 16px;
@@ -1730,6 +1761,9 @@ body.split-mode #module-drawer .drawer-body {
      · file:// 兼容 · 不走 fetch · 用 script src 直接挂 window.__PROMPTS__
      · 找不到 prompts.js 时 window.__PROMPTS__ 仍 undefined · 按钮 click 时 toast 提示 -->
 <script src="prompts.js" defer></script>
+<!-- 0.11.0-alpha.7 §4.b · prompts-refine.js · module-level refine prompts(模式 2)
+     · 给 split-view 左 navigator 「🤖 Ask AI to refine」按钮用 -->
+<script src="prompts-refine.js" defer></script>
 
 <script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/core.min.js"></script>
@@ -1824,6 +1858,10 @@ body.split-mode #module-drawer .drawer-body {
       'topbar.back': 'Back',
       'toast.prompt_copied': 'Prompt copied · paste to Claude / Codex',
       'toast.prompt_missing': 'Prompt not in cache · run docs-cockpit build to refresh prompts.js',
+      'refine.btn_label': 'Refine with AI',
+      'refine.btn_tooltip': 'Ask Claude / Codex to refine this module · review anchor precision · output YAML patch',
+      'toast.refine_copied': 'Refine prompt copied · paste to Claude / Codex · expect a YAML patch back',
+      'toast.refine_missing': 'Refine prompt not in cache · run docs-cockpit build to refresh prompts-refine.js',
       'topbar.last_build': 'Last build',
       'topbar.sysdocs_btn': 'System Docs',
       'topbar.sysdocs_title': 'System Docs (D)',
@@ -2097,6 +2135,10 @@ body.split-mode #module-drawer .drawer-body {
       'topbar.back': '返回',
       'toast.prompt_copied': 'Prompt 已复制 · 粘到 Claude / Codex',
       'toast.prompt_missing': 'Prompt 未在缓存 · 跑 docs-cockpit build 刷新 prompts.js',
+      'refine.btn_label': '让 AI 优化',
+      'refine.btn_tooltip': '让 Claude / Codex 检查这个 module 的 anchor 精度 · 输出 YAML patch',
+      'toast.refine_copied': 'Refine prompt 已复制 · 粘到 Claude / Codex · 让它返回 YAML patch',
+      'toast.refine_missing': 'Refine prompt 未在缓存 · 跑 docs-cockpit build 刷新 prompts-refine.js',
       'topbar.last_build': '最后构建',
       'topbar.sysdocs_btn': '系统文档',
       'topbar.sysdocs_title': '系统文档 (D)',
@@ -3202,6 +3244,54 @@ body.split-mode #module-drawer .drawer-body {
     // split-view 不需要 .open class(永远显)· 但 _activeModuleId 仍要追踪
     drawer.classList.add('open');
   }
+
+  // 0.11.0-alpha.7 §4.b · 在 module split-view 顶部加 Refine 按钮(模式 2)
+  // 复用 alpha.6 的 prompts.js 同款 sidecar 模式 · 取 window.__REFINE_PROMPTS__[module-id]
+  function _injectRefineButton(moduleId) {
+    const drawer = document.getElementById('module-drawer');
+    if (!drawer) return;
+    const head = drawer.querySelector('.drawer-head');
+    if (!head) return;
+    // 移除老按钮(re-render 时避免重复)
+    const old = head.querySelector('.refine-btn');
+    if (old) old.remove();
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'refine-btn';
+    btn.title = t('refine.btn_tooltip') || 'Ask AI to refine this module · copy prompt to Claude / Codex';
+    btn.innerHTML = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 1.5l1.6 3.4 3.7.4-2.7 2.6.7 3.6L8 9.8 4.7 11.5l.7-3.6L2.7 5.3l3.7-.4z"/></svg>' +
+      '<span>' + escapeHtml(t('refine.btn_label') || 'Refine with AI') + '</span>';
+    btn.addEventListener('click', () => copyModuleRefinePrompt(moduleId));
+    head.appendChild(btn);
+  }
+
+  function copyModuleRefinePrompt(moduleId) {
+    const prompt = (window.__REFINE_PROMPTS__ || {})[moduleId];
+    if (!prompt) {
+      toast(t('toast.refine_missing') || 'Refine prompt not in cache · run docs-cockpit build to refresh prompts-refine.js');
+      return;
+    }
+    (async () => {
+      try {
+        await navigator.clipboard.writeText(prompt);
+        toast(t('toast.refine_copied') || 'Refine prompt copied · paste to Claude / Codex · expect a YAML patch back');
+        return;
+      } catch (e) {}
+      try {
+        const ta = document.createElement('textarea');
+        ta.value = prompt;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        const ok = document.execCommand('copy');
+        document.body.removeChild(ta);
+        toast(ok ? (t('toast.refine_copied') || 'Refine prompt copied') : 'Copy failed · prompt size: ' + prompt.length + ' chars');
+      } catch (e) {
+        toast('Copy failed · ' + e.message);
+      }
+    })();
+  }
   function _moveModuleDrawerBackToBody() {
     const drawer = document.getElementById('module-drawer');
     if (!drawer) return;
@@ -3242,6 +3332,8 @@ body.split-mode #module-drawer .drawer-body {
         _moveModuleDrawerToSplitNav();
         // 复用 openModuleDrawer 的渲染 + 事件绑定(CSS 在 split-mode override modal 样式)
         try { openModuleDrawer(_currentRoute.id); } catch (e) { console.error(e); }
+        // 0.11.0-alpha.7 §4.b · 加 Refine 按钮(模式 2)
+        try { _injectRefineButton(_currentRoute.id); } catch (e) {}
       } else if (_currentRoute.kind === 'sysdoc' && _currentRoute.id) {
         // sysdoc / concept · §4.d 接 · 暂时显占位
         _moveModuleDrawerBackToBody();

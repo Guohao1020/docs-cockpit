@@ -4,6 +4,74 @@
 
 ## [Unreleased]
 
+## [0.11.0-alpha.7] · 2026-05-18
+
+AI-augmented precision · 把语义精度让给 LLM · driver-seat 完成「AI 副驾」转型。两条线并行落地:模式 3(write-time · 教 AI 写 MD 时精确)+ 模式 2(on-demand · split-view 「Refine with AI」按钮)。
+
+### Why
+
+主 plan §0(driver-seat 角色重新框架)lock 的方向:**docs-cockpit 不是精度引擎 · 是 AI 副驾**。语义精度从 python regex 让给 LLM · python 只做解析层。alpha.6 split-view 把容器和数据接通 · alpha.7 把 AI 接进来给精度。
+
+### Added · 模式 3 · 教 AI 写 MD(facb07c)
+
+`skills/docs-cockpit-author/SKILL.md` 加三节:
+- §10 · Prompt template chapter(规范化 alpha.3 的 W3 工作)· 4 内置 templates 寻找顺序 + 选择 precedence
+- §10.2 · Context vars stability contract · v0.11 5 个 vars + backward-compat 规则
+- §11 · Writing module MD with AI assistance · 5 步标准流程(读 plan body · 跨参考拆 subtask · 填精准 code/docs anchor · self-check)· good vs bad 对比 · "when in doubt" 兜底
+- §12 · Cross-module / cross-doc consistency · doc backref / dependency 闭环 / status × subtasks / sprint alignment
+
+`skills/docs-cockpit/SKILL.md` 主 skill 加触发条件 · 何时 hand off 给 author skill。
+
+### Added · 模式 2 · split-view 「Refine with AI」按钮
+
+**`docs_cockpit/templates/prompts/refine.md.j2`** · 新模板:
+- 输入:module 完整 frontmatter + ALL subtasks + ALL linked docs(摘要 cap 提到 5000 chars · 比单 subtask 2000 更宽)
+- 指令:检查 anchor 精度 · 不要改 status/title · 输出 YAML patch
+- 找不到 plan section 输出 `# TODO:` 注释 · 不瞎猜
+
+**`docs_cockpit/prompt.py`**:
+- `render_refine_prompt(module, repo_root, linked_docs)` · 渲染单 module refine prompt
+- `render_all_refine_prompts(modules, repo_root)` · 给 build sidecar 用
+- `_REFINE_LINKED_DOC_SUMMARY_MAX = 5000` · 摘要 cap
+
+**`docs_cockpit/build.py`**:
+- `cmd_build` 额外输出 `docs/prompts-refine.js` sidecar
+- 跟 alpha.3 prompts.js 同款格式 · `window.__REFINE_PROMPTS__[module-id] = "..."`
+
+**`templates/index.html.tmpl`**:
+- `<script src="prompts-refine.js" defer>` 加载 sidecar
+- `_injectRefineButton(moduleId)` · split-mode 进 module 时在 drawer-head 插「🤖 Refine with AI」按钮
+- `copyModuleRefinePrompt(moduleId)` · 走 `window.__REFINE_PROMPTS__` + clipboard fallback(0.10.1 同款)
+- CSS · purple gradient 按钮 · drawer-head 改 flex layout · split-mode only
+- i18n · `refine.btn_label` / `refine.btn_tooltip` / `toast.refine_copied` / `toast.refine_missing`(EN + 中)
+
+### User flow
+
+```
+1. 打开 dashboard · 点 M03 module card
+   → URL #/module/M03 · split-view · 左 navigator 顶部出现 🤖 Refine with AI 按钮
+2. 点按钮
+   → 取 window.__REFINE_PROMPTS__[M03](~15-25KB · 含 module + subtasks + linked docs 摘要 + 指令)
+   → navigator.clipboard.writeText · file:// fallback execCommand
+   → toast 「Refine prompt copied · paste to Claude / Codex」
+3. 粘到 Claude 跑
+   → Claude 读 prompt · 分析 anchor 精度 · 输出 YAML patch
+4. 复制 patch 回 module MD frontmatter
+   → 跑 docs-cockpit build · dashboard 反映新 anchor
+```
+
+### Not changed
+
+- 主 plan §0 仍是「driver-seat 是 AI 副驾」· python 不做语义精度
+- alpha.6 split-view 容器不变 · 只新增 Refine 按钮 + 新 sidecar
+- subtask schema(alpha.2)/ prompts.js(alpha.3)格式不变
+- `?ui=modal` URL query 切回老 modal · 老用户不破
+
+### What's next
+
+- **0.11.0 正式** · 收口 + push + 公告(Step 5)
+- **v0.12** · 模式 1 · Claude API build-time augment + MCP server 直连 · 去掉 copy-paste
+
 ## [0.11.0-alpha.6] · 2026-05-18
 
 driver-seat split-view 真上线。点 module / sysdoc → URL 切 hash → 左右双栏:左 navigator 完整 module 内容(subtasks 行带 code anchor 图标 + Copy prompt 按钮)· 右 preview 自动 marked.js 渲染关联文档 + 切换跟随 + code anchor click 渲染 code snippet。
