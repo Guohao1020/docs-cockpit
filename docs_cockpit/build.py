@@ -974,10 +974,19 @@ def cmd_build(args: argparse.Namespace) -> int:
         _safe_print("     → run `docs-cockpit lint` to see only issues without rebuilding")
         _safe_print("     → consult docs-cockpit-author skill for the spec")
     _safe_print("")
-    _safe_print("Open in browser:")
-    _safe_print(f"  start {output}    # Windows")
-    _safe_print(f"  open  {output}    # macOS")
-    _safe_print(f"  xdg-open {output} # Linux")
+    _safe_print("Open in browser (Claude Code: 点击对应系统的代码块右上角 run 一键执行):")
+    _safe_print("")
+    _safe_print("```bash")
+    _safe_print(f"start {output}")
+    _safe_print("```")
+    _safe_print("")
+    _safe_print("```bash")
+    _safe_print(f"open {output}")
+    _safe_print("```")
+    _safe_print("")
+    _safe_print("```bash")
+    _safe_print(f"xdg-open {output}")
+    _safe_print("```")
 
     # 0.9.0:--strict · errors(任何 severity=error)非零退出 · CI 友好
     if getattr(args, "strict", False) and errors:

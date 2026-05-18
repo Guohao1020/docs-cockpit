@@ -185,6 +185,40 @@ docs-cockpit build --config docs-cockpit.yaml
 
 Idempotent. Plug into pre-commit or CI to keep `docs/index.html` and `docs/state.json` fresh.
 
+### Post-build reporting · how to surface open commands in chat (0.10.2+)
+
+Every time you (Claude) run `docs-cockpit build` or `docs-cockpit browse` for a user inside Claude Code, your chat reply MUST end with the open commands as **individually fenced bash blocks** — one fence per platform — so Claude Code renders a run button on each. Never collapse them into a single multi-line block; never use a bullet list of inline `code` spans.
+
+Bad (single block · user can only run all three or copy whole text):
+
+```
+\`\`\`bash
+start D:\path\docs\index.html    # Windows
+open  D:\path\docs\index.html    # macOS
+xdg-open D:\path\docs\index.html # Linux
+\`\`\`
+```
+
+Good (three independent fences · Claude Code shows three run buttons · user clicks the one for their OS):
+
+> Build done · open the dashboard (click the run button on your OS):
+>
+> ```bash
+> start D:\path\docs\index.html
+> ```
+>
+> ```bash
+> open D:\path\docs\index.html
+> ```
+>
+> ```bash
+> xdg-open D:\path\docs\index.html
+> ```
+
+The CLI's own stdout (since 0.10.2) already prints this format, so if you echo the stdout verbatim into the chat the rendering works. If you summarize instead of echoing, re-emit the three fences manually — never drop them.
+
+Same rule applies to `docs-cockpit browse` output (one block per OS for `docs/browse.html`).
+
 ### Workflow D — Add subtasks / desc / docs links to a module
 
 User says "M07 needs subtasks" or "fill in the desc for these modules":

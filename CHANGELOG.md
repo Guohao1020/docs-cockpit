@@ -4,6 +4,59 @@
 
 ## [Unreleased]
 
+## [0.10.2] · 2026-05-18
+
+让 Claude Code 用户在每次 build / browse 后能一键打开 dashboard,而不是手动复制路径。
+
+### Why
+
+跑完 `docs-cockpit build` 后,CLI 输出三行带缩进的提示(`  start D:\...`、`  open D:\...`、`  xdg-open D:\...`)。这种格式 Claude Code 不会渲染成可点击的运行按钮 · 用户得手动选中、复制、粘到终端。0.10.1 之前我们没注意这个 UX 缝。
+
+### Changed · build.py + browse.py stdout 格式
+
+跑完后输出改成三个独立的 markdown fenced bash block(每个 OS 一个),Claude Code 看到自动给每个块加 run 按钮,用户点对应系统那一个就行。终端用户看到的就是 fence 包着的命令 · 也不影响 copy-paste。
+
+旧格式(0.10.1 及之前):
+
+```
+Open in browser:
+  start D:\...    # Windows
+  open  D:\...    # macOS
+  xdg-open D:\... # Linux
+```
+
+新格式(0.10.2):
+
+````
+Open in browser (Claude Code: 点击对应系统的代码块右上角 run 一键执行):
+
+```bash
+start D:\...
+```
+
+```bash
+open D:\...
+```
+
+```bash
+xdg-open D:\...
+```
+````
+
+### Changed · skills/docs-cockpit/SKILL.md 加 Post-build reporting 节
+
+写一条规则给 Claude:跑完 `docs-cockpit build` / `docs-cockpit browse` 后,在 chat reply 里必须把开启命令以独立 fenced bash block 列出 · 不能合并成一个多行块。CLI 的 stdout 已经是这格式 · 直接 echo 就行 · 但 Claude 总结回复时不能漏。
+
+### Not changed
+
+- 不动 build engine / state.json schema / frontmatter spec / config schema
+- 不动 4 个 skill 的触发条件 / scope · 仅 docs-cockpit skill 加一段 output 规则
+- 严格按 CLAUDE.md SemVer 约定 · SKILL.md 改 = 至少 minor · 但本次 SKILL.md 改的是「输出格式 follow-up 规则」· 不是 trigger / scope / schema · 不会触发 ghost-state 风险 · patch 表达准确
+
+### Migrate
+
+无需迁移 · 升级 CLI 即可,旧用户的 docs-cockpit.yaml / MD / build artifact 全部兼容。
+
 ## [0.10.1] · 2026-05-18
 
 Dogfood docs-cockpit 自己 · 验证 v0.10 schema 能否承载 docs-cockpit 项目本体 · 同时为 v0.11 driver-seat plan(`docs/plans/P-v0.11-driver-seat.md`)的 Step 0 prerequisite。本 patch 不动 build engine / schema · 只引入项目自身的 `docs-cockpit.yaml` + 6 个 module MD + 关联文档 · 让 docs-cockpit 自己变成 docs-cockpit 看板。
