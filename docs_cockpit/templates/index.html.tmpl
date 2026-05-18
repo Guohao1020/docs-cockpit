@@ -103,6 +103,44 @@ a:hover { text-decoration: underline; }
   border-left: 1px solid var(--c-hairline);
   white-space: nowrap;
 }
+
+/* 0.11.0-alpha.6 §4.b · Back to dashboard 按钮 · URL hash 非空时显示 */
+.back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--c-hairline);
+  background: transparent;
+  color: var(--c-ink);
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-family: var(--f-mono);
+  font-size: 12px;
+  cursor: pointer;
+  margin-right: 12px;
+  transition: background 0.12s ease, border-color 0.12s ease;
+}
+.back-btn:hover { background: var(--c-tint); border-color: var(--c-ink); }
+.back-btn svg { width: 14px; height: 14px; }
+.back-btn[hidden] { display: none !important; }
+
+/* 0.11.0-alpha.6 §4.b · split-page 容器 · §4.c/d 填内容 */
+.split-page { padding: 24px 0 64px; min-height: 60vh; }
+.split-page-placeholder {
+  font-family: var(--f-mono);
+  font-size: 13px;
+  color: var(--c-graphite);
+  text-align: center;
+  padding: 48px;
+}
+/* hash 路由切到 split-page 时 · 隐藏 dashboard sections */
+body.split-mode #hero-section,
+body.split-mode #kpi-section,
+body.split-mode #kanban-section,
+body.split-mode #sprints-section,
+body.split-mode #concepts-section { display: none; }
+body.split-mode .split-page[hidden] { display: block !important; }
+body.split-mode .split-page { display: block !important; }
 @media (max-width: 720px) {
   .brand .crumb { display: none; }
   .docs-btn span:not(.docs-count):not(.docs-icon) { display: none; }
@@ -1340,10 +1378,14 @@ a:hover { text-decoration: underline; }
 <body>
 
 <header class="topbar">
+  <button class="back-btn" id="back-btn" type="button" hidden aria-label="Back to dashboard" title="Back (Esc)">
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3l-5 5 5 5"/></svg>
+    <span data-i18n="topbar.back">Back</span>
+  </button>
   <div class="brand">
     <span class="mark" id="brand-mark">·</span>
     <span id="brand-name">Project Dashboard</span>
-    <span class="crumb" data-i18n="topbar.crumb">Project Dashboard</span>
+    <span class="crumb" id="topbar-crumb" data-i18n="topbar.crumb">Project Dashboard</span>
   </div>
   <div class="topbar-right">
     <span class="build-stamp"><span class="dot"></span><span><span data-i18n="topbar.last_build">Last build</span> · <span id="build-time">—</span></span></span>
@@ -1365,7 +1407,7 @@ a:hover { text-decoration: underline; }
 </header>
 
 <main class="shell">
-  <section class="hero">
+  <section class="hero" id="hero-section">
     <div>
       <div class="eyebrow" id="hero-eyebrow" data-i18n="hero.eyebrow">PROJECT DASHBOARD · MODULE PROGRESS</div>
       <h1 id="hero-title" data-i18n="hero.title">Project progress overview</h1>
@@ -1378,7 +1420,7 @@ a:hover { text-decoration: underline; }
     </div>
   </section>
 
-  <section class="section">
+  <section class="section" id="kpi-section">
     <div class="section-head">
       <div class="title" data-i18n="kpi.title">Overview</div>
       <div class="meta" id="kpi-meta">—</div>
@@ -1407,7 +1449,7 @@ a:hover { text-decoration: underline; }
     </div>
   </section>
 
-  <section class="section">
+  <section class="section" id="kanban-section">
     <div class="section-head">
       <div class="title" data-i18n="kanban.title">Module Kanban</div>
       <div class="meta" data-i18n="kanban.meta">Click a card to view docs and progress controls</div>
@@ -1429,6 +1471,14 @@ a:hover { text-decoration: underline; }
       <div class="meta" id="concept-meta">—</div>
     </div>
     <div class="concept-grid" id="concepts"></div>
+  </section>
+
+  <!-- 0.11.0-alpha.6 §4.b · Split-view 二级页面容器 · §4.c/d 填内容 -->
+  <section class="split-page" id="split-page" hidden>
+    <div class="split-page-placeholder" id="split-placeholder">
+      <!-- §4.c 加 split-nav + split-preview · 当前 placeholder -->
+      Loading…
+    </div>
   </section>
 </main>
 
@@ -1567,6 +1617,7 @@ a:hover { text-decoration: underline; }
   const I18N = {
     en: {
       'topbar.crumb': 'Project Dashboard',
+      'topbar.back': 'Back',
       'topbar.last_build': 'Last build',
       'topbar.sysdocs_btn': 'System Docs',
       'topbar.sysdocs_title': 'System Docs (D)',
@@ -1837,6 +1888,7 @@ a:hover { text-decoration: underline; }
     },
     zh: {
       'topbar.crumb': '项目看板',
+      'topbar.back': '返回',
       'topbar.last_build': '最后构建',
       'topbar.sysdocs_btn': '系统文档',
       'topbar.sysdocs_title': '系统文档 (D)',
@@ -2231,12 +2283,14 @@ a:hover { text-decoration: underline; }
     });
 
     // 绑事件
+    // 0.11.0-alpha.6 §4.b · click 走 hash router(navigateTo)· `?ui=modal` 时
+    // 回退到老 openModuleDrawer · 向后兼容
     root.querySelectorAll('.m-card').forEach(el => {
-      el.addEventListener('click', () => openModuleDrawer(el.dataset.id));
+      el.addEventListener('click', () => navigateTo('module', el.dataset.id));
       el.addEventListener('keydown', e => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
-          openModuleDrawer(el.dataset.id);
+          navigateTo('module', el.dataset.id);
         }
       });
     });
@@ -2779,9 +2833,12 @@ a:hover { text-decoration: underline; }
     document.getElementById('dd-count').textContent = t('sysdocs.count_items', { n: list.length });
     const el = document.getElementById('sysdoc-list');
     if (!list.length) { el.innerHTML = '<div class="doc-list-empty">' + escapeHtml(t('sysdocs.empty')) + '</div>'; return; }
+    // 0.11.0-alpha.6 §4.b · sysdoc row click 走 hash router · 不再新窗口
+    // 注意:用 button 而非 anchor · 避免 file:// 浏览器原生跳走
+    // `?ui=modal` 时 navigateTo() 回退到 window.open · 老体验保留
     el.innerHTML = list.map(d => {
       const iconSvg = iconForDoc(d.icon || 'doc');
-      return '<a class="sysdoc-row" href="' + escapeHtml(d.path || '#') + '" target="_blank" rel="noopener">' +
+      return '<button type="button" class="sysdoc-row" data-sysdoc-id="' + escapeHtml(d.id) + '">' +
         '<span class="sd-icon">' + iconSvg + '</span>' +
         '<div class="sd-info">' +
           '<div class="sd-title">' + escapeHtml(d.title) + '</div>' +
@@ -2789,8 +2846,16 @@ a:hover { text-decoration: underline; }
           '<div class="sd-path">' + escapeHtml(d.path || '') + '</div>' +
         '</div>' +
         '<svg class="sd-arrow" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3l5 5-5 5"/></svg>' +
-      '</a>';
+      '</button>';
     }).join('');
+    // bind click
+    el.querySelectorAll('.sysdoc-row').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const id = btn.dataset.sysdocId;
+        try { closeDrawer(); } catch (e) {}
+        navigateTo('sysdoc', id);
+      });
+    });
   }
   function iconForDoc(kind) {
     if (kind === 'memory') {
@@ -2837,6 +2902,107 @@ a:hover { text-decoration: underline; }
     renderConcepts();
   }
 
+  // ── 0.11.0-alpha.6 §4.b · hash router ─────────────────────
+  // URL hash 模型(plan §6.6):
+  //   ''                     · dashboard 首页
+  //   '#/module/<id>'        · module 二级页面(split-view · §4.c/d 填内容)
+  //   '#/sysdoc/<id>'        · system doc 二级页面
+  //   '#/concept/<id>'       · concept 二级页面
+  // Query 参数:
+  //   '?ui=modal'            · 强制走老 modal drawer(向后兼容)
+  function _hasModalQueryParam() {
+    try {
+      return new URLSearchParams(window.location.search).get('ui') === 'modal';
+    } catch (e) { return false; }
+  }
+  const _UI_MODE = _hasModalQueryParam() ? 'modal' : 'split-view';
+
+  function parseHash() {
+    const raw = (window.location.hash || '').replace(/^#\/?/, '').trim();
+    if (!raw) return { kind: 'dashboard', id: null };
+    const parts = raw.split('/');
+    const kind = parts[0];
+    const id = parts[1] ? decodeURIComponent(parts[1]) : null;
+    if (['module', 'sysdoc', 'concept'].indexOf(kind) >= 0) {
+      return { kind, id };
+    }
+    return { kind: 'dashboard', id: null };
+  }
+
+  // 当前路由状态 · 全局
+  let _currentRoute = { kind: 'dashboard', id: null };
+
+  function applyRoute() {
+    _currentRoute = parseHash();
+    const body = document.body;
+    const splitPage = document.getElementById('split-page');
+    const backBtn = document.getElementById('back-btn');
+    const crumb = document.getElementById('topbar-crumb');
+
+    if (_currentRoute.kind === 'dashboard') {
+      body.classList.remove('split-mode');
+      splitPage.setAttribute('hidden', '');
+      if (backBtn) backBtn.setAttribute('hidden', '');
+      if (crumb) crumb.textContent = t('topbar.crumb');
+      // 关闭遗留 modal(若有)
+      try { closeDrawer(); } catch (e) {}
+    } else {
+      body.classList.add('split-mode');
+      splitPage.removeAttribute('hidden');
+      if (backBtn) backBtn.removeAttribute('hidden');
+      // §4.c/d 接管渲染 · §4.b 先放占位
+      renderSplitPagePlaceholder(_currentRoute);
+      if (crumb) {
+        const kindLabel = _currentRoute.kind === 'module' ? 'Module'
+                        : _currentRoute.kind === 'sysdoc' ? 'System Doc'
+                        : 'Concept';
+        crumb.textContent = `${kindLabel} · ${_currentRoute.id || '?'}`;
+      }
+    }
+  }
+
+  function renderSplitPagePlaceholder(route) {
+    // §4.c 接管 · 这里只占位(让 §4.b 能验证 router 切换 work)
+    const el = document.getElementById('split-placeholder');
+    if (!el) return;
+    el.innerHTML =
+      '<div style="font-family:var(--f-sans); font-size:18px; color:var(--c-ink); margin-bottom:8px;">' +
+      escapeHtml(route.kind + ' · ' + (route.id || '?')) +
+      '</div>' +
+      '<div style="font-family:var(--f-mono); font-size:11px; color:var(--c-graphite);">' +
+      'Split-view container · §4.c/d will fill this with navigator + preview.' +
+      '</div>';
+  }
+
+  function navigateTo(kind, id) {
+    // _UI_MODE === 'modal' 时退回老 modal flow(向后兼容)
+    if (_UI_MODE === 'modal') {
+      if (kind === 'module') openModuleDrawer(id);
+      else if (kind === 'sysdoc') {
+        // sysdoc 老 modal 行为:新窗口打开 · 不变
+        const doc = (RAW.systemDocs || []).find(d => d.id === id);
+        if (doc && doc.path) window.open(doc.path, '_blank');
+      }
+      return;
+    }
+    const newHash = '#/' + kind + '/' + encodeURIComponent(id);
+    if (window.location.hash !== newHash) {
+      window.location.hash = newHash;
+    } else {
+      // 同 hash · 强制 re-render
+      applyRoute();
+    }
+  }
+
+  function backToDashboard() {
+    if (window.location.hash) {
+      // 走 history · 浏览器 back 键 work
+      window.location.hash = '';
+    } else {
+      applyRoute();
+    }
+  }
+
   // ── 初始化 ────────────────────────────────────────
   function init() {
     applyI18nStatic();
@@ -2863,11 +3029,24 @@ a:hover { text-decoration: underline; }
     document.getElementById('dd-close').addEventListener('click', closeDrawer);
     document.getElementById('scrim').addEventListener('click', closeDrawer);
 
+    // 0.11.0-alpha.6 §4.b · Back 按钮 + hashchange + Esc 处理 split-view
+    const backBtn = document.getElementById('back-btn');
+    if (backBtn) backBtn.addEventListener('click', backToDashboard);
+    window.addEventListener('hashchange', applyRoute);
+    // initial apply · 处理打开页面时 URL 已带 hash 的场景
+    applyRoute();
+
     document.addEventListener('keydown', e => {
       if (e.metaKey || e.ctrlKey || e.altKey) return;
       const tag = (document.activeElement && document.activeElement.tagName) || '';
       const inField = tag === 'INPUT' || tag === 'TEXTAREA';
-      if (e.key === 'Escape') { closeDrawer(); return; }
+      if (e.key === 'Escape') {
+        // 0.11.0-alpha.6 §4.b · Esc 优先关 modal(若开)· 否则返回 dashboard
+        const anyDrawerOpen = document.querySelector('.drawer.open');
+        if (anyDrawerOpen) { closeDrawer(); return; }
+        if (_currentRoute.kind !== 'dashboard') { backToDashboard(); return; }
+        return;
+      }
       if (inField) return;
       if (e.key === 'd' || e.key === 'D') {
         const docsOpen = document.getElementById('docs-drawer').classList.contains('open');
