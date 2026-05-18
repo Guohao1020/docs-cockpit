@@ -192,21 +192,75 @@ def _build_card_list(
     return out
 
 
+# 0.11.0-alpha.6:systemDocs 单 doc content hard cap(plan §6.7)
+# 比 module docs 的 100KB 严格 · 防 memory 目录 / 大 spec 撑爆主 HTML
+_MAX_SYSDOC_EMBED_BYTES = 50 * 1024  # 50KB
+
+
 def _build_system_docs(
-    entries: list[dict] | None, vars_: dict[str, str]
+    entries: list[dict] | None, vars_: dict[str, str], repo_root: pathlib.Path
 ) -> list[dict]:
-    """system_docs: 手挑列表 · 仅展开 path 变量 · 不读 MD 内容."""
+    """system_docs: 手挑列表 · 展开 path 变量 · embed MD content.
+
+    0.11.0-alpha.6 (plan §6.7):给每条 system_doc 加 content/mtime/exists 字段
+    · 让 split-view 右栏能直接 marked.js 渲染 · 不再走 `<a target="_blank">`
+    新窗口 dump raw text。
+
+    单 doc content hard cap 50KB(`_MAX_SYSDOC_EMBED_BYTES`) · 超过截断 + 提示
+    · 防止 memory / 长 spec 撑爆主 HTML payload。
+    """
     if not entries:
         return []
     out: list[dict] = []
     for entry in entries:
-        out.append({
+        raw_path = entry.get("path", "")
+        expanded = _expand(raw_path, vars_)
+        item = {
             "id": entry.get("id") or slugify(entry.get("title", "")),
             "title": entry.get("title", ""),
-            "path": _expand(entry.get("path", ""), vars_),
+            "path": expanded,
             "desc": entry.get("desc", ""),
             "icon": entry.get("icon", "doc"),
-        })
+            "content": "",
+            "mtime": None,
+            "exists": False,
+        }
+        if not expanded:
+            out.append(item)
+            continue
+        p = pathlib.Path(expanded)
+        if not p.exists():
+            out.append(item)
+            continue
+        item["exists"] = True
+        try:
+            stat = p.stat()
+            item["mtime"] = _dt.datetime.fromtimestamp(stat.st_mtime).strftime(
+                "%Y-%m-%d %H:%M"
+            )
+            # 只 embed .md / .markdown 文件 · 其他扩展不读
+            if p.is_file() and p.suffix.lower() in (".md", ".markdown"):
+                raw_text = p.read_text(encoding="utf-8", errors="replace")
+                # 剥掉 YAML frontmatter · 避免 marked 渲染成 raw text 块
+                _, body = split_frontmatter(raw_text)
+                body_bytes = body.encode("utf-8")
+                if len(body_bytes) <= _MAX_SYSDOC_EMBED_BYTES:
+                    item["content"] = body
+                else:
+                    truncated = body_bytes[:_MAX_SYSDOC_EMBED_BYTES].decode(
+                        "utf-8", errors="replace"
+                    )
+                    kb = len(body_bytes) // 1024
+                    item["content"] = (
+                        truncated
+                        + f"\n\n---\n\n*[Content truncated · body is {kb} KB · "
+                        f"embed limit {_MAX_SYSDOC_EMBED_BYTES // 1024} KB. "
+                        f"Open the file directly to read the rest.]*\n"
+                    )
+        except (OSError, UnicodeError):
+            # Defensive · 文件存在但读不动 · exists 留 True 但 content 空
+            pass
+        out.append(item)
     return out
 
 
@@ -240,7 +294,8 @@ def build_payload(
         "lastBuild": build_time,
     }
 
-    system_docs = _build_system_docs(config.get("system_docs"), vars_)
+    repo_root = pathlib.Path(vars_.get("repo", "."))
+    system_docs = _build_system_docs(config.get("system_docs"), vars_, repo_root)
     modules = _build_card_list(
         config.get("modules"), vars_, fm_enabled, ranges, issues, full=True
     )

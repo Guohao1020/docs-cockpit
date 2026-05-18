@@ -22,6 +22,25 @@ Review: round-1 6/10 → 10 issues fixed → round-2 8/10 → 5 nits fixed → a
 
 ---
 
+## §0 · driver-seat 角色定位(2026-05-18 round-4 重新框架)
+
+**关键 architectural shift**:driver-seat **不是自给自足的精度引擎** · 它是 **AI 工具(Claude Code / Codex / Cursor)的副驾**。
+
+| 维度 | 旧定位(误读) | 新定位(正确) |
+|---|---|---|
+| 精度来源 | docs-cockpit 用 python regex / 反向 index 算 | **LLM 来做语义精度** · python 只做解析层(anchor 语法 / 行号 / heading slug) |
+| 核心问题(round-3 提的 doc anchor / module-aware highlight) | 怎么用 python 判断 subtask 跟 doc 哪段相关 | **怎么教 AI** 在写 module MD 时直接产出精准 anchor · 或 **让 AI 检查现有 module** 输出 refinement patch |
+| docs-cockpit 的核心责任 | 算精度 + 渲染 | **上下文供给(context)+ UI 展示 + 工作流编排** |
+
+**implications**:
+- v0.11 alpha.6(split-view UI)· python 仅算解析层精度 · 让 AI 输出的 anchor 能渲染
+- v0.11 alpha.7 · **AI-augmented precision 两条线**:
+  - 模式 3:升级 `docs-cockpit-author` SKILL.md · 教 Claude 写 module MD 时直接产出精准 anchor
+  - 模式 2:split-view 加「🤖 Ask AI to refine this module」按钮 · 走 prompts.js 延伸 · AI 检查现有 module + 输出 YAML patch
+- v0.12 · 模式 1 · Claude API build-time 自动 augment + MCP server 直连(去掉 copy-paste)
+
+详见 sub-plan:`docs/plans/P-v0.11-ai-augmented-precision-alpha7-2026-05-18.md`
+
 ## §1 · Problem Statement
 
 docs-cockpit 现状是一个能渲染 module/concept/sprint/progress 的 **可视化看板**,但用户体验暴露出 5 个核心缺口:
