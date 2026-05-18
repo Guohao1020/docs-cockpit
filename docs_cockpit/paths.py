@@ -287,3 +287,169 @@ def _resolve_and_embed_docs(
                 pass
         out.append(entry)
     return out
+
+
+# ── v0.11 W1 · resolve_code_anchor + defensive IO (plan §6.1 + 3A + 4A) ──
+#
+# 0.11 subtask 的 `code:` 字段把 subtask 跟代码 anchor 起来。例如:
+#   subtasks:
+#     - id: M09-S1
+#       title: BrowserVendor abstraction
+#       code: sourcery/worker/browser_vendor.py:42-89
+#
+# resolve_code_anchor:
+#   - 解析 `path:start-end` / `path:single` / `path` 三种格式
+#   - 走 _resolve_doc_path 三步 fallback 拿绝对路径
+#   - defensive IO(plan-eng-review 3A):
+#       OSError / PermissionError / UnicodeDecodeError / binary / >5MB / 行越界
+#       → warn + None preview · build 不炸
+#   - 读 ±5 行(plan §6.1)· hard cap 800 字符
+#   - vscode:// 深链 + 可选 GitHub URL fallback
+# Performance(plan-eng-review 4A):
+#   _read_code_lines(path, start, end) 用 @functools.lru_cache(maxsize=256)
+#   多 subtask 引用同 path:lines 不重复读 fs · 1.5-3x 加速
+
+import functools
+
+_CODE_ANCHOR_RE = re.compile(r"^(.+?)(?::(\d+)(?:-(\d+))?)?$")
+_MAX_CODE_FILE_BYTES = 5 * 1024 * 1024   # 5MB · 超过 skip 防 build 卡
+_CODE_PREVIEW_CHARS = 800                  # plan §6.1 hard cap · 截断 + `…` 标记
+_CODE_CONTEXT_LINES = 5                    # ±5 行 · plan §6.1
+
+
+def _parse_code_ref(raw: str) -> tuple[str, int | None, int | None]:
+    r"""解析 `path:start-end` / `path:single` / `path` 三种格式.
+
+    返 (path, start_line, end_line):
+    - `x.py:42-89`     → ("x.py", 42, 89)
+    - `x.py:42`        → ("x.py", 42, 42)
+    - `x.py`           → ("x.py", None, None)
+
+    Windows backslash: `x\y.py:42` 兼容(把 `\` 视作 path 一部分)。
+    """
+    raw = raw.strip()
+    if not raw:
+        return "", None, None
+    m = _CODE_ANCHOR_RE.match(raw)
+    if not m:
+        return raw, None, None
+    path, start_s, end_s = m.group(1), m.group(2), m.group(3)
+    start = int(start_s) if start_s else None
+    end = int(end_s) if end_s else start
+    return path, start, end
+
+
+@functools.lru_cache(maxsize=256)
+def _read_code_lines(
+    abs_path: str, start: int | None, end: int | None
+) -> tuple[str, str]:
+    """读 abs_path 的 [start-CTX, end+CTX] 行 · 返 (preview, warning).
+
+    warning 非空表示读不完整(binary / encoding / 越界 / 巨大文件 等) ·
+    caller 根据 warning 决定 emit Issue 或者直接 skip preview。
+
+    @lru_cache 让多 subtask 引用同 path:lines 不重复读(plan-eng-review 4A)。
+    args 必须 hashable · 所以用 abs_path str + int|None。
+    """
+    p = pathlib.Path(abs_path)
+    try:
+        size = p.stat().st_size
+    except OSError as e:
+        return "", f"stat failed: {e}"
+    if size > _MAX_CODE_FILE_BYTES:
+        kb = size // 1024
+        return "", f"file too large ({kb} KB · max {_MAX_CODE_FILE_BYTES // 1024} KB · skipped to keep build fast)"
+
+    # binary detect: 前 1024 字节有 null byte
+    try:
+        with open(p, "rb") as f:
+            head = f.read(1024)
+        if b"\x00" in head:
+            return "", "binary file detected (null byte in first 1KB) · preview skipped"
+    except OSError as e:
+        return "", f"open failed: {e}"
+
+    # 读全文 · 按行切
+    try:
+        text = p.read_text(encoding="utf-8")
+    except UnicodeDecodeError as e:
+        return "", f"not utf-8 ({e.encoding} decode failed at pos {e.start}) · preview skipped"
+    except OSError as e:
+        return "", f"read failed: {e}"
+
+    lines = text.splitlines()
+    total = len(lines)
+    if start is None:
+        # 整个文件预览 · 但 hard cap 800 字符
+        snippet = text[:_CODE_PREVIEW_CHARS]
+        if len(text) > _CODE_PREVIEW_CHARS:
+            snippet += f"\n… [truncated · {total} lines total]"
+        return snippet, ""
+
+    # 行号越界
+    if start > total:
+        return "", f"start line {start} > file total {total} · preview skipped"
+
+    # 计算窗口
+    win_start = max(1, start - _CODE_CONTEXT_LINES)
+    win_end = min(total, (end or start) + _CODE_CONTEXT_LINES)
+    chunk = "\n".join(lines[win_start - 1 : win_end])
+    if len(chunk) > _CODE_PREVIEW_CHARS:
+        chunk = chunk[:_CODE_PREVIEW_CHARS] + "\n… [truncated]"
+    return chunk, ""
+
+
+def _resolve_code_anchor(
+    raw: str,
+    module_path: pathlib.Path,
+    repo_root: pathlib.Path,
+    vars_: dict[str, str],
+) -> dict[str, Any]:
+    """把 subtask 的 `code:` 字段解析为完整 anchor entry.
+
+    输入 raw 是字符串(`path:start-end` 或 `path:single` 或 `path`) ·
+    输出 dict 含:
+      path        · 用户原始写法(保留)
+      lines       · "42-89" / "42" / None
+      resolved    · 绝对路径字符串 · 找不到为 ""
+      exists      · bool · 路径是否存在
+      preview     · code snippet 字符串 · 失败为 ""
+      warning     · 失败原因 · 成功为 ""
+      vscode_url  · vscode://file/<abs>:<line> 深链 · 失败为 ""
+
+    plan §6.1 + 3A defensive IO + 4A lru_cache 全部覆盖。
+    """
+    out = {
+        "path": raw or "",
+        "lines": None,
+        "resolved": "",
+        "exists": False,
+        "preview": "",
+        "warning": "",
+        "vscode_url": "",
+    }
+    if not raw:
+        out["warning"] = "empty code anchor"
+        return out
+
+    path_s, start, end = _parse_code_ref(raw)
+    out["lines"] = f"{start}-{end}" if start and end and start != end else (str(start) if start else None)
+
+    resolved = _resolve_doc_path(path_s, module_path, repo_root, vars_)
+    if not resolved:
+        out["warning"] = f"path not found: {path_s} (tried abs · relative to module · relative to repo)"
+        return out
+
+    out["resolved"] = str(resolved)
+    out["exists"] = True
+
+    # vscode:// 深链(start 默认 1)
+    line_for_url = start or 1
+    out["vscode_url"] = f"vscode://file/{resolved.as_posix()}:{line_for_url}"
+
+    # 读 preview(走 lru_cache)
+    preview, warning = _read_code_lines(str(resolved), start, end)
+    out["preview"] = preview
+    if warning:
+        out["warning"] = warning
+    return out

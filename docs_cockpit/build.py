@@ -34,19 +34,22 @@ from .schema import (
     VALID_STATUSES,
     _DOCS_SECTION_RE,
     _SUBTASK_SECTION_RE,
+    VALID_SUBTASK_STATUSES,
     extract_docs_from_body,
     extract_subtasks_from_body,
+    normalize_subtasks,
     slugify,
     split_frontmatter,
     validate_meta,
+    validate_subtask_schema,
 )
-
-# 0.11.0-alpha.1:path / fs IO / docs path resolution 已搬到 paths.py
+# 0.11.0-alpha.1 / 0.11.0-alpha.2:path / fs IO / docs path resolution / W1 code anchor
 #   (plan-eng-review 1A · build.py 减肥)
 from .paths import (
     _build_vars,
     _expand,
     _resolve_and_embed_docs,
+    _resolve_code_anchor,
     _resolve_doc_path,
     _resolve_group_files,
     read_md,
@@ -92,7 +95,36 @@ def _build_card(
         subtasks = meta.get("subtasks")
         if not subtasks and body:
             subtasks = extract_subtasks_from_body(body)
-        card["subtasks"] = subtasks or []
+        # 0.11.0-alpha.2:W1 schema · normalize 为对象数组 · 每条至少含
+        # {id, title, status} · 可选 {code, docs} · plan §6.1
+        module_id = meta.get("id") or "X"
+        subtasks = normalize_subtasks(subtasks or [], module_id)
+        # 0.11.0-alpha.2:W1 schema 校验 · 给 issues 列表追加 subtask 级 issues
+        if path and meta.get("id"):
+            _subtask_issues = validate_subtask_schema(subtasks, module_id, path)
+            # _subtask_issues 在外层 _build_card_list 那里聚合 · 通过 caller 处理
+            # 这里 attach 到 card 上 · _build_card_list iterates 时摘出来
+            card["_pending_issues"] = _subtask_issues
+        # 0.11.0-alpha.2:W1 code anchor · resolve subtask 的 code 字段 · plan §6.1
+        # 每条 subtask 的 code 字段可能是 string 或 list[string] · 都 normalize 为
+        # list[dict] · 含 path / lines / resolved / exists / preview / vscode_url / warning
+        if vars_ and path:
+            repo_root = pathlib.Path(vars_.get("repo", "."))
+            for sub in subtasks:
+                raw_code = sub.get("code")
+                if not raw_code:
+                    continue
+                if isinstance(raw_code, str):
+                    raw_code_list = [raw_code]
+                elif isinstance(raw_code, list):
+                    raw_code_list = [str(c) for c in raw_code if c]
+                else:
+                    continue
+                sub["code_anchors"] = [
+                    _resolve_code_anchor(c, path, repo_root, vars_)
+                    for c in raw_code_list
+                ]
+        card["subtasks"] = subtasks
 
         docs = meta.get("docs")
         if not docs and body:
@@ -153,6 +185,9 @@ def _build_card_list(
         # 0.7.1:vars_ 透传 · _build_card 用 repo_root 解析 docs 相对路径
         card = _build_card(title, path, meta, mtime, body, full=full, vars_=vars_)
         if card is not None:
+            # 0.11.0-alpha.2:摘出 _build_card 收集的 subtask 校验 issues 合到主列表
+            if fm_enabled and "_pending_issues" in card:
+                issues.extend(card.pop("_pending_issues"))
             out.append(card)
     return out
 
@@ -555,6 +590,74 @@ def cmd_init(args: argparse.Namespace) -> int:
     target.write_text(template_yaml.read_text(encoding="utf-8"), encoding="utf-8")
     _safe_print(f"[OK] wrote {target}")
     _safe_print("     edit, then run: docs-cockpit build")
+    return 0
+
+
+# 0.11.0-alpha.2 · W1:把 v0.10 字符串 subtasks 升级为 v0.11 对象 schema
+def cmd_migrate_subtasks(args: argparse.Namespace) -> int:
+    """读 MD · 把 frontmatter `subtasks: list[str]` 升级为 `list[dict]`(v0.11 W1).
+
+    plan §6.4 数据迁移 · 默认 dry-run 输出 diff · --apply 写回。
+    """
+    file_path = pathlib.Path(args.file).resolve()
+    if not file_path.exists():
+        _safe_print(f"[ERR] file not found: {file_path}")
+        return 1
+
+    content = file_path.read_text(encoding="utf-8")
+    meta, body = split_frontmatter(content)
+    if not meta:
+        _safe_print(f"[skip] {file_path.name} · no frontmatter")
+        return 0
+
+    raw_subtasks = meta.get("subtasks")
+    if not raw_subtasks:
+        _safe_print(f"[skip] {file_path.name} · no subtasks field in frontmatter")
+        return 0
+
+    # 检测是否需要迁移:list[str] 或 list[dict without id] 需要 normalize
+    needs_migrate = False
+    if isinstance(raw_subtasks, list):
+        for item in raw_subtasks:
+            if isinstance(item, str):
+                needs_migrate = True
+                break
+            if isinstance(item, dict) and "id" not in item:
+                needs_migrate = True
+                break
+    if not needs_migrate:
+        _safe_print(f"[OK] {file_path.name} · subtasks already in v0.11 schema · no change")
+        return 0
+
+    module_id = meta.get("id") or file_path.stem
+    new_subtasks = normalize_subtasks(raw_subtasks, module_id)
+
+    # Build new frontmatter YAML
+    new_meta = dict(meta)
+    new_meta["subtasks"] = [
+        {k: v for k, v in s.items() if k != "done"}  # 去掉冗余 done 字段
+        for s in new_subtasks
+    ]
+    new_yaml = yaml.safe_dump(new_meta, allow_unicode=True, sort_keys=False)
+    new_content = f"---\n{new_yaml}---\n{body}"
+
+    _safe_print(f"[diff] {file_path.name}")
+    _safe_print(f"  before · {len(raw_subtasks)} subtask(s)")
+    for i, item in enumerate(raw_subtasks[:3]):
+        _safe_print(f"    [{i}] {str(item)[:60]}")
+    _safe_print(f"  after · {len(new_subtasks)} subtask(s)")
+    for i, sub in enumerate(new_subtasks[:3]):
+        _safe_print(f"    [{i}] id={sub['id']} status={sub['status']} title={sub['title'][:40]}")
+
+    if args.apply:
+        # 备份原文件
+        backup = file_path.with_suffix(file_path.suffix + ".bak")
+        backup.write_text(content, encoding="utf-8")
+        file_path.write_text(new_content, encoding="utf-8")
+        _safe_print(f"[OK] wrote {file_path.name} · backup at {backup.name}")
+    else:
+        _safe_print("")
+        _safe_print("dry-run · use --apply to write changes")
     return 0
 
 

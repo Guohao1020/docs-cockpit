@@ -13,6 +13,7 @@ subtask schema 演进(plan §6.1)。
 from __future__ import annotations
 
 import datetime as _dt
+import hashlib
 import pathlib
 import re
 from typing import Any
@@ -162,6 +163,10 @@ _DOCS_SECTION_RE = re.compile(
 _SECTION_BOUNDARY_RE = re.compile(r"^(#{1,6}\s|[-*_]{3,}\s*$)", re.MULTILINE)
 _CHECKBOX_LINE_RE = re.compile(r"^\s*[-*+]\s+\[([ xX])\]\s+(.+?)\s*$")
 _MD_LINK_RE = re.compile(r"\[([^\]]+)\]\(([^)]+)\)")
+# 0.11.0-alpha.2 · plan §6.1 内联 `@code:<path>[:lines]` / `@docs:<ref>`
+# 终止符是空格或行尾 · 允许 path 内有 / 和 \ · lines 用 :42 / :42-89
+_INLINE_CODE_RE = re.compile(r"@code:(\S+)")
+_INLINE_DOCS_RE = re.compile(r"@docs:(\S+)")
 
 
 def _section_after(body: str, header_re: re.Pattern) -> str:
@@ -178,18 +183,43 @@ def _section_after(body: str, header_re: re.Pattern) -> str:
 
 
 def extract_subtasks_from_body(body: str) -> list[dict]:
-    """扫 ## 待办/TODO/Subtasks 段 · 提 `- [x]` / `- [ ]` 行为 subtasks."""
+    """扫 ## 待办/TODO/Subtasks 段 · 提 `- [x]` / `- [ ]` 行为 subtasks.
+
+    0.11.0-alpha.2 · plan §6.1 增强:支持内联 `@code:path[:lines]` 和
+    `@docs:ref`(都可多次)· 例如:
+      - [x] Lane A · BrowserVendor abstraction @code:sourcery/x.py:42-89 @docs:M09-spec
+    会切出:
+      title = "Lane A · BrowserVendor abstraction"
+      code = ["sourcery/x.py:42-89"]
+      docs = ["M09-spec"]
+    """
     section = _section_after(body, _SUBTASK_SECTION_RE)
     if not section:
         return []
     out: list[dict] = []
     for line in section.split("\n"):
         m = _CHECKBOX_LINE_RE.match(line)
-        if m:
-            done = m.group(1).lower() == "x"
-            title = m.group(2).strip()
-            if title:
-                out.append({"title": title, "done": done})
+        if not m:
+            continue
+        done = m.group(1).lower() == "x"
+        text = m.group(2).strip()
+        if not text:
+            continue
+        # 0.11.0-alpha.2:提取内联 @code:... 和 @docs:...
+        code_refs = _INLINE_CODE_RE.findall(text)
+        docs_refs = _INLINE_DOCS_RE.findall(text)
+        # title = 去掉所有 @code / @docs annotation 后的余文
+        cleaned = _INLINE_CODE_RE.sub("", text)
+        cleaned = _INLINE_DOCS_RE.sub("", cleaned)
+        title = " ".join(cleaned.split()).strip()
+        if not title:
+            continue
+        entry: dict[str, Any] = {"title": title, "done": done}
+        if code_refs:
+            entry["code"] = code_refs if len(code_refs) > 1 else code_refs[0]
+        if docs_refs:
+            entry["docs"] = docs_refs if len(docs_refs) > 1 else docs_refs[0]
+        out.append(entry)
     return out
 
 
@@ -308,6 +338,165 @@ def validate_meta(
                 "no docs link · dashboard shows the 'copy prompt' CTA on active modules",
                 suggestion="add a `docs:` list or a `## Related` body section once a plan/RFC exists",
                 reference="docs-cockpit-author · §3 cross-doc references",
+            ))
+
+    return issues
+
+
+# ── v0.11 W1 subtask schema · plan §6.1 + §6.4 + plan-eng-review 1A ──
+#
+# 0.10 subtask 是字符串数组(列表 / `[x]` body checkbox)· 没 id / 没 code
+# anchor / 没 docs 引用 · 跨 build 不稳定(localStorage 用 index 为 key ·
+# 用户加新 subtask 状态全错位)。
+#
+# 0.11 把 subtask 升为对象:{id, title, status, code?, docs?} · id 用
+# `<module-id>-<sha1(title)[:6]>` 算法 · title 没变 id 就稳。
+# string 输入仍然兼容 · normalize 时自动补 id / status="not-started"。
+
+VALID_SUBTASK_STATUSES = {"not-started", "in-progress", "done", "blocked"}
+
+
+def _subtask_id_for(module_id: str, title: str) -> str:
+    """生成 stable subtask id · `<module-id>-<sha1(title)[:6]>`.
+
+    plan §6.1 + plan-eng-review issue #3 决策:不用 body index 算 id(因为用户
+    在中间插入新 subtask 会让所有后续 id shift · 破坏 localStorage 持久化)。
+    Hash-of-title trade-off:用户改 title = 改任务定义 = id 变 = localStorage
+    状态丢 · acceptable。
+    """
+    if not module_id:
+        module_id = "X"
+    digest = hashlib.sha1(title.encode("utf-8", errors="replace")).hexdigest()[:6]
+    return f"{module_id}-{digest}"
+
+
+def _coerce_status(raw: Any) -> str:
+    """旧 done:true/false 兼容 · 不抛 · 落不在枚举里 statuc 留给 validator 报."""
+    if raw is True or raw == "done":
+        return "done"
+    if raw is False or raw is None or raw == "":
+        return "not-started"
+    return str(raw)
+
+
+def normalize_subtasks(raw: Any, module_id: str) -> list[dict]:
+    """把 frontmatter `subtasks:` 字段统一成对象数组.
+
+    输入 raw 可能是:
+    - None / [] → 返 []
+    - list[str](v0.10 旧 · 或 body fallback `- [x] title`)· title 即 string ·
+      status 看不出来 → 默认 not-started
+    - list[dict] · v0.10 form A `{title, done}` · 也可能 v0.11 完整 `{id, title, status, code, docs}`
+    - 混合 list[str | dict]
+
+    输出 list[dict] · 每条至少含 {id, title, status} · 可选含 `code` / `docs`。
+
+    id 算法:`<module-id>-<sha1(title)[:6]>`(plan §6.1)。dict 显式给 id 用
+    用户的 · 自动算的不覆盖。
+
+    v0.10 form A `{title, done: bool}` 兼容:`done=True` → status=done ·
+    `done=False` → status=not-started · 保 done 字段(前端老 JS 可能读)。
+    """
+    if not raw:
+        return []
+    out: list[dict] = []
+    for item in raw:
+        if isinstance(item, str):
+            # v0.10 string form / body checkbox(已被 extract_subtasks_from_body
+            # 转 dict 了 · 这里兜底)
+            title = item.strip()
+            if not title:
+                continue
+            out.append({
+                "id": _subtask_id_for(module_id, title),
+                "title": title,
+                "status": "not-started",
+                "done": False,
+            })
+        elif isinstance(item, dict):
+            title = (item.get("title") or "").strip()
+            if not title:
+                continue
+            # status:优先显式 status · 没 status 看 done · 都没默认 not-started
+            if "status" in item:
+                status = _coerce_status(item["status"])
+            elif "done" in item:
+                status = "done" if item["done"] else "not-started"
+            else:
+                status = "not-started"
+            entry = {
+                "id": item.get("id") or _subtask_id_for(module_id, title),
+                "title": title,
+                "status": status,
+                "done": status == "done",  # 兼容前端老 JS 字段
+            }
+            # 可选字段透传 · code / docs 由 paths.py resolver 后续处理
+            if "code" in item:
+                entry["code"] = item["code"]
+            if "docs" in item:
+                entry["docs"] = item["docs"]
+            out.append(entry)
+        # 其他类型(int / None / 嵌套 list)忽略 · validator 会报 warn
+    return out
+
+
+def validate_subtask_schema(
+    subtasks: list[dict],
+    module_id: str,
+    path: pathlib.Path,
+) -> list[Issue]:
+    """校验 normalize 后的 subtask 列表 · 不校 fs(path / code 由 paths.py 校).
+
+    校:
+    - id 唯一性(单 module 内) · error
+    - status enum · error
+    - title 存在 · error
+
+    plan §6.1 决策的 fs-level 校验(code path 存在性 + 行号合法性)在
+    `paths.py::_resolve_code_anchor()` 里走 · severity=warn · 不阻塞 build。
+    """
+    issues: list[Issue] = []
+    seen_ids: set[str] = set()
+    for i, sub in enumerate(subtasks):
+        # title 必须有
+        title = (sub.get("title") or "").strip()
+        if not title:
+            issues.append(Issue(
+                "error", path, f"subtasks[{i}].title",
+                "missing — subtask without title is invisible in drawer",
+                suggestion="add `title: \"<one-line description>\"` to the subtask object",
+                reference="docs-cockpit-author · §2.4 subtask schema",
+            ))
+            continue
+
+        # id 唯一
+        sub_id = sub.get("id") or ""
+        if not sub_id:
+            issues.append(Issue(
+                "error", path, f"subtasks[{i}].id",
+                f"missing id for `{title[:40]}` — localStorage status persistence will break",
+                suggestion=f"add `id: \"{module_id}-S1\"` (or use normalize_subtasks auto-gen)",
+                reference="docs-cockpit-author · §2.4 subtask schema",
+            ))
+        elif sub_id in seen_ids:
+            issues.append(Issue(
+                "error", path, f"subtasks[{i}].id",
+                f"duplicate id `{sub_id}` — only the first will show in drawer",
+                suggestion="rename one · ids must be unique within a module",
+                reference="docs-cockpit-author · §2.4 subtask schema",
+            ))
+        else:
+            seen_ids.add(sub_id)
+
+        # status enum
+        status = sub.get("status") or "not-started"
+        if status not in VALID_SUBTASK_STATUSES:
+            valid = " · ".join(sorted(VALID_SUBTASK_STATUSES))
+            issues.append(Issue(
+                "error", path, f"subtasks[{i}].status",
+                f"unknown status `{status}` for `{title[:40]}`",
+                suggestion=f"pick one of: {valid}",
+                reference="docs-cockpit-author · §2.4 subtask schema",
             ))
 
     return issues

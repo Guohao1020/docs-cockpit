@@ -180,3 +180,89 @@ class TestResolveDocPath:
         module = tmp_path / "M01.md"
         module.touch()
         assert _resolve_doc_path("", module, tmp_path, {}) is None
+
+
+# ── v0.11 W1 · resolve_code_anchor + parse_code_ref ─────────────
+from docs_cockpit.paths import _parse_code_ref, _resolve_code_anchor
+
+
+class TestParseCodeRef:
+    def test_path_with_range(self):
+        assert _parse_code_ref("x.py:42-89") == ("x.py", 42, 89)
+
+    def test_path_with_single_line(self):
+        assert _parse_code_ref("x.py:42") == ("x.py", 42, 42)
+
+    def test_path_only(self):
+        assert _parse_code_ref("x.py") == ("x.py", None, None)
+
+    def test_empty(self):
+        assert _parse_code_ref("") == ("", None, None)
+        assert _parse_code_ref("   ") == ("", None, None)
+
+    def test_nested_path(self):
+        assert _parse_code_ref("a/b/c.py:10") == ("a/b/c.py", 10, 10)
+
+    def test_python_module_format(self):
+        # subtask 中常见
+        assert _parse_code_ref("docs_cockpit/build.py:761-780") == (
+            "docs_cockpit/build.py", 761, 780
+        )
+
+
+class TestResolveCodeAnchor:
+    def test_existing_file_with_lines(self, tmp_path):
+        target = tmp_path / "x.py"
+        target.write_text("\n".join(f"line{i}" for i in range(1, 30)))
+        module = tmp_path / "M01.md"
+        module.touch()
+        out = _resolve_code_anchor(
+            "x.py:5-7", module, tmp_path, {"repo": str(tmp_path)}
+        )
+        assert out["exists"] is True
+        assert out["lines"] == "5-7"
+        assert "line5" in out["preview"] or "line2" in out["preview"]  # ±5 context
+        assert out["warning"] == ""
+        assert "vscode://file/" in out["vscode_url"]
+
+    def test_missing_file_warns(self, tmp_path):
+        module = tmp_path / "M01.md"
+        module.touch()
+        out = _resolve_code_anchor("missing.py:42", module, tmp_path, {})
+        assert out["exists"] is False
+        assert "not found" in out["warning"]
+        assert out["preview"] == ""
+
+    def test_binary_detected(self, tmp_path):
+        binary = tmp_path / "img.png"
+        binary.write_bytes(b"\x89PNG\r\n\x1a\n" + b"\x00" * 100)
+        module = tmp_path / "M01.md"
+        module.touch()
+        out = _resolve_code_anchor("img.png", module, tmp_path, {})
+        assert out["exists"] is True
+        assert "binary" in out["warning"]
+        assert out["preview"] == ""
+
+    def test_line_out_of_range(self, tmp_path):
+        small = tmp_path / "small.py"
+        small.write_text("only 3 lines\nare here\nstop")
+        module = tmp_path / "M01.md"
+        module.touch()
+        out = _resolve_code_anchor("small.py:99", module, tmp_path, {})
+        assert "out of range" in out["warning"] or "start line" in out["warning"]
+
+    def test_empty_anchor(self, tmp_path):
+        module = tmp_path / "M01.md"
+        module.touch()
+        out = _resolve_code_anchor("", module, tmp_path, {})
+        assert out["warning"] == "empty code anchor"
+
+    def test_path_only_returns_truncated_preview(self, tmp_path):
+        long_file = tmp_path / "long.py"
+        long_file.write_text("x" * 5000)
+        module = tmp_path / "M01.md"
+        module.touch()
+        out = _resolve_code_anchor("long.py", module, tmp_path, {})
+        assert out["exists"] is True
+        assert len(out["preview"]) <= 1000  # ~800 cap + suffix
+        assert "truncated" in out["preview"]

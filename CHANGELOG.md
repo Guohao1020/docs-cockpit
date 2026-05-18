@@ -4,6 +4,80 @@
 
 ## [Unreleased]
 
+## [0.11.0-alpha.2] · 2026-05-18
+
+v0.11 W1 数据层完成 · subtask 升级为一等公民。M01 从 70% → 90% · M02 从 33% → 44%。仍按 plan §11 走 Step 3 → Step 4(W3 prompt scaffolding)。
+
+### Why
+
+0.10 subtask 是字符串数组 · 没 id / 没 code anchor / 没 docs 引用。dashboard 上能勾 checkbox 但状态在跨 build / 改 title 时丢失 · localStorage 用 index 为 key · 加新 subtask 全错位。v0.11 W1 把 subtask 升为对象 · 接代码 anchor + linked docs · 驱动 drawer 里「点 subtask 看代码 + spec」体验。
+
+### Added · schema.py W1
+
+- `normalize_subtasks(raw, module_id)` · 把 list[str] / list[dict] / 混合统一为对象数组 · 自动补 id(sha1-of-title)+ 默认 status
+- `validate_subtask_schema(subs, module_id, path)` · id 唯一性 · status 枚举 · title 必填 · 3 档 Issue
+- `VALID_SUBTASK_STATUSES = {not-started, in-progress, done, blocked}` · plan §6.1 lock
+- `_subtask_id_for(module_id, title)` · `<module-id>-<sha1(title)[:6]>` 稳定 id 算法
+
+### Added · paths.py W1
+
+- `_resolve_code_anchor(raw, module_path, repo_root, vars_)` · 解析 `path:start-end` / `path:single` / `path` 三种格式 · 走三步 fallback 拿绝对路径
+- `_parse_code_ref` helper · 切 path + line range
+- `_read_code_lines` · 带 `@functools.lru_cache(maxsize=256)` · 多 subtask 引用同 path 不重复读 fs(plan-eng-review 4A · 1.5-3x 加速)
+- Defensive IO 全套(plan-eng-review 3A · plan §6.1):
+  - `OSError` / `PermissionError` · warn + None preview
+  - `UnicodeDecodeError` · warn + None preview
+  - binary 检测(前 1KB null byte)· skip
+  - 文件 > 5MB · skip
+  - 行号越界 · skip
+- 输出含 `vscode://file/...` 深链 · ±5 行 context · 800 char hard cap
+
+### Added · body parser 内联 `@code` / `@docs` 语法 (plan §6.1)
+
+```markdown
+- [x] Lane A · BrowserVendor abstraction @code:sourcery/x.py:42-89 @docs:M09-spec
+```
+
+切出:
+- title = "Lane A · BrowserVendor abstraction"
+- code = "sourcery/x.py:42-89"(单个)或 `["a.py", "b.py"]`(多个)
+- docs = "M09-spec"(单个)或 list(多个)
+
+写在 `extract_subtasks_from_body()` 里 · build 时自动透传到 normalize_subtasks。
+
+### Added · build.py wire-up
+
+`_build_card` 用 `normalize_subtasks` 把所有 subtask 统一对象 schema · 然后对每条 subtask 的 `code` 字段(string / list)调 `_resolve_code_anchor` · 输出 `subtasks[].code_anchors[]` 含 resolved path + preview + vscode_url · drawer 后续直接渲染。
+
+### Added · `docs-cockpit migrate-subtasks <file>` CLI
+
+把 v0.10 字符串 subtasks 升级到 v0.11 对象 schema · 默认 dry-run 输出 diff · `--apply` 写回 + 生成 `.bak` 备份。M02 subtask 7 完成。
+
+### Added · 单元测试
+
+- schema W1:11 个 `normalize_subtasks` 测 + 7 个 `validate_subtask_schema` 测 + 4 个 `extract_subtasks_from_body` 内联语法测 = 22 新测
+- paths W1:6 个 `_parse_code_ref` 测 + 6 个 `_resolve_code_anchor` 测(含 binary / OOR / empty / truncated)= 12 新测
+- 总 pytest:**93 passed in 0.17s**(0.11.0-alpha.1 是 52 · 本 alpha.2 多 41 测)
+
+### Changed · M01 / M02 subtask 状态
+
+- M01:7/10 → 9/10(70% → 90%)· 还差 1 个 sidecar prompts.js(Step 4)
+- M02:3/9 → 4/9(33% → 44%)· 还差 5 个 W3(Step 4)
+- 这些 subtask checkbox 在 MD 里勾上 · build 自动算 progress 反映
+
+### Not changed
+
+- HTML template / state.json 主结构 / drawer 渲染 · 这些是 Step 2 UI 范围
+- 用户已有的 subtask:list[str] / list[dict{title,done}] 全部兼容 · normalize 自动 upgrade · `subtasks[].code_anchors[]` 是新增字段 · 前端 0.10 不消费也不破
+
+### What's next · Step 4 W3 prompt scaffolding
+
+- `docs_cockpit/prompt.py` + Jinja2 SandboxedEnvironment + 4 内置 template
+- `docs-cockpit prompt <module-id> [<subtask-id>]` CLI(M02 subtask 4/5/6)
+- `docs-cockpit lint --prompts`(M02 subtask 8)
+- `docs/prompts.js` sidecar 输出(M01 subtask 8)
+- `tests/integration/test_cli_v011.py`(M02 subtask 9)
+
 ## [0.11.0-alpha.1] · 2026-05-18
 
 v0.11 driver-seat plan §11 Step 1 完成 · 给 W1 / W3 / UI split-view 立个测试 + 模块化基础。alpha.1 用户视觉**无感知** · 全是内部 refactor。

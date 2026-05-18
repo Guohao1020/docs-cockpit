@@ -64,6 +64,19 @@ def main(argv: list[str] | None = None) -> int:
     init_p.add_argument("--force", action="store_true")
     init_p.set_defaults(func=cmd_init)
 
+    # 0.11.0-alpha.2 · W1:把 v0.10 字符串 subtasks 升级到 v0.11 对象 schema
+    ms_p = sub.add_parser(
+        "migrate-subtasks",
+        help="把 MD frontmatter 里 v0.10 字符串 subtasks 升级到 v0.11 对象 schema",
+    )
+    ms_p.add_argument("file", help="目标 MD 文件路径")
+    ms_p.add_argument(
+        "--apply", action="store_true",
+        help="真执行写回(默认 dry-run · 输出 diff 不动文件)· 写前生成 .bak 备份",
+    )
+    from .build import cmd_migrate_subtasks
+    ms_p.set_defaults(func=cmd_migrate_subtasks)
+
     mig_p = sub.add_parser(
         "migrate",
         help="一键迁移现有项目散落 MD → docs-cockpit canonical 布局",
