@@ -134,20 +134,22 @@ a:hover { text-decoration: underline; }
   align-items: start;
 }
 .split-nav-slot {
-  /* §4.c · module-drawer DOM 移进来 · CSS override modal 样式 */
+  /* §4.c · module-drawer DOM 移进来 · CSS override modal 样式
+     0.11.0-alpha.7 follow-up · overflow-y: auto 让左 navigator 自己滚动 · 修被截断 */
   position: relative;
-  background: var(--c-bg);
+  background: var(--c-paper);
   border: 1px solid var(--c-hairline);
-  border-radius: 8px;
-  overflow: hidden;
+  border-radius: var(--r-lg);
+  overflow-y: auto;
+  overflow-x: hidden;
   max-height: calc(100vh - 120px);
   display: flex;
   flex-direction: column;
 }
 .split-preview-slot {
-  background: var(--c-bg);
+  background: var(--c-paper);
   border: 1px solid var(--c-hairline);
-  border-radius: 8px;
+  border-radius: var(--r-lg);
   padding: 24px 32px;
   min-height: 70vh;
   max-height: calc(100vh - 120px);
@@ -160,14 +162,15 @@ a:hover { text-decoration: underline; }
   text-align: center;
   padding: 64px 16px;
 }
-/* 0.11.0-alpha.6 §4.d · split-preview head(顶部 title + path + mtime) */
+/* 0.11.0-alpha.6 §4.d · split-preview head(顶部 title + path + mtime)
+   0.11.0-alpha.7 follow-up · 用 --f-display 不是 --f-sans · 跟 design.md 对齐 */
 .split-preview-head {
   padding-bottom: 12px;
   margin-bottom: 16px;
   border-bottom: 1px solid var(--c-hairline);
 }
 .split-preview-head .pv-title {
-  font-family: var(--f-sans);
+  font-family: var(--f-display);
   font-size: 16px;
   font-weight: 600;
   color: var(--c-ink);
@@ -185,17 +188,29 @@ a:hover { text-decoration: underline; }
   color: var(--c-charcoal);
   margin-top: 4px;
 }
-/* §4.d · 左 navigator 里 active 那条 doc-row 高亮 */
+/* §4.d · 左 navigator 里 active 那条 doc-row 高亮
+   0.11.0-alpha.7 follow-up · design.md HP 蓝 · 去灰底 · 只用 left border + 字加深 */
 body.split-mode .doc-list .doc-row.active {
-  background: var(--c-tint, #f5f7ff);
-  border-left: 3px solid var(--c-accent, #4f46e5);
+  background: transparent;
+  border-left: 2px solid var(--c-primary);
+  border-radius: 0 var(--r-md) var(--r-md) 0;
+}
+body.split-mode .doc-list .doc-row.active .doc-title {
+  color: var(--c-ink);
+  font-weight: 600;
 }
 body.split-mode .sysdoc-list .sysdoc-row.active {
-  background: var(--c-tint, #f5f7ff);
-  border-left: 3px solid var(--c-accent, #4f46e5);
+  background: transparent;
+  border-left: 2px solid var(--c-primary);
+  border-radius: 0 var(--r-md) var(--r-md) 0;
+}
+body.split-mode .sysdoc-list .sysdoc-row.active .sd-title {
+  color: var(--c-ink);
+  font-weight: 600;
 }
 
-/* §4.e · subtask 行的 code / prompt 按钮 */
+/* §4.e · subtask 行的 code / prompt 按钮
+   0.11.0-alpha.7 follow-up · 对齐 design.md token */
 .subtasks .st .st-extras {
   display: inline-flex;
   gap: 4px;
@@ -205,10 +220,10 @@ body.split-mode .sysdoc-list .sysdoc-row.active {
 .st-code-btn, .st-prompt-btn {
   background: transparent;
   border: 1px solid var(--c-hairline);
-  color: var(--c-charcoal);
+  color: var(--c-graphite);
   width: 22px;
   height: 22px;
-  border-radius: 4px;
+  border-radius: var(--r-sm);
   cursor: pointer;
   display: inline-flex;
   align-items: center;
@@ -217,41 +232,47 @@ body.split-mode .sysdoc-list .sysdoc-row.active {
   transition: background 0.12s, border-color 0.12s, color 0.12s;
 }
 .st-code-btn:hover, .st-prompt-btn:hover {
-  background: var(--c-tint, #f5f7ff);
-  border-color: var(--c-ink);
-  color: var(--c-ink);
+  background: var(--c-tint);
+  border-color: var(--c-primary);
+  color: var(--c-primary);
 }
 .st-code-btn svg, .st-prompt-btn svg { width: 12px; height: 12px; }
 .st-code-btn.active {
-  background: var(--c-accent, #4f46e5);
-  border-color: var(--c-accent, #4f46e5);
-  color: white;
+  background: var(--c-primary);
+  border-color: var(--c-primary);
+  color: var(--c-on-ink);
 }
 .st-code-btn.stale {
-  border-color: var(--s-blocked, #c43);
-  color: var(--s-blocked, #c43);
+  border-color: var(--s-blocked);
+  color: var(--s-blocked);
 }
 
-/* 0.11.0-alpha.7 §4.b · split-view 顶部 Refine with AI 按钮(模式 2)*/
+/* 0.11.0-alpha.7 §4.b · split-view 顶部 Refine with AI 按钮(模式 2)
+   follow-up · design.md HP 蓝单色 · 不渐变(不混用多色 design 原则) */
 body.split-mode #module-drawer .drawer-head .refine-btn {
   display: inline-flex;
   align-items: center;
   gap: 6px;
   margin-left: auto;
   padding: 6px 12px;
-  font-family: var(--f-sans);
+  font-family: var(--f-display);
   font-size: 12px;
   font-weight: 500;
-  color: white;
-  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
-  border: none;
-  border-radius: 6px;
+  color: var(--c-on-ink);
+  background: var(--c-primary);
+  border: 1px solid var(--c-primary);
+  border-radius: var(--r-md);
   cursor: pointer;
-  transition: transform 0.12s ease, box-shadow 0.12s ease;
+  transition: background 0.12s ease, border-color 0.12s ease, box-shadow 0.12s ease;
 }
 body.split-mode #module-drawer .drawer-head .refine-btn:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+  background: var(--c-primary-bright);
+  border-color: var(--c-primary-bright);
+  box-shadow: var(--shadow-sm);
+}
+body.split-mode #module-drawer .drawer-head .refine-btn:active {
+  background: var(--c-primary-deep);
+  border-color: var(--c-primary-deep);
 }
 body.split-mode #module-drawer .drawer-head .refine-btn svg {
   width: 14px;
@@ -263,11 +284,12 @@ body.split-mode #module-drawer .drawer-head {
   gap: 12px;
 }
 
-/* §4.e · 右栏 code-anchor preview 渲染 */
+/* §4.e · 右栏 code-anchor preview 渲染
+   0.11.0-alpha.7 follow-up · design.md HP 蓝 + canvas/cloud/hairline token */
 .code-anchor-block {
   margin-bottom: 16px;
   border: 1px solid var(--c-hairline);
-  border-radius: 6px;
+  border-radius: var(--r-md);
   overflow: hidden;
 }
 .code-anchor-head {
@@ -275,7 +297,7 @@ body.split-mode #module-drawer .drawer-head {
   align-items: center;
   justify-content: space-between;
   padding: 8px 12px;
-  background: var(--c-cloud, #f8f8f8);
+  background: var(--c-cloud);
   border-bottom: 1px solid var(--c-hairline);
   font-family: var(--f-mono);
   font-size: 12px;
@@ -286,21 +308,26 @@ body.split-mode #module-drawer .drawer-head {
 }
 .code-anchor-vscode {
   font-size: 11px;
-  color: var(--c-accent, #4f46e5);
+  color: var(--c-primary);
   text-decoration: none;
   padding: 3px 8px;
-  border: 1px solid var(--c-accent, #4f46e5);
-  border-radius: 4px;
+  border: 1px solid var(--c-primary);
+  border-radius: var(--r-sm);
   white-space: nowrap;
   margin-left: 8px;
+  transition: background 0.12s ease, color 0.12s ease;
 }
-.code-anchor-vscode:hover { background: var(--c-accent, #4f46e5); color: white; }
+.code-anchor-vscode:hover {
+  background: var(--c-primary);
+  color: var(--c-on-ink);
+  text-decoration: none;
+}
 .code-anchor-warn {
   padding: 8px 12px;
   font-family: var(--f-mono);
   font-size: 11px;
-  color: var(--s-blocked, #c43);
-  background: #fef6f6;
+  color: var(--s-blocked);
+  background: var(--c-tint);
   border-bottom: 1px solid var(--c-hairline);
 }
 .code-anchor-preview {
@@ -309,7 +336,7 @@ body.split-mode #module-drawer .drawer-head {
   font-family: var(--f-mono);
   font-size: 12px;
   line-height: 1.5;
-  background: var(--c-bg, #fff);
+  background: var(--c-canvas);
   overflow-x: auto;
   white-space: pre;
 }
@@ -348,9 +375,12 @@ body.split-mode #module-drawer .h-close {
   display: none !important;
 }
 body.split-mode #module-drawer .drawer-body {
-  /* drawer-body 默认有 overflow · split-view 让 split-nav-slot 接管滚动 */
-  overflow: visible;
-  max-height: none;
+  /* drawer-body 默认有 overflow:auto · split-view 让 split-nav-slot 接管滚动
+     0.11.0-alpha.7 follow-up · 'overflow: visible' 配合 split-nav-slot 的 overflow-y:auto
+     · 让左 navigator 整体在 slot 里滚动 · drawer-body 内部不再单独滚 · 避免双滚动条 */
+  overflow: visible !important;
+  max-height: none !important;
+  flex: none;
 }
 
 /* §4.c · 响应式 · < 1024px 收回 stacked · 左在上 / 右在下 */
@@ -3356,7 +3386,7 @@ body.split-mode #module-drawer .drawer-body {
     if (!slot) return;
     slot.innerHTML =
       '<div style="padding:24px;">' +
-      '<div style="font-family:var(--f-sans); font-size:18px; color:var(--c-ink); margin-bottom:8px;">' +
+      '<div style="font-family:var(--f-display); font-size:18px; color:var(--c-ink); margin-bottom:8px;">' +
       escapeHtml(route.kind + ' · ' + (route.id || '?')) +
       '</div>' +
       '<div style="font-family:var(--f-mono); font-size:11px; color:var(--c-graphite);">' +
