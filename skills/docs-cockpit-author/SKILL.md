@@ -339,3 +339,144 @@ docs:
 ```
 
 This is the cross-link the dashboard needs to render the connection.
+
+## §10 · prompt template chapter (0.11.0-alpha.3)
+
+Prompt scaffolding (W3) renders module + subtask + linked docs + code anchor as a copy-pasteable prompt for Claude / Cursor / Codex.
+
+### §10.1 · Built-in templates
+
+4 templates live in `docs_cockpit/templates/prompts/`:
+
+| name | purpose |
+|---|---|
+| `generic.md.j2` | default · works for any subtask |
+| `feature.md.j2` | implementing new feature subtask |
+| `fix.md.j2` | bug fix subtask · emphasizes root cause + regression test |
+| `refactor.md.j2` | behavior-preserving change · Beck make-the-change-easy principle |
+
+User can override by writing `docs/prompts/<name>.md.j2` in their repo · `ChoiceLoader` resolution order:
+1. `<repo>/docs/prompts/<name>.md.j2` (user override)
+2. `docs_cockpit/templates/prompts/<name>.md.j2` (built-in)
+
+Template selection precedence (when rendering):
+1. CLI flag `docs-cockpit prompt M01 M01-S1 --template <name>`
+2. subtask frontmatter `prompt: <name>`
+3. module frontmatter `prompt_kind: <name>` (must be in `{feature, fix, refactor}`)
+4. fallback `generic`
+
+### §10.2 · Context vars stability contract
+
+Templates receive 5 context vars (v0.11):
+
+| var | type | description |
+|---|---|---|
+| `module` | dict | module's full frontmatter + body |
+| `subtask` | dict | the specific subtask · contains `code_anchors[]` (alpha.2) |
+| `linked_docs` | list[dict] | each `{title, path, summary}` · summary is doc body hard-capped at 2000 chars |
+| `repo_root` | str | absolute path |
+| `current_branch` | str \| None | lazy git rev-parse · None when git unavailable (CI / tarball) |
+
+**Backward-compat rules for future minor versions**:
+
+- **No-remove / no-rename** of existing vars in any minor release. Deprecate first (emit warning) · keep at least two minor cycles · remove only in major.
+- **New vars must be guarded** in built-in templates · use `{{ new_var | default('') }}` or `{% if new_var %}...{% endif %}` so user templates that pre-date the new var still render fine.
+- **SandboxedEnvironment configured with `Undefined`** (not `StrictUndefined`) · references to undefined vars render empty string · graceful degrade.
+
+When v0.12 / v0.13 add new vars · update this section with the `since-version` tag.
+
+## §11 · Writing module MD with AI assistance (0.11.0-alpha.7 · 模式 3)
+
+The driver-seat plan locks in v0.11 §0:**docs-cockpit is the AI's co-pilot · not a self-contained precision engine**. Semantic precision comes from LLM · python only handles parsing-layer (anchor syntax / line numbers / heading slugs).
+
+This section teaches Claude / Codex / Cursor **how to produce high-precision module MD** at write-time · so users don't need to manually figure out which plan section a subtask should anchor to.
+
+### §11.1 · The standard authoring flow
+
+When a user says **"帮我写 M07 build worker module · plan 在 driver-seat plan §6 · 代码在 sourcery/worker/"** or similar request to write / refine a module · follow this flow:
+
+1. **Read the relevant plan / RFC / spec body** (NOT grep · actually read · understand what each section says)
+   - User typically references a sprint plan / driver-seat plan / module-related RFC
+   - Map out each section's intent before drafting subtasks
+2. **Cross-reference to decompose subtasks**
+   - Each subtask should map to a specific plan section / RFC decision
+   - Use the plan's terminology in `subtask.title` · keep semantic alignment
+   - Don't invent subtasks the plan didn't sanction · if you see a gap · flag it instead of silently filling
+3. **Fill precise `code:` anchors**
+   - Actually read the repo · find the file + function + line range the subtask will touch
+   - Output `code: docs_cockpit/build.py:42-89` (with line range) · NOT `code: docs_cockpit/` (whole directory · unhelpful)
+   - If multiple files involved · use list: `code: [a.py:10-30, b.py:50]`
+   - If code doesn't exist yet (new file) · use just `code: docs_cockpit/new_module.py` (no lines · marks intent)
+4. **Fill precise `docs:` anchors**
+   - Use `docs/plans/x.md#§6.1` (heading anchor) or `docs/plans/x.md:120-180` (line range) to point to specific plan section
+   - NOT just `docs/plans/x.md` (whole doc · user has to find the relevant part)
+   - Multi-reference is fine: `docs: ['plan.md#§6.1', 'rfc-003.md', 'spec.md#§2']`
+5. **Cross-subtask consistency self-check**
+   - Adjacent subtasks have dependency hints in title ("Lane A 完成后做 Lane B")
+   - Same plan section referenced by multiple subtasks · check if over-fragmented (merge if so)
+   - subtask `status` × module-level `status` alignment (alpha.4 validator catches this · pre-empt)
+
+### §11.2 · Example · good vs bad
+
+**Bad** (low precision · validator passes but driver-seat experience is "open a 600-line doc · find it yourself"):
+
+```yaml
+subtasks:
+  - title: "build worker"
+    code: "sourcery/worker/"
+    docs: "docs/plans/driver-seat.md"
+```
+
+**Good** (high precision · drive-seat right preview goes straight to the relevant section + code snippet):
+
+```yaml
+subtasks:
+  - id: M07-S1
+    title: "BrowserVendor abstraction · Lane A"
+    status: in-progress
+    code: "sourcery/worker/browser_vendor.py:42-89"
+    docs: ["docs/plans/driver-seat.md#§6.1", "docs/RFC/004-browser-vendor.md"]
+  - id: M07-S2
+    title: "LocalPlaywrightVendor impl · Lane B (depends on Lane A)"
+    status: not-started
+    code: "sourcery/worker/local_playwright_vendor.py"
+    docs: "docs/plans/driver-seat.md#§6.2"
+```
+
+### §11.3 · When in doubt · output a draft + ask
+
+If you can't find a clear plan section for a subtask · don't fabricate an anchor. Two acceptable patterns:
+
+1. Output the subtask without `docs:` · let the validator emit hint「无文档支撑」· user adds later
+2. Add a TODO comment: `# TODO: anchor this subtask once plan §X clarifies` · so the user knows you couldn't resolve
+
+Better honest gap than wrong anchor that breaks user trust in the dashboard.
+
+## §12 · Cross-module / cross-doc consistency self-check (0.11.0-alpha.7)
+
+After producing or refining a module · run this checklist:
+
+### §12.1 · Doc backref check
+
+If a single plan / RFC is referenced by multiple modules · check that their anchors don't overlap pointlessly:
+
+- M01 references `plan.md#§6.1` (W1 数据层 section)
+- M02 references `plan.md#§6.2` (W3 prompt section)
+- M03 references `plan.md` (no anchor · only valid if M03 is about the plan's overall narrative)
+
+If two modules anchor to the same section · ask: are they really doing the same work? If yes · merge them. If no · find more specific anchors for each.
+
+### §12.2 · Module dependency closure
+
+If you set `depends_on: [M02]` on M01 · then M02 should have `blocks: [M01]` (or vice versa). Validator doesn't enforce this yet but the author skill should produce consistent pairs.
+
+### §12.3 · subtask status × module status
+
+If you mark `status: done` on a module · all subtasks should also be `done` (or at least the same). alpha.4 cross-field validator catches this · but pre-empt:
+
+- 9 subtasks done + 1 not-started · module status should be `in-progress` not `done`
+- If user explicitly wants `done` despite incomplete subtasks · question it (might be wrong)
+
+### §12.4 · Sprint alignment
+
+All subtasks should belong to the same sprint as the module · or be explicitly deferred. Mixed-sprint subtasks usually means the module needs splitting.

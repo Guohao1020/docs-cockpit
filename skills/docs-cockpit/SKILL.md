@@ -24,6 +24,16 @@ The plugin ships **4 skills** as of 0.10.0 (renamed + reorganized through 0.8→
 
 **Sibling `docs-cockpit-author`** — **writes individual project docs per the unified frontmatter spec**. Plans, RFCs, specs, individual module/concept MDs. The canonical source for frontmatter schema + body conventions + file naming + cross-doc reference rules. If `docs-cockpit lint` reported issues OR the user asks to write a new plan/RFC/spec/module MD, hand off.
 
+### Author skill · AI-augmented precision triggers (0.11.0-alpha.7 · 模式 3)
+
+The main plan §0 locks in **driver-seat is the AI's co-pilot · not a precision engine**. Hand off to `docs-cockpit-author` for these triggers:
+
+- **「帮我写 M07 module」** / 「补 M01 subtasks」 / 「这个 module spec 怎么写」 / 「拆这个 sprint 的 modules」 — hand off · run §11 authoring flow (precise `code:` / `docs:` anchors)
+- **「检查 M01 跟 plan 是否对齐」** / 「refine M01 docs anchor」 / 「M03 subtasks anchor 准不准」 — hand off · run §11 + §12 consistency self-check
+- **`docs-cockpit lint` 报 hint「无文档支撑」** — hand off · author skill 帮用户找正确 anchor 补 `docs:` 字段
+
+Don't try to answer these in the main skill · the author skill has §11 / §12 instructions for actually producing precise output.
+
 ## Upgrading docs-cockpit itself (folded in from old `docs-cockpit-update` skill)
 
 When the user says "update docs-cockpit" / "升级 docs-cockpit" / "把 docs-cockpit 升到最新" / "I saw a 'new version available' banner":
