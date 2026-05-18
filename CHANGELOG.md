@@ -4,6 +4,54 @@
 
 ## [Unreleased]
 
+## [0.11.0-alpha.6] · 2026-05-18
+
+driver-seat split-view 真上线。点 module / sysdoc → URL 切 hash → 左右双栏:左 navigator 完整 module 内容(subtasks 行带 code anchor 图标 + Copy prompt 按钮)· 右 preview 自动 marked.js 渲染关联文档 + 切换跟随 + code anchor click 渲染 code snippet。
+
+### Why
+
+alpha.1-5 把 W1 schema + W3 prompt 后端做完 · 但 frontend 还在用老 modal drawer · alpha.2/3 加的 `subtask.code_anchors[]` + `prompts.js` sidecar **都没在 dashboard 上接通**。alpha.6 把 split-view UI 上线 · 用上所有 alpha.x backend 数据 · 让 driver-seat 叙事第一次闭环可见。
+
+同时主 plan §0 加入 **driver-seat 角色重新框架**:driver-seat 是 AI 副驾不是精度引擎 · 语义精度走 alpha.7 AI-augmented(模式 2 + 模式 3)· python 只做解析层。
+
+### Added · 5 块 commit chain(已分块 ship)
+
+| commit | 内容 |
+|---|---|
+| `d66fbe0` §4.a | Backend systemDocs content embed(50KB cap)+ 主 plan §0 重新框架 + alpha.7 spec |
+| `58867e5` §4.b | Hash router(`#/module/<id>` / `#/sysdoc/<id>`)+ topbar Back 按钮 + Esc + `?ui=modal` 兼容 |
+| `19c3bc0` §4.c | Split layout CSS · grid `minmax(360px, 38%) 1fr` + JS 移 module-drawer DOM 进 split-nav-slot · 全部复用现有 render |
+| `940a832` §4.d MVP | 右 preview marked.js 渲染 · 默认显示第一条 linked doc · 点切换 + active 高亮 · sysdoc 二级页面接通 |
+| 本 commit §4.e | subtask code anchor 图标 + Copy prompt 按钮 · 接 alpha.2 `code_anchors[]` + alpha.3 prompts.js sidecar |
+
+### §4.e 完整内容(本 commit)
+
+- subtask 行右侧加 `<span class="st-extras">` · 内含两个按钮:
+  - `.st-code-btn` · 显图标 · click 渲染右栏 code preview(snippet + vscode 深链)
+  - `.st-prompt-btn` · 总是显 · click 取 `window.__PROMPTS__[stKey]` 复制(0.10.1 同款 clipboard fallback)
+- `renderSplitPreviewCode(subtask)` · 右栏渲染所有 code_anchors:path / lines / preview / vscode_url + warning(alpha.2 defensive IO)
+- `copySubtaskPrompt(stKey)` · 走 navigator.clipboard → execCommand fallback · file:// 兼容
+- HTML 加 `<script src="prompts.js" defer>` 加载 sidecar · `window.__PROMPTS__` 全局
+- subtask click toggle 加 guard:点 extras 区不切 done 状态
+- CSS `.st-code-btn / .st-prompt-btn / .code-anchor-block` 全套样式
+- i18n:`toast.prompt_copied` / `toast.prompt_missing`(EN + 中)
+
+### 体积
+
+主 HTML 411KB(alpha.5)→ 567KB(alpha.6 · +38% · 超 plan §8 +20% budget)。主要膨胀来自 systemDocs 95KB content embed(§4.a)+ 350 行新 JS / CSS。alpha.7 / 0.11.0 决定是否 sidecar 化 sysdoc content。
+
+### Not changed
+
+- `?ui=modal` URL query 切回老 modal drawer · 老用户书签 / muscle memory 不破
+- state.json schema 仅 systemDocs 加 content/mtime/exists 字段
+- subtask schema / code_anchor 数据(alpha.2)/ prompts.js 格式(alpha.3)全部沿用
+- 老 frontend 模块 drawer 代码保留 · split-mode CSS override · 双模式并存
+
+### What's next
+
+- **alpha.7** · AI-augmented precision(模式 2 「Ask AI to refine」按钮 + 模式 3 SKILL.md 教 AI 写 MD 时直接产出精准 anchor)· 详见 `docs/plans/P-v0.11-ai-augmented-precision-alpha7-2026-05-18.md`
+- **0.11.0** · 收口 + 公告 + push
+
 ## [0.11.0-alpha.5] · 2026-05-18
 
 修一个被 alpha.4 漏掉的 frontend 真 bug:**dashboard 用 subtask index 算 localStorage key · 改 subtask 顺序或 id 算法后状态错位 · 用户看到 M02 显示 status=done 但子任务 3/9**。

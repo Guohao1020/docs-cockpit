@@ -195,6 +195,94 @@ body.split-mode .sysdoc-list .sysdoc-row.active {
   border-left: 3px solid var(--c-accent, #4f46e5);
 }
 
+/* §4.e · subtask 行的 code / prompt 按钮 */
+.subtasks .st .st-extras {
+  display: inline-flex;
+  gap: 4px;
+  margin-left: 8px;
+  flex-shrink: 0;
+}
+.st-code-btn, .st-prompt-btn {
+  background: transparent;
+  border: 1px solid var(--c-hairline);
+  color: var(--c-charcoal);
+  width: 22px;
+  height: 22px;
+  border-radius: 4px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: background 0.12s, border-color 0.12s, color 0.12s;
+}
+.st-code-btn:hover, .st-prompt-btn:hover {
+  background: var(--c-tint, #f5f7ff);
+  border-color: var(--c-ink);
+  color: var(--c-ink);
+}
+.st-code-btn svg, .st-prompt-btn svg { width: 12px; height: 12px; }
+.st-code-btn.active {
+  background: var(--c-accent, #4f46e5);
+  border-color: var(--c-accent, #4f46e5);
+  color: white;
+}
+.st-code-btn.stale {
+  border-color: var(--s-blocked, #c43);
+  color: var(--s-blocked, #c43);
+}
+
+/* §4.e · 右栏 code-anchor preview 渲染 */
+.code-anchor-block {
+  margin-bottom: 16px;
+  border: 1px solid var(--c-hairline);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.code-anchor-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: var(--c-cloud, #f8f8f8);
+  border-bottom: 1px solid var(--c-hairline);
+  font-family: var(--f-mono);
+  font-size: 12px;
+}
+.code-anchor-head .ca-path {
+  color: var(--c-ink);
+  word-break: break-all;
+}
+.code-anchor-vscode {
+  font-size: 11px;
+  color: var(--c-accent, #4f46e5);
+  text-decoration: none;
+  padding: 3px 8px;
+  border: 1px solid var(--c-accent, #4f46e5);
+  border-radius: 4px;
+  white-space: nowrap;
+  margin-left: 8px;
+}
+.code-anchor-vscode:hover { background: var(--c-accent, #4f46e5); color: white; }
+.code-anchor-warn {
+  padding: 8px 12px;
+  font-family: var(--f-mono);
+  font-size: 11px;
+  color: var(--s-blocked, #c43);
+  background: #fef6f6;
+  border-bottom: 1px solid var(--c-hairline);
+}
+.code-anchor-preview {
+  margin: 0;
+  padding: 12px;
+  font-family: var(--f-mono);
+  font-size: 12px;
+  line-height: 1.5;
+  background: var(--c-bg, #fff);
+  overflow-x: auto;
+  white-space: pre;
+}
+
 /* hash 路由切到 split-page 时 · 隐藏 dashboard sections */
 body.split-mode #hero-section,
 body.split-mode #kpi-section,
@@ -1637,6 +1725,12 @@ body.split-mode #module-drawer .drawer-body {
 </div>
 
 <!-- 0.7.1 · marked + hljs · 用于 drawer 内联 MD 文档预览(点击 docs 链接不再跳出浏览器) -->
+<!-- 0.11.0-alpha.6 §4.e · 加载 prompts.js sidecar(alpha.3 W3 sidecar · §6.3 plan)
+     · defer 让 dashboard 主 HTML 先 parse · prompts 异步加载 · 给 「Copy prompt」按钮用
+     · file:// 兼容 · 不走 fetch · 用 script src 直接挂 window.__PROMPTS__
+     · 找不到 prompts.js 时 window.__PROMPTS__ 仍 undefined · 按钮 click 时 toast 提示 -->
+<script src="prompts.js" defer></script>
+
 <script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/core.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/languages/python.min.js"></script>
@@ -1728,6 +1822,8 @@ body.split-mode #module-drawer .drawer-body {
     en: {
       'topbar.crumb': 'Project Dashboard',
       'topbar.back': 'Back',
+      'toast.prompt_copied': 'Prompt copied · paste to Claude / Codex',
+      'toast.prompt_missing': 'Prompt not in cache · run docs-cockpit build to refresh prompts.js',
       'topbar.last_build': 'Last build',
       'topbar.sysdocs_btn': 'System Docs',
       'topbar.sysdocs_title': 'System Docs (D)',
@@ -1999,6 +2095,8 @@ body.split-mode #module-drawer .drawer-body {
     zh: {
       'topbar.crumb': '项目看板',
       'topbar.back': '返回',
+      'toast.prompt_copied': 'Prompt 已复制 · 粘到 Claude / Codex',
+      'toast.prompt_missing': 'Prompt 未在缓存 · 跑 docs-cockpit build 刷新 prompts.js',
       'topbar.last_build': '最后构建',
       'topbar.sysdocs_btn': '系统文档',
       'topbar.sysdocs_title': '系统文档 (D)',
@@ -2561,9 +2659,24 @@ body.split-mode #module-drawer .drawer-body {
       subtasksHtml = '<div class="subtasks">' + m.subtasks.map((st, i) => {
         // 0.11.0-alpha.5 · 用 stable subtask.id 作 data-st-key · 跟 getModule + toggle 一致
         const stKey = st.id || ('idx-' + i);
+        // 0.11.0-alpha.6 §4.e · code_anchors[] 图标(alpha.2 backend)+ Copy prompt 按钮(alpha.3 sidecar)
+        let extrasHtml = '';
+        if (st.code_anchors && st.code_anchors.length) {
+          // 第一条 anchor 显图标 · 多 anchor 时 click 渲染所有(右栏)
+          const ca = st.code_anchors[0];
+          const anchorOk = ca && ca.exists && !ca.warning;
+          extrasHtml += '<button type="button" class="st-code-btn' + (anchorOk ? '' : ' stale') + '" data-st-key="' + escapeHtml(stKey) + '" title="' + escapeHtml(anchorOk ? (ca.path + (ca.lines ? ':' + ca.lines : '')) : (ca.warning || 'stale anchor')) + '">' +
+            '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 4 2 8 6 12"/><polyline points="10 4 14 8 10 12"/></svg>' +
+          '</button>';
+        }
+        // Copy prompt 按钮(只在 prompts.js 已加载时显)
+        extrasHtml += '<button type="button" class="st-prompt-btn" data-st-key="' + escapeHtml(stKey) + '" title="Copy prompt for this subtask">' +
+          '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3" width="9" height="11" rx="1.5"/><path d="M3 5v8.5A1.5 1.5 0 0 0 4.5 15h7"/></svg>' +
+        '</button>';
         return '<div class="st' + (st.done ? ' done' : '') + '" data-st-key="' + escapeHtml(stKey) + '" tabindex="0" role="checkbox" aria-checked="' + st.done + '">' +
           '<span class="check"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 6.5l2.5 2.5 4.5-5"/></svg></span>' +
           '<span class="st-text">' + escapeHtml(st.title) + '</span>' +
+          '<span class="st-extras">' + extrasHtml + '</span>' +
         '</div>';
       }).join('') + '</div>';
     } else {
@@ -2690,7 +2803,9 @@ body.split-mode #module-drawer .drawer-body {
     }
     // 绑:子任务
     body.querySelectorAll('.st').forEach(stEl => {
-      const toggleSt = () => {
+      const toggleSt = (e) => {
+        // 0.11.0-alpha.6 §4.e · 如果 click 落在 extras 按钮(code/prompt)· 不切 toggle
+        if (e && e.target && e.target.closest('.st-extras')) return;
         // 0.11.0-alpha.5 · 用 stable subtask.id · 跟 getModule render 一致
         const stKey = stEl.dataset.stKey;
         const k = id + '__st__' + stKey;
@@ -2703,6 +2818,25 @@ body.split-mode #module-drawer .drawer-body {
       stEl.addEventListener('click', toggleSt);
       stEl.addEventListener('keydown', e => {
         if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleSt(); }
+      });
+    });
+
+    // 0.11.0-alpha.6 §4.e · code anchor 图标 click · 渲染 code preview 到右栏(仅 split-mode 有意义 · modal 也允许)
+    body.querySelectorAll('.st-code-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const stKey = btn.dataset.stKey;
+        const st = (m.subtasks || []).find(s => (s.id || '').toString() === stKey);
+        if (!st || !st.code_anchors || !st.code_anchors.length) return;
+        renderSplitPreviewCode(st);
+      });
+    });
+    // 0.11.0-alpha.6 §4.e · Copy prompt 按钮 click · 走 alpha.3 prompts.js sidecar
+    body.querySelectorAll('.st-prompt-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const stKey = btn.dataset.stKey;
+        copySubtaskPrompt(stKey);
       });
     });
 
@@ -3198,6 +3332,70 @@ body.split-mode #module-drawer .drawer-body {
       '<div class="split-preview-placeholder">' +
         'No linked docs for this module · add `docs:` in frontmatter or `## Related` section in body.' +
       '</div>';
+  }
+
+  // 0.11.0-alpha.6 §4.e · 右栏渲染 code preview · alpha.2 backend code_anchors[] 数据接入
+  function renderSplitPreviewCode(subtask) {
+    const slot = document.getElementById('split-preview-slot');
+    if (!slot) return;
+    const anchors = subtask.code_anchors || [];
+    let bodyHtml = '';
+    for (const ca of anchors) {
+      const hasPreview = !!(ca.preview && ca.preview.length);
+      const vscodeBtn = ca.vscode_url
+        ? '<a class="code-anchor-vscode" href="' + escapeHtml(ca.vscode_url) + '" title="Open in VS Code">↗ VS Code</a>'
+        : '';
+      bodyHtml += '<div class="code-anchor-block">' +
+        '<div class="code-anchor-head">' +
+          '<span class="ca-path">' + escapeHtml(ca.path || '') + (ca.lines ? ':' + escapeHtml(ca.lines) : '') + '</span>' +
+          vscodeBtn +
+        '</div>' +
+        (ca.warning ? '<div class="code-anchor-warn">⚠ ' + escapeHtml(ca.warning) + '</div>' : '') +
+        (hasPreview ? '<pre class="code-anchor-preview"><code>' + escapeHtml(ca.preview) + '</code></pre>' : '') +
+      '</div>';
+    }
+    slot.innerHTML =
+      '<div class="split-preview-head">' +
+        '<div class="pv-title">Code anchor · ' + escapeHtml(subtask.title || '') + '</div>' +
+        '<div class="pv-path">' + escapeHtml(subtask.id || '') + '</div>' +
+      '</div>' +
+      bodyHtml;
+    slot.scrollTop = 0;
+    // 高亮 active code-btn
+    document.querySelectorAll('#split-nav-slot .st-code-btn').forEach(b => b.classList.remove('active'));
+    const btn = document.querySelector('#split-nav-slot .st-code-btn[data-st-key="' + (subtask.id || '') + '"]');
+    if (btn) btn.classList.add('active');
+  }
+
+  // 0.11.0-alpha.6 §4.e · Copy prompt for subtask · alpha.3 prompts.js sidecar 接入
+  function copySubtaskPrompt(subtaskId) {
+    const prompt = (window.__PROMPTS__ || {})[subtaskId];
+    if (!prompt) {
+      toast(t('toast.prompt_missing') || 'Prompt not available · run docs-cockpit build to refresh');
+      return;
+    }
+    // 0.10.1 clipboard fallback(file:// 兼容)
+    (async () => {
+      try {
+        await navigator.clipboard.writeText(prompt);
+        toast(t('toast.prompt_copied') || 'Prompt copied · paste to Claude / Codex');
+        return;
+      } catch (e) {}
+      // execCommand fallback
+      try {
+        const ta = document.createElement('textarea');
+        ta.value = prompt;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        const ok = document.execCommand('copy');
+        document.body.removeChild(ta);
+        toast(ok ? (t('toast.prompt_copied') || 'Prompt copied') : 'Copy failed · prompt preview: ' + prompt.slice(0, 200) + '…');
+      } catch (e) {
+        toast('Copy failed · ' + e.message);
+      }
+    })();
   }
 
   // 0.11.0-alpha.6 §4.d · sysdoc split-view · 左 navigator 是 systemDocs list ·
