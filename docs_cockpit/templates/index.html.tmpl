@@ -1507,13 +1507,31 @@ a:hover { text-decoration: underline; }
 
   const overrides = loadOverrides();
 
+  // 0.11.0-alpha.5:把老 index-based subtask key `MID__stN` 清掉 · 避免跟新
+  // id-based key `MID__st__<sha1-id>` 混淆 + 出现 33% 这种错位显示。
+  // 一次性 migration · 跑完写回 localStorage · 老用户下次打开看不到老 key。
+  (function migrateOldSubtaskKeys() {
+    let dirty = false;
+    for (const k of Object.keys(overrides)) {
+      // 老格式:`M<id>__st<digit>` · 比如 `M02__st3`
+      if (/^[^_]+__st\d+$/.test(k)) {
+        delete overrides[k];
+        dirty = true;
+      }
+    }
+    if (dirty) saveOverrides(overrides);
+  })();
+
   // merge: 用户存储的覆盖优先
   function getModule(id) {
     const base = RAW.modules.find(m => m.id === id);
     if (!base) return null;
     const ov = overrides[id] || {};
+    // 0.11.0-alpha.5 · 用 stable subtask.id(v0.11 W1 加的 sha1 算)而不是 index
+    // 老 index-based key `id__stN` 留 localStorage 里 orphan · 不影响新 key
     const subtasks = (base.subtasks || []).map((st, i) => {
-      const k = id + '__st' + i;
+      const stKey = st.id || ('idx-' + i);   // v0.10 fallback
+      const k = id + '__st__' + stKey;
       return { ...st, done: (k in overrides) ? !!overrides[k] : st.done };
     });
     const m = {
@@ -2376,12 +2394,14 @@ a:hover { text-decoration: underline; }
     // subtasks
     let subtasksHtml = '';
     if (m.subtasks && m.subtasks.length) {
-      subtasksHtml = '<div class="subtasks">' + m.subtasks.map((st, i) => (
-        '<div class="st' + (st.done ? ' done' : '') + '" data-i="' + i + '" tabindex="0" role="checkbox" aria-checked="' + st.done + '">' +
+      subtasksHtml = '<div class="subtasks">' + m.subtasks.map((st, i) => {
+        // 0.11.0-alpha.5 · 用 stable subtask.id 作 data-st-key · 跟 getModule + toggle 一致
+        const stKey = st.id || ('idx-' + i);
+        return '<div class="st' + (st.done ? ' done' : '') + '" data-st-key="' + escapeHtml(stKey) + '" tabindex="0" role="checkbox" aria-checked="' + st.done + '">' +
           '<span class="check"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 6.5l2.5 2.5 4.5-5"/></svg></span>' +
           '<span class="st-text">' + escapeHtml(st.title) + '</span>' +
-        '</div>'
-      )).join('') + '</div>';
+        '</div>';
+      }).join('') + '</div>';
     } else {
       subtasksHtml = '<div class="doc-list-empty">' + escapeHtml(t('drawer.subtasks_empty')) + '</div>';
     }
@@ -2507,8 +2527,9 @@ a:hover { text-decoration: underline; }
     // 绑:子任务
     body.querySelectorAll('.st').forEach(stEl => {
       const toggleSt = () => {
-        const i = stEl.dataset.i;
-        const k = id + '__st' + i;
+        // 0.11.0-alpha.5 · 用 stable subtask.id · 跟 getModule render 一致
+        const stKey = stEl.dataset.stKey;
+        const k = id + '__st__' + stKey;
         const cur = stEl.classList.contains('done');
         overrides[k] = !cur;
         saveOverrides(overrides);

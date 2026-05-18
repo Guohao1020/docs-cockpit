@@ -4,6 +4,66 @@
 
 ## [Unreleased]
 
+## [0.11.0-alpha.5] · 2026-05-18
+
+修一个被 alpha.4 漏掉的 frontend 真 bug:**dashboard 用 subtask index 算 localStorage key · 改 subtask 顺序或 id 算法后状态错位 · 用户看到 M02 显示 status=done 但子任务 3/9**。
+
+### Why
+
+用户实测反馈截图:M02 抽屉显示 status=`已完成` + 进度 33% + 子任务 3/9 完成。alpha.4 我修了 validator cross-field 但 user 说「没变化啊」。深挖发现真 bug 在 frontend:
+
+`templates/index.html.tmpl` 三处用 **index 算 localStorage key**:
+- line 1516 `getModule()` · `const k = id + '__st' + i;`
+- line 2380 render · `data-i="' + i + '"`
+- line 2511 toggle · `const k = id + '__st' + i;`
+
+v0.11.0-alpha.2 我把 subtask id 算法从「body 顺序索引」改成「sha1(title)[:6]」(plan §6.1 + plan-eng-review issue #3) · **schema/paths/build.py 全做对了 · payload 里每条 subtask 都带 stable id** · 但 frontend JS **从来没用这个 id** · 一直拿 index 算 localStorage key。
+
+后果:用户 v0.10 时代手工勾过的 subtask · localStorage 存的是 `M02__st0` / `M02__st3` 等 index-based key。alpha.2 之后 subtasks 顺序 / 数量改了 · 老 override 错位 · M02 9 个 subtask 里只有 3 个 index 对得上(被 override 成 done)· 其他 6 个走 `base.done`(state.json 是 true 但前端 merge 逻辑 `(k in overrides) ? overrides[k] : st.done` 在 overrides 有 false 老值时就显 false)。
+
+### Fixed · 3 处 frontend 都改用 stable subtask.id
+
+```js
+// 0.11.0-alpha.5
+const stKey = st.id || ('idx-' + i);   // v0.10 fallback
+const k = id + '__st__' + stKey;        // 双下划线区分老格式
+```
+
+- render `data-st-key="<sha1-id>"`
+- toggle 读 `stEl.dataset.stKey`
+- getModule merge 同样 key
+
+新 key 跟老 key namespace 隔开(`__st__` vs `__st`)· 不冲突。
+
+### Added · one-time localStorage migration
+
+页面 init 时扫 localStorage · 删所有匹配 `^[^_]+__stN$` 老格式 key:
+
+```js
+(function migrateOldSubtaskKeys() {
+  let dirty = false;
+  for (const k of Object.keys(overrides)) {
+    if (/^[^_]+__st\d+$/.test(k)) {
+      delete overrides[k];
+      dirty = true;
+    }
+  }
+  if (dirty) saveOverrides(overrides);
+})();
+```
+
+用户打开 alpha.5 dashboard 一次自动清完 · 之后老 key 不存在。
+
+### 用户怎么 verify
+
+打开 docs/index.html · 硬刷新(Ctrl+Shift+R)· M02 子任务应该看到 **9 / 9 完成** · 进度 **100%** · 跟 status=done 一致。
+
+### Not changed
+
+- payload 数据格式不变 · state.json 不变
+- subtask.id 算法不变(仍 sha1(title)[:6])
+- 老用户 docs/spec/module/ 不动
+
 ## [0.11.0-alpha.4] · 2026-05-18
 
 修一个用户实测发现的数据完整性 bug:`status: done` 但 subtasks 没全做完 · validator 之前不报警。
