@@ -4,6 +4,67 @@
 
 ## [Unreleased]
 
+## [0.10.1] · 2026-05-18
+
+Dogfood docs-cockpit 自己 · 验证 v0.10 schema 能否承载 docs-cockpit 项目本体 · 同时为 v0.11 driver-seat plan(`docs/plans/P-v0.11-driver-seat.md`)的 Step 0 prerequisite。本 patch 不动 build engine / schema · 只引入项目自身的 `docs-cockpit.yaml` + 6 个 module MD + 关联文档 · 让 docs-cockpit 自己变成 docs-cockpit 看板。
+
+### Why
+
+v0.11 driver-seat plan 通过两轮 review (office-hours + plan-eng-review)· 落地前需要先把 docs-cockpit 自己接到 docs-cockpit 上,否则两份关键设计文档(driver-seat plan + test plan)在 repo 里是孤立 markdown · 形不成可视化驾驶舱。这次 patch 是 v0.11 W1 设计输入的来源:dogfood 暴露的 schema 缺口直接喂 v0.11 W1。
+
+### Added · `docs-cockpit.yaml`(repo 根)
+
+- `project.name: docs-cockpit` · `mark: D` · tagline 描述双形态(CLI + plugin)
+- `system_docs` 7 项:CLAUDE.md / README EN / README 中文 / CHANGELOG / 3 个 references
+- `modules.scan: docs/spec/module` · v0.10 默认机制
+- 暂不开 concepts(等 v0.11 W1 落地后再补)
+
+### Added · `docs/spec/module/` 6 个 module MD
+
+- M01 build-engine(in-progress · 85% · v0.11 W1 即将动它)
+- M02 cli(in-progress · 80% · v0.11 W3 加 prompt 子命令)
+- M03 plugin(in-progress · 85%)
+- M04 author-skill(in-progress · 80% · §2.4 + §10 待补)
+- M05 portfolio(done · 100%)
+- M06 browse-reader(done · 100%)
+
+总 43 个 subtasks(21 done / 43)· overall progress 88.3% · build 时 0 issues。
+
+### Added · `docs/plans/`
+
+- `P-v0.11-driver-seat.md`(approved · /office-hours 2 轮 + /plan-eng-review 4 sections review)
+- `P-v0.11-test-plan.md`(配套测试计划 · pytest + CI matrix + manual QA)
+
+### Dogfood 暴露的 v0.10 schema 缺口(v0.11 W1 input)
+
+- `_SUBTASK_SECTION_RE` 不识别带 `§` 字符的 section 标题(`## §3 · 待办` 不命中 · 必须用 `## 3 · 待办`)· 本 patch 暂时按 v0.10 规范 ship · v0.11 W1 增强 regex 支持 `§N` / `Section N` 等可选前缀
+- subtask 仍是字符串数组 · 无 id / status / code / docs ref · 是 v0.11 W1 的核心改造点
+
+### Fixed · `build.py::render_html` · `</script>` 字面串导致 dashboard 白屏
+
+Dogfood docs-cockpit 自己时 · `P-v0.11-driver-seat.md` body 含字面 `</script>`(讨论 v0.11 W1 的 sidecar 策略时引用 `<script type="application/json">...</script>` 示例 token)· build 把 plan 全文嵌入 `state.json::modules[].docs[].content` 后 · 用 `template.replace("__DOCS_JSON__", docs_json)` 单点替换写到 HTML · 浏览器在解析 `<script>` tag 时遇到 payload 内字面 `</script>` 提前关闭 script tag · 剩余 JSON 溢出为 HTML body 文本 · `JSON.parse` 拿不到完整数据 · 整个 dashboard 渲染 0 modules / 0 concepts。
+
+修法(2 行):
+
+```python
+docs_json = docs_json.replace("</script>", "<\\/script>")    # JSON spec 允许 forward-slash escape
+return template.replace("__DOCS_JSON__", docs_json, 1)        # count=1 防 paranoia
+```
+
+这是任何用户 spec / plan / RFC 引用 script 示例代码都会触发的 bug · 不限于 dogfood 场景 · 因此走 patch fix 而不是 v0.11 minor。v0.11 W1 改 sidecar(`prompts.js` / `code_previews.js`)+ `<script type="application/json">` 包裹后 · 本 fix 仍是 defense-in-depth。
+
+修复后 dogfood verify:`docs/index.html` 314546 字节 · 11 个 `</script>` 是 template 自带 script tag · 23 个 payload `</script>` 已转义为 `<\/script>` · dashboard 正常渲染 6 modules / 43 subtasks / 0 issues。
+
+### Not changed
+
+- 不动 `docs_cockpit/build.py` 的核心 schema / pipeline · 仅 2 行 bug fix
+- 不动 `docs_cockpit/*.py` 其他模块 · `docs_cockpit/templates/*` · 这些是 v0.11 minor 范围
+- 不动 4 个 skill SKILL.md 主体 · 同上
+
+### Migrate
+
+无需迁移 · 老用户项目不受影响 · 仅 docs-cockpit repo 自身增加 docs/ 内容。
+
 ## [0.10.0] · 2026-05-15
 
 跨项目周报。引入"用户级 portfolio 注册表"概念 · 新 skill +

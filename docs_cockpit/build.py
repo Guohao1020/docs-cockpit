@@ -759,9 +759,25 @@ TEMPLATE_PATH = pathlib.Path(__file__).parent / "templates" / "index.html.tmpl"
 
 
 def render_html(template: str, payload: dict) -> str:
-    """0.2.0:模板只需一个占位符替换 · JS 从 payload 渲染其他一切."""
+    """0.2.0:模板只需一个占位符替换 · JS 从 payload 渲染其他一切.
+
+    0.10.1 fix:
+    - payload 里 `</script>` 字面串(用户 spec / plan 引用 script 示例代码 · 比如
+      讨论 docs-cockpit 自身 v0.11 design 时引用 `<script type="application/json">...</script>`)
+      会让浏览器在解析 `<script>` tag 时遇到 close token 提前关闭 · 剩余 JSON
+      溢出到 HTML body · `JSON.parse` 拿不到完整数据 · 整个 dashboard 白屏。
+      Fix:把 payload JSON 里 `</script>` 字面替换为 `<\/script>`(JSON spec
+      允许 forward-slash escape · 浏览器 + JSON.parse 都识别)。
+    - `str.replace` 不带 count 默认替换 ALL occurrences · 实际 single-pass 不递归 ·
+      但 payload 内字面 `__DOCS_JSON__` 出现会让 substitution 意图模糊 ·
+      明确传 count=1 防 paranoia。
+
+    v0.11 W1 会改 sidecar(prompts.js / code_previews.js)+ `<script type="application/json">`
+    包裹 · 本 fix 在 v0.11 之后仍是 defense-in-depth。
+    """
     docs_json = json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
-    return template.replace("__DOCS_JSON__", docs_json)
+    docs_json = docs_json.replace("</script>", "<\\/script>")
+    return template.replace("__DOCS_JSON__", docs_json, 1)
 
 
 # ── CLI ─────────────────────────────────────────────────────────────

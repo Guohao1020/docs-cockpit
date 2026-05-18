@@ -1,0 +1,58 @@
+---
+id: M03
+type: module
+title: "Claude Code Plugin"
+status: in-progress
+sprint: "0.11"
+progress: 85
+desc: "Claude Code plugin · 4 skills + 8 commands · marketplace 分发 · bootstrap CLI"
+owner: harvey
+prd_ref: "v0.11 driver-seat plan §11 Step 3"
+docs:
+  - { title: "CLAUDE.md · plugin section", path: "CLAUDE.md" }
+  - { title: "v0.11 driver-seat plan", path: "docs/plans/P-v0.11-driver-seat.md" }
+depends_on: [M02, M04]
+blocks: []
+---
+
+# M03 · Claude Code Plugin
+
+## §1 · 范围
+
+`.claude-plugin/` + `skills/` + `commands/` · Claude Code marketplace 可装。这是 docs-cockpit 第二个 ship target(同 repo 与 PyPI CLI 并行)。
+
+```
+.claude-plugin/
+  ├── plugin.json        ── 版本 / 元数据
+  └── marketplace.json   ── 用户 /plugin install 入口
+
+skills/
+  ├── docs-cockpit/                  ── 主 skill · 触发条件 / bootstrap CLI
+  ├── docs-cockpit-author/           ── §2 frontmatter schema 的 SSOT
+  ├── docs-cockpit-standup/          ── 读 state.json · 单项目 narrative
+  └── docs-cockpit-portfolio/        ── 跨项目 weekly + diff
+
+commands/
+  ├── build.md / lint.md / status.md
+  ├── migrate.md / browse.md / update.md
+  └── weekly.md
+```
+
+## §2 · 关键文件
+
+| 文件 | 角色 |
+|---|---|
+| `.claude-plugin/plugin.json` | 版本 + skill / command 注册 · 4 文件 release 同步 bump |
+| `.claude-plugin/marketplace.json` | 用户安装入口 · 同上 |
+| `skills/docs-cockpit/SKILL.md` | 主 skill · bootstrap CLI 检测 + 触发条件 |
+| `commands/*.md` | 8 个 slash command 入口 |
+
+## 3 · 待办
+
+- [x] v0.10 · 4 skills 全部在线
+- [x] v0.10 · 8 commands 全部在线
+- [x] First-build bootstrap(uv tool / pipx / pip --user 优先级)
+- [x] docs-cockpit upgrade 原子升级(plugin cache 失效 + 重启提示)
+- [ ] v0.11 skill section · prompt scaffolding 触发条件 + CLI 用法
+- [ ] v0.11 plugin.json + marketplace.json + __init__.py + CHANGELOG 4 文件 version bump
+- [ ] v0.12 候选 · MCP server · 让 Claude 直连消费 cockpit prompt(替代 copy-paste)

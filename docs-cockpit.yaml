@@ -1,0 +1,88 @@
+# docs-cockpit · 自己 dogfood 自己
+#
+# 这是 v0.11 driver-seat plan 的 §11 Step 0 prerequisite · ship 为 0.10.1 patch。
+# 用 docs-cockpit 自己管理 docs-cockpit 项目本身 ·
+# 验证 v0.10 schema 能否承载自己 + 暴露 v0.11 W1 设计输入。
+#
+# 跑:
+#   docs-cockpit build
+# 输出:
+#   docs/index.html  · cockpit dashboard
+#   docs/state.json  · 机器可读 sidecar
+
+project:
+  name: docs-cockpit
+  mark: D
+  tagline: "YAML-frontmatter 驱动的项目 Kanban · CLI + Claude Code plugin 双形态"
+  eyebrow: "DOGFOOD · v0.11 PREP"
+  output: docs/index.html
+
+paths:
+  repo: "."
+
+# ── 系统文档 · 顶 bar drawer 弹出 ────────────────────────────────
+system_docs:
+  - id: claude-md
+    title: CLAUDE.md
+    path: "{repo}/CLAUDE.md"
+    desc: 项目级 AI 协作约定 · 架构 / SemVer / 语言规范
+    icon: memory
+
+  - id: readme
+    title: README
+    path: "{repo}/README.md"
+    desc: 项目总览 + 快速上手(EN)
+    icon: doc
+
+  - id: readme-zh
+    title: README · 中文
+    path: "{repo}/README.zh-CN.md"
+    desc: 项目总览 + 快速上手(中文)
+    icon: doc
+
+  - id: changelog
+    title: CHANGELOG
+    path: "{repo}/CHANGELOG.md"
+    desc: 每版「Why」+ 变更摘要
+    icon: doc
+
+  - id: ref-config
+    title: Config Reference
+    path: "{repo}/references/config_reference.md"
+    desc: docs-cockpit.yaml 完整字段参考
+    icon: doc
+
+  - id: ref-frontmatter
+    title: Frontmatter Conventions
+    path: "{repo}/references/frontmatter_conventions.md"
+    desc: frontmatter 治理 · 引用 docs-cockpit-author 规范
+    icon: doc
+
+  - id: ref-design-tokens
+    title: Design Tokens
+    path: "{repo}/references/design_tokens.md"
+    desc: HTML template 设计 system
+    icon: design
+
+# ── 模块 · 主 dashboard 数据源 ──────────────────────────────────
+modules:
+  scan:
+    dir: "{repo}/docs/spec/module"
+    title_transform: prefix-dot-titlecase
+
+# ── 概念 · v0.11 起步阶段不拆 concept · 等 schema W1 落地后再补 ──
+# concepts:
+#   scan:
+#     dir: "{repo}/docs/spec/concept"
+#     title_transform: prefix-dot-titlecase
+
+# ── frontmatter 治理 ───────────────────────────────────────────
+frontmatter:
+  enabled: true
+  status_progress_ranges:
+    not-started: [0, 0]
+    planned: [0, 15]
+    in-progress: [5, 95]
+    blocked: [0, 100]
+    done: [100, 100]
+    deferred: [0, 100]

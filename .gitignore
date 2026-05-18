@@ -34,6 +34,13 @@ Thumbs.db
 # Build artifact · 用户项目里 docs/index.html 是产物 · 不进本仓库
 # (但 examples/ 里的不影响 · 这里只挡顶层意外提交)
 /docs/index.html
+/docs/state.json
+/docs/browse.html
+# v0.11 sidecar artifacts(prompts.js / code_previews.js)— 同样是 build 产物
+/docs/prompts.js
+/docs/prompts.json
+/docs/code_previews.js
+/docs/code_previews.json
 
 # Smoke test outputs
 /tmp/
