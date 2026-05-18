@@ -1,7 +1,7 @@
 {
   "name": "docs-cockpit",
   "description": "Project dashboard (Kanban + Sprint + KPI) + tree-sidebar markdown browser + frontmatter validator + cross-project portfolio in self-contained HTML files. Bilingual EN/中 toggle. 0.10.0 adds the **docs-cockpit-portfolio** skill + CLI: a user-level registry (`~/.docs-cockpit/projects.yaml`) for multi-project tracking, weekly snapshots, and multi-project weekly reports with week-over-week diffs. Includes **docs-cockpit-author** (canonical frontmatter schema), **docs-cockpit-standup** (single-project narrative), and **docs-cockpit lint** (structured `error`/`warn`/`hint` issues). Empty-docs modules show a copy-prompt CTA (Plan/RFC/Spec) for AI coding editors (Claude Code superpowers / gstack / Cursor / Codex / Continue / Aider).",
-  "version": "0.10.2",
+  "version": "0.11.0-alpha.1",
   "author": {
     "name": "Guohao1020"
   },

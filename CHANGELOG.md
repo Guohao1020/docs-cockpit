@@ -4,6 +4,67 @@
 
 ## [Unreleased]
 
+## [0.11.0-alpha.1] · 2026-05-18
+
+v0.11 driver-seat plan §11 Step 1 完成 · 给 W1 / W3 / UI split-view 立个测试 + 模块化基础。alpha.1 用户视觉**无感知** · 全是内部 refactor。
+
+### Why
+
+v0.11 W1(subtask 一等公民)+ W3(prompt scaffolding)+ Step 2 UI split-view 这三件事要在 `build.py` 同一个 1200 行文件里加 5-7 个新函数 + 改 HTML template 大半 + 引入 Jinja2 prompt 渲染。在动这些之前 · Beck 「make the change easy, then make the easy change」· 先把 build.py 切薄 + 立 pytest 基础 · 之后每一个 W 改起来都简单 · 也有测试 cover。
+
+### Changed · `docs_cockpit/build.py` 拆 3 个新模块
+
+build.py 从 1201 行 → 575 行(-52%)· 跨 4 个独立 commit · 每个能独立验证:
+
+| commit | 新文件 | 内容 |
+|---|---|---|
+| `71dfa82` | `docs_cockpit/schema.py` | `Issue` 类 / `validate_meta` / `extract_subtasks_from_body` / `extract_docs_from_body` / `split_frontmatter` / `slugify` / 5 个 body section regex / 3 个 status/type enum |
+| `639bc3a` | `docs_cockpit/paths.py` | `_build_vars` / `_expand` / 3 个 title transforms / `_resolve_group_files` / `read_md` / `_resolve_doc_path` / `_resolve_and_embed_docs` |
+| `d543aca` | `docs_cockpit/cli.py` | `main()` argparse dispatcher |
+| `c195d06` | `tests/` | pytest 基础 + 52 unit tests(schema.py 32 测 · paths.py 20 测) |
+
+`build.py` 通过 `from .schema import ...` / `from .paths import ...` / `from .cli import main` re-export 所有公开 API · 外部 `from docs_cockpit.build import validate_meta` 这类老 import 全部 work · 老 `pyproject.toml entry-point docs_cockpit.build:main` 也不动。
+
+### Added · pytest 测试基础 (plan-eng-review 4A)
+
+- `pyproject.toml` 加 `[project.optional-dependencies] dev = ["pytest>=7", "pytest-cov>=4"]`
+- `pyproject.toml` 加 `[tool.pytest.ini_options]` · testpaths / markers / addopts 齐
+- `tests/__init__.py` + `tests/unit/__init__.py` + `tests/conftest.py`(sys.path 插入)
+- `tests/unit/test_schema.py` · 32 个测 · 覆盖 schema.py 所有公开 API
+- `tests/unit/test_paths.py` · 20 个测 · 覆盖 paths.py 所有公开 API
+- 装法:`pip install -e .[dev]` · 跑:`pytest tests/ -v`
+- 实测:52 passed in 0.12s
+
+### Added · `.github/workflows/test.yml` CI matrix
+
+3 Python (3.10 / 3.11 / 3.12) × 3 OS (Ubuntu / macOS / Windows) = 9 个 cells。覆盖:
+- Windows backslash 路径处理(测 `_expand` + `_resolve_doc_path` 在 Windows 下行为)
+- macOS fs case-sensitivity(`docs/Spec/Module/X.md` vs `docs/spec/module/x.md`)
+- Linux 默认 utf-8 encoding(测中文 frontmatter)
+
+每个 push / PR 都跑 · `fail-fast: false` 让所有 cell 都跑完 · 不在第一个失败就停。
+
+### Not changed · 用户视觉
+
+- HTML template 一行没动 · dashboard 看起来跟 0.10.2 完全一样
+- state.json schema / payload 结构不变
+- 所有 7 个 CLI 子命令(build / lint / init / migrate / browse / portfolio / upgrade)接口和输出格式不变(stdout 仍是 0.10.2 的 fenced bash blocks 格式)
+- 用户 docs-cockpit.yaml / module MD / subtask 写法不变
+
+### Migrate
+
+无需迁移 · 用户:
+- 跑 `docs-cockpit upgrade` 拿 0.11.0-alpha.1 · 或者 `pip install --upgrade docs-cockpit`
+- 现有 docs-cockpit.yaml + MD 文件不动
+- build 结果完全一样(366,628 bytes HTML · 6 modules · 43 subtasks · 21 done · 0 issues 在 docs-cockpit 自身 dogfood 上)
+
+### What's next (alpha.2 / alpha.3 / alpha.4 → 0.11.0)
+
+- **alpha.2** · UI split-view 二级页面(Step 2 · §6.6)· 用户**真正能看到**的第一个 v0.11 改进
+- **alpha.3** · W1 subtask schema 一等公民(Step 3 · §6.1)
+- **alpha.4** · W3 prompt scaffolding(Step 4 · §6.2)
+- **0.11.0** · 收口 + 公告(Step 5)
+
 ## [0.10.2] · 2026-05-18
 
 让 Claude Code 用户在每次 build / browse 后能一键打开 dashboard,而不是手动复制路径。

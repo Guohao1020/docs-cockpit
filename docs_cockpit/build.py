@@ -227,7 +227,7 @@ TEMPLATE_PATH = pathlib.Path(__file__).parent / "templates" / "index.html.tmpl"
 
 
 def render_html(template: str, payload: dict) -> str:
-    """0.2.0:模板只需一个占位符替换 · JS 从 payload 渲染其他一切.
+    r"""0.2.0:模板只需一个占位符替换 · JS 从 payload 渲染其他一切.
 
     0.10.1 fix:
     - payload 里 `</script>` 字面串(用户 spec / plan 引用 script 示例代码 · 比如
@@ -242,6 +242,8 @@ def render_html(template: str, payload: dict) -> str:
 
     v0.11 W1 会改 sidecar(prompts.js / code_previews.js)+ `<script type="application/json">`
     包裹 · 本 fix 在 v0.11 之后仍是 defense-in-depth。
+
+    0.11.0-alpha.1:docstring 改 raw string · 修 Python 3.12+ `SyntaxWarning: invalid escape sequence '\/'`
     """
     docs_json = json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
     docs_json = docs_json.replace("</script>", "<\\/script>")
