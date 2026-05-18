@@ -457,3 +457,103 @@ class TestInlineCodeDocsSyntax:
         body = "## TODO\n- [ ]   Title   with   spaces   @code:x.py\n"
         out = extract_subtasks_from_body(body)
         assert out[0]["title"] == "Title with spaces"
+
+
+# ── v0.11 alpha.4 · status × subtasks 一致性 cross-field validator ──
+class TestStatusSubtasksConsistency:
+    def _path(self):
+        return pathlib.Path("docs/spec/module/M01.md")
+
+    def test_done_but_subtasks_incomplete_warns(self):
+        # 用户实测反馈:status=done 但 subtask 3/9 done · dashboard 显示矛盾
+        issues = validate_meta(
+            self._path(),
+            {
+                "id": "M01", "status": "done", "progress": 100, "desc": "x",
+                "subtasks": [
+                    {"title": "A", "done": True},
+                    {"title": "B", "done": True},
+                    {"title": "C", "done": True},
+                    {"title": "D", "done": False},
+                    {"title": "E", "done": False},
+                ],
+            },
+            DEFAULT_STATUS_RANGES,
+        )
+        warns = [i for i in issues if i.field == "status" and "subtasks" in i.message]
+        assert len(warns) == 1
+        assert "3/5" in warns[0].message
+
+    def test_done_with_all_subtasks_done_no_issue(self):
+        issues = validate_meta(
+            self._path(),
+            {
+                "id": "M01", "status": "done", "progress": 100, "desc": "x",
+                "subtasks": [
+                    {"title": "A", "done": True},
+                    {"title": "B", "done": True},
+                ],
+            },
+            DEFAULT_STATUS_RANGES,
+        )
+        # 应该没有 status × subtasks 一致性问题
+        warns = [i for i in issues if i.field == "status" and "subtasks" in i.message]
+        assert len(warns) == 0
+
+    def test_not_started_but_some_done_warns(self):
+        issues = validate_meta(
+            self._path(),
+            {
+                "id": "M01", "status": "not-started", "progress": 0, "desc": "x",
+                "subtasks": [
+                    {"title": "A", "done": True},
+                    {"title": "B", "done": False},
+                ],
+            },
+            DEFAULT_STATUS_RANGES,
+        )
+        warns = [i for i in issues if i.field == "status" and "already done" in i.message]
+        assert len(warns) == 1
+
+    def test_in_progress_with_partial_done_no_status_warn(self):
+        # in-progress + 3/5 done · 是合理状态 · 不应该 warn
+        issues = validate_meta(
+            self._path(),
+            {
+                "id": "M01", "status": "in-progress", "progress": 60, "desc": "x",
+                "subtasks": [
+                    {"title": "A", "done": True}, {"title": "B", "done": True},
+                    {"title": "C", "done": True}, {"title": "D", "done": False},
+                    {"title": "E", "done": False},
+                ],
+            },
+            DEFAULT_STATUS_RANGES,
+        )
+        warns = [i for i in issues if i.field == "status" and ("subtasks" in i.message or "already done" in i.message)]
+        assert len(warns) == 0
+
+    def test_v011_object_subtasks_with_status_done(self):
+        # 新格式 dict with status:done · 跟 done:True 一样算
+        issues = validate_meta(
+            self._path(),
+            {
+                "id": "M01", "status": "done", "progress": 100, "desc": "x",
+                "subtasks": [
+                    {"id": "S1", "title": "A", "status": "done"},
+                    {"id": "S2", "title": "B", "status": "in-progress"},
+                ],
+            },
+            DEFAULT_STATUS_RANGES,
+        )
+        warns = [i for i in issues if i.field == "status" and "1/2" in i.message]
+        assert len(warns) == 1
+
+    def test_empty_subtasks_no_check(self):
+        # 没 subtask 就不该 trigger 这条
+        issues = validate_meta(
+            self._path(),
+            {"id": "M01", "status": "done", "progress": 100, "desc": "x"},
+            DEFAULT_STATUS_RANGES,
+        )
+        warns = [i for i in issues if i.field == "status" and "subtasks" in i.message]
+        assert len(warns) == 0

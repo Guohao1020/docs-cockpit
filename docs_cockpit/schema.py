@@ -308,6 +308,45 @@ def validate_meta(
             reference="docs-cockpit-author · §2.3 status × progress invariants",
         ))
 
+    # ── 0.11.0-alpha.4:status × subtasks 一致性(用户实测反馈)──
+    # 用户能写 `status: done` 但 subtasks 还有 [ ] 未做 · validator 不报 ·
+    # dashboard 显示"已完成"但子任务列表 3/9 · 这是数据完整性漏洞。
+    # 这里把 status 跟 subtasks 实际比例对一遍。
+    raw_subtasks = meta.get("subtasks") or []
+    if isinstance(raw_subtasks, list) and raw_subtasks:
+        # 统一算法 · 兼容 v0.10 list[str] / list[dict{title,done}] / v0.11 list[dict{status}]
+        sub_total = 0
+        sub_done = 0
+        for s in raw_subtasks:
+            if isinstance(s, str):
+                sub_total += 1
+                # str 默认 not-started · 不算 done
+            elif isinstance(s, dict):
+                sub_total += 1
+                # status 优先 · 没 status 看 done · 都没默认 not-started
+                sub_status = s.get("status")
+                if sub_status == "done":
+                    sub_done += 1
+                elif sub_status is None and s.get("done") is True:
+                    sub_done += 1
+        if sub_total > 0:
+            if status == "done" and sub_done < sub_total:
+                issues.append(Issue(
+                    "warn", path, "status",
+                    f"status=`done` but subtasks {sub_done}/{sub_total} done · 数据不一致",
+                    suggestion=(
+                        f"把剩余 {sub_total - sub_done} 个 subtask 勾上 · 或把 module status 调回 in-progress"
+                    ),
+                    reference="docs-cockpit-author · §2.3 status × subtasks invariants",
+                ))
+            elif status == "not-started" and sub_done > 0:
+                issues.append(Issue(
+                    "warn", path, "status",
+                    f"status=`not-started` but {sub_done}/{sub_total} subtask(s) already done",
+                    suggestion="bump status to `in-progress` to reflect actual state",
+                    reference="docs-cockpit-author · §2.3 status × subtasks invariants",
+                ))
+
     # ── type 字段(可选 · 但写错会让 author skill 困惑)──
     doc_type = meta.get("type")
     if doc_type is not None and doc_type not in VALID_DOC_TYPES:

@@ -4,6 +4,54 @@
 
 ## [Unreleased]
 
+## [0.11.0-alpha.4] · 2026-05-18
+
+修一个用户实测发现的数据完整性 bug:`status: done` 但 subtasks 没全做完 · validator 之前不报警。
+
+### Why
+
+用户在 dashboard 上看到 M02 module 抽屉显示「**已完成**」status + 「**33%** 进度」+「**3 / 9** 完成」· 三个数字互相矛盾(33% 是 localStorage 老 cache 的残影 · 真 state.json 是 9/9 done · 但暴露的本质 bug 是 **validator 不校验 status × subtasks 是否一致** · 任何用户都能写 `status: done` + 几个 [ ] 未做的 subtask 不被发现)。
+
+### Fixed · `validate_meta` 加 status × subtasks cross-field 校验
+
+之前 validator 只校:
+- status × progress 区间(`done` 必须 progress=100)
+- subtask 内部(id 唯一 / status 枚举 / title 存在)
+
+**没**校 module status × subtasks done 比例。0.11.0-alpha.4 加:
+
+- `status=done` 但 subtask `sub_done < sub_total` → **warn** + suggestion(勾完剩余 · 或把 status 调回 in-progress)
+- `status=not-started` 但 `sub_done > 0` → **warn** + suggestion(bump 到 in-progress)
+- `in-progress` / `planned` / `blocked` 不 cross-check(它们 by definition 部分完成是合理状态)
+
+所有 cross-check 是 **warn 而不是 error** · 不阻塞 build · 但 lint 会出来 + drawer 后续可以加 ⚠ 角标。
+
+### Added · 6 个 unit tests · 覆盖 5 个 case
+
+- `done` + subtasks 没全完 → warn
+- `done` + 全完 → no warn
+- `not-started` + 有人 done → warn
+- `in-progress` + 部分 done → no warn(合理状态)
+- v0.11 dict-form subtasks(`{status: done/...}`)同样 work
+- 空 subtasks → 不 trigger
+
+总 pytest:**109 passed in 6.45s**(103 + 6 new)
+
+### Why 截图显示 33% 而 state.json 是 9/9
+
+用户截图里看到 33% 而不是 100%· 因为 v0.11.0-alpha.2 把 subtask id 从「index-based」改成「sha1(title)[:6]」· 浏览器 localStorage 还存着 v0.10 时代用户手工勾的老 id · 跟新 id 对不上 · dashboard 拿不到 override · 直接显示 frontmatter 的 status(done)+ 算 subtasks done 比例(localStorage 没匹配项就全按未勾)。
+
+**用户怎么修**:Ctrl+Shift+R 硬刷新 · 或 F12 → Application → Local Storage → 清掉 docs-cockpit.
+
+### Not changed
+
+- validator API 不变 · 老调用方不破
+- HTML template / state.json schema 不动 · 不需 docs-cockpit upgrade
+
+### Migrate
+
+无需迁移 · 老用户 `docs-cockpit upgrade` 或 `pip install --upgrade` 即可。如果 `lint` 出新 warn · 按 suggestion 改就行。
+
 ## [0.11.0-alpha.3] · 2026-05-18
 
 v0.11 W3 prompt scaffolding 完成 · **M01 + M02 两个 module 全部 done(100%)**。这两个 module 是用户在 dashboard 上明确指要完成的(用户实测反馈)。Step 2 UI split-view 仍待后续 alpha.4。
