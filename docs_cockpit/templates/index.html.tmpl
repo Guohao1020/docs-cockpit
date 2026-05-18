@@ -124,23 +124,95 @@ a:hover { text-decoration: underline; }
 .back-btn svg { width: 14px; height: 14px; }
 .back-btn[hidden] { display: none !important; }
 
-/* 0.11.0-alpha.6 §4.b · split-page 容器 · §4.c/d 填内容 */
-.split-page { padding: 24px 0 64px; min-height: 60vh; }
-.split-page-placeholder {
+/* 0.11.0-alpha.6 §4.b/c · split-page 容器 + grid layout · plan §6.6 */
+.split-page {
+  padding: 16px 0 64px;
+  min-height: 70vh;
+  display: grid;
+  grid-template-columns: minmax(360px, 38%) 1fr;
+  gap: 20px;
+  align-items: start;
+}
+.split-nav-slot {
+  /* §4.c · module-drawer DOM 移进来 · CSS override modal 样式 */
+  position: relative;
+  background: var(--c-bg);
+  border: 1px solid var(--c-hairline);
+  border-radius: 8px;
+  overflow: hidden;
+  max-height: calc(100vh - 120px);
+  display: flex;
+  flex-direction: column;
+}
+.split-preview-slot {
+  background: var(--c-bg);
+  border: 1px solid var(--c-hairline);
+  border-radius: 8px;
+  padding: 24px 32px;
+  min-height: 70vh;
+  max-height: calc(100vh - 120px);
+  overflow-y: auto;
+}
+.split-preview-placeholder {
   font-family: var(--f-mono);
-  font-size: 13px;
+  font-size: 12px;
   color: var(--c-graphite);
   text-align: center;
-  padding: 48px;
+  padding: 64px 16px;
 }
+
 /* hash 路由切到 split-page 时 · 隐藏 dashboard sections */
 body.split-mode #hero-section,
 body.split-mode #kpi-section,
 body.split-mode #kanban-section,
 body.split-mode #sprints-section,
 body.split-mode #concepts-section { display: none; }
-body.split-mode .split-page[hidden] { display: block !important; }
-body.split-mode .split-page { display: block !important; }
+body.split-mode .split-page[hidden] { display: grid !important; }
+
+/* §4.c · split-mode 下 · module-drawer 不再是 modal · 嵌进 split-nav-slot */
+body.split-mode #scrim { display: none !important; }
+body.split-mode #module-drawer {
+  position: static;
+  transform: none !important;
+  width: 100% !important;
+  max-width: none !important;
+  height: auto !important;
+  box-shadow: none !important;
+  border: none !important;
+  border-radius: 0 !important;
+  overflow: visible;
+  visibility: visible !important;
+}
+body.split-mode #module-drawer .drawer-head {
+  position: sticky;
+  top: 0;
+  background: var(--c-bg);
+  z-index: 2;
+  border-bottom: 1px solid var(--c-hairline);
+}
+body.split-mode #module-drawer .h-close {
+  /* 关闭按钮在 split-view 没意义 · Back 按钮接管 */
+  display: none !important;
+}
+body.split-mode #module-drawer .drawer-body {
+  /* drawer-body 默认有 overflow · split-view 让 split-nav-slot 接管滚动 */
+  overflow: visible;
+  max-height: none;
+}
+
+/* §4.c · 响应式 · < 1024px 收回 stacked · 左在上 / 右在下 */
+@media (max-width: 1023px) {
+  .split-page {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  .split-nav-slot {
+    max-height: none;
+  }
+  .split-preview-slot {
+    max-height: none;
+  }
+}
 @media (max-width: 720px) {
   .brand .crumb { display: none; }
   .docs-btn span:not(.docs-count):not(.docs-icon) { display: none; }
@@ -1473,11 +1545,15 @@ body.split-mode .split-page { display: block !important; }
     <div class="concept-grid" id="concepts"></div>
   </section>
 
-  <!-- 0.11.0-alpha.6 §4.b · Split-view 二级页面容器 · §4.c/d 填内容 -->
+  <!-- 0.11.0-alpha.6 §4.b/c · Split-view 二级页面容器 -->
   <section class="split-page" id="split-page" hidden>
-    <div class="split-page-placeholder" id="split-placeholder">
-      <!-- §4.c 加 split-nav + split-preview · 当前 placeholder -->
-      Loading…
+    <!-- §4.c · 左 navigator slot · applyRoute 时 JS 移入 module-drawer DOM(复用现有渲染) -->
+    <div class="split-nav-slot" id="split-nav-slot"></div>
+    <!-- §4.d · 右 preview · §4.d 接 marked.js 渲染 linked docs / sysdoc -->
+    <div class="split-preview-slot" id="split-preview-slot">
+      <div class="split-preview-placeholder" id="split-preview-placeholder">
+        Select a doc to preview · §4.d will fill this with marked.js
+      </div>
     </div>
   </section>
 </main>
@@ -2932,6 +3008,26 @@ body.split-mode .split-page { display: block !important; }
   // 当前路由状态 · 全局
   let _currentRoute = { kind: 'dashboard', id: null };
 
+  // 0.11.0-alpha.6 §4.c · drawer DOM 在 modal / split-view 之间搬家
+  // modal 默认 DOM 位置:body 直接 child(<aside id="module-drawer">)
+  // split-view:JS 把 drawer.appendChild 进 #split-nav-slot · CSS 切样式
+  function _moveModuleDrawerToSplitNav() {
+    const drawer = document.getElementById('module-drawer');
+    const slot = document.getElementById('split-nav-slot');
+    if (!drawer || !slot) return;
+    if (drawer.parentElement !== slot) slot.appendChild(drawer);
+    // split-view 不需要 .open class(永远显)· 但 _activeModuleId 仍要追踪
+    drawer.classList.add('open');
+  }
+  function _moveModuleDrawerBackToBody() {
+    const drawer = document.getElementById('module-drawer');
+    if (!drawer) return;
+    if (drawer.parentElement !== document.body) {
+      document.body.appendChild(drawer);
+    }
+    drawer.classList.remove('open');
+  }
+
   function applyRoute() {
     _currentRoute = parseHash();
     const body = document.body;
@@ -2944,33 +3040,48 @@ body.split-mode .split-page { display: block !important; }
       splitPage.setAttribute('hidden', '');
       if (backBtn) backBtn.setAttribute('hidden', '');
       if (crumb) crumb.textContent = t('topbar.crumb');
-      // 关闭遗留 modal(若有)
-      try { closeDrawer(); } catch (e) {}
+      _moveModuleDrawerBackToBody();
+      // 关闭遗留 modal scrim
+      const scrim = document.getElementById('scrim');
+      if (scrim) scrim.classList.remove('open');
     } else {
       body.classList.add('split-mode');
       splitPage.removeAttribute('hidden');
       if (backBtn) backBtn.removeAttribute('hidden');
-      // §4.c/d 接管渲染 · §4.b 先放占位
-      renderSplitPagePlaceholder(_currentRoute);
       if (crumb) {
         const kindLabel = _currentRoute.kind === 'module' ? 'Module'
                         : _currentRoute.kind === 'sysdoc' ? 'System Doc'
                         : 'Concept';
-        crumb.textContent = `${kindLabel} · ${_currentRoute.id || '?'}`;
+        crumb.textContent = kindLabel + ' · ' + (_currentRoute.id || '?');
+      }
+      // 按 kind 渲染左 navigator
+      if (_currentRoute.kind === 'module' && _currentRoute.id) {
+        _moveModuleDrawerToSplitNav();
+        // 复用 openModuleDrawer 的渲染 + 事件绑定(CSS 在 split-mode override modal 样式)
+        try { openModuleDrawer(_currentRoute.id); } catch (e) { console.error(e); }
+      } else if (_currentRoute.kind === 'sysdoc' && _currentRoute.id) {
+        // sysdoc / concept · §4.d 接 · 暂时显占位
+        _moveModuleDrawerBackToBody();
+        renderSplitNavPlaceholder(_currentRoute);
+      } else if (_currentRoute.kind === 'concept' && _currentRoute.id) {
+        _moveModuleDrawerBackToBody();
+        renderSplitNavPlaceholder(_currentRoute);
       }
     }
   }
 
-  function renderSplitPagePlaceholder(route) {
-    // §4.c 接管 · 这里只占位(让 §4.b 能验证 router 切换 work)
-    const el = document.getElementById('split-placeholder');
-    if (!el) return;
-    el.innerHTML =
+  function renderSplitNavPlaceholder(route) {
+    // sysdoc / concept 暂用 placeholder · §4.d 接
+    const slot = document.getElementById('split-nav-slot');
+    if (!slot) return;
+    slot.innerHTML =
+      '<div style="padding:24px;">' +
       '<div style="font-family:var(--f-sans); font-size:18px; color:var(--c-ink); margin-bottom:8px;">' +
       escapeHtml(route.kind + ' · ' + (route.id || '?')) +
       '</div>' +
       '<div style="font-family:var(--f-mono); font-size:11px; color:var(--c-graphite);">' +
-      'Split-view container · §4.c/d will fill this with navigator + preview.' +
+      '§4.d will render ' + escapeHtml(route.kind) + ' content here.' +
+      '</div>' +
       '</div>';
   }
 
