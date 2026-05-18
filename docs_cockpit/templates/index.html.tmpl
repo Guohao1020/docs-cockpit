@@ -160,6 +160,40 @@ a:hover { text-decoration: underline; }
   text-align: center;
   padding: 64px 16px;
 }
+/* 0.11.0-alpha.6 §4.d · split-preview head(顶部 title + path + mtime) */
+.split-preview-head {
+  padding-bottom: 12px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid var(--c-hairline);
+}
+.split-preview-head .pv-title {
+  font-family: var(--f-sans);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--c-ink);
+  margin-bottom: 4px;
+}
+.split-preview-head .pv-path {
+  font-family: var(--f-mono);
+  font-size: 11px;
+  color: var(--c-graphite);
+  word-break: break-all;
+}
+.split-preview-head .pv-mtime {
+  font-family: var(--f-mono);
+  font-size: 11px;
+  color: var(--c-charcoal);
+  margin-top: 4px;
+}
+/* §4.d · 左 navigator 里 active 那条 doc-row 高亮 */
+body.split-mode .doc-list .doc-row.active {
+  background: var(--c-tint, #f5f7ff);
+  border-left: 3px solid var(--c-accent, #4f46e5);
+}
+body.split-mode .sysdoc-list .sysdoc-row.active {
+  background: var(--c-tint, #f5f7ff);
+  border-left: 3px solid var(--c-accent, #4f46e5);
+}
 
 /* hash 路由切到 split-page 时 · 隐藏 dashboard sections */
 body.split-mode #hero-section,
@@ -2673,14 +2707,29 @@ body.split-mode #module-drawer .drawer-body {
     });
 
     // 0.7.1:绑 docs 按钮 · 有 content 走内联预览 · 否则尝试 file:// 打开 · 缺失则弹错
+    // 0.11.0-alpha.6 §4.d · split-mode 下 · click 走 split-preview · 不弹 drawer 内嵌预览
     body.querySelectorAll('.doc-list button.doc-row').forEach(btn => {
       btn.addEventListener('click', () => {
         const i = parseInt(btn.dataset.docI, 10);
         const d = (m.docs || [])[i];
         if (!d) return;
-        showDocPreview(id, i);
+        if (document.body.classList.contains('split-mode')) {
+          renderSplitPreviewDoc(d, btn);
+        } else {
+          showDocPreview(id, i);
+        }
       });
     });
+
+    // 0.11.0-alpha.6 §4.d · split-mode 进入时 · 默认右栏渲染第一条 linked doc
+    if (document.body.classList.contains('split-mode')) {
+      const firstDocBtn = body.querySelector('.doc-list button.doc-row');
+      if (firstDocBtn && m.docs && m.docs.length) {
+        renderSplitPreviewDoc(m.docs[0], firstDocBtn);
+      } else {
+        renderSplitPreviewEmpty();
+      }
+    }
 
     // 0.9.0:绑 empty-docs CTA · tab 切换 + 实时渲染 prompt + 单 Copy 按钮
     // 默认显示 plan tab · 切 tab 时重新渲染 · Copy 按钮复制当前 tab 内容
@@ -3071,7 +3120,12 @@ body.split-mode #module-drawer .drawer-body {
   }
 
   function renderSplitNavPlaceholder(route) {
-    // sysdoc / concept 暂用 placeholder · §4.d 接
+    // sysdoc · §4.d 接 sysdoc split-view 渲染
+    if (route.kind === 'sysdoc' && route.id) {
+      _renderSysdocSplitNav(route.id);
+      return;
+    }
+    // concept / 兜底
     const slot = document.getElementById('split-nav-slot');
     if (!slot) return;
     slot.innerHTML =
@@ -3080,9 +3134,114 @@ body.split-mode #module-drawer .drawer-body {
       escapeHtml(route.kind + ' · ' + (route.id || '?')) +
       '</div>' +
       '<div style="font-family:var(--f-mono); font-size:11px; color:var(--c-graphite);">' +
-      '§4.d will render ' + escapeHtml(route.kind) + ' content here.' +
+      'Concept split-view · alpha.7 follow-up' +
       '</div>' +
       '</div>';
+  }
+
+  // 0.11.0-alpha.6 §4.d · 右 preview 渲染 + linked docs 切换
+  function _markdownToHtml(content) {
+    if (!content) return '';
+    try {
+      return (typeof marked !== 'undefined' && marked.parse)
+        ? marked.parse(content)
+        : '<pre>' + escapeHtml(content) + '</pre>';
+    } catch (e) {
+      return '<pre>' + escapeHtml(content) + '</pre>';
+    }
+  }
+
+  function renderSplitPreviewDoc(d, sourceBtn) {
+    const slot = document.getElementById('split-preview-slot');
+    if (!slot) return;
+    const exists = (d.exists !== false);
+    const hasContent = !!(d.content && d.content.length);
+    let bodyHtml;
+    if (!exists) {
+      bodyHtml = '<div class="doc-preview-missing">' +
+        '<div class="pv-missing-title">' + escapeHtml(t('drawer.docs_missing_title')) + '</div>' +
+        '<div>' + escapeHtml(t('drawer.docs_missing_hint')) + '</div>' +
+        '<div class="pv-missing-path">' + escapeHtml(d.path || '') + '</div>' +
+      '</div>';
+    } else if (hasContent) {
+      bodyHtml = '<div class="doc-preview-body">' + _markdownToHtml(d.content) + '</div>';
+    } else {
+      // 非 .md / 文件过大 · 提示外部打开
+      const url = d.resolved
+        ? 'file:///' + d.resolved.replace(/\\/g, '/').replace(/^\/+/, '')
+        : (d.path || '');
+      bodyHtml =
+        '<div class="doc-preview-missing">' +
+          '<div class="pv-missing-title">' + escapeHtml(t('drawer.docs_open_external')) + '</div>' +
+          '<div class="pv-missing-path">' + escapeHtml(url) + '</div>' +
+        '</div>';
+    }
+    slot.innerHTML =
+      '<div class="split-preview-head">' +
+        '<div class="pv-title">' + escapeHtml(d.title || d.path || '') + '</div>' +
+        (d.path ? '<div class="pv-path">' + escapeHtml(d.path) + '</div>' : '') +
+        (d.mtime ? '<div class="pv-mtime">' + escapeHtml(d.mtime) + '</div>' : '') +
+      '</div>' +
+      bodyHtml;
+    // 高亮当前 active doc-row(左 navigator)
+    const allRows = document.querySelectorAll('#split-nav-slot .doc-list .doc-row');
+    allRows.forEach(r => r.classList.remove('active'));
+    if (sourceBtn && sourceBtn.classList) sourceBtn.classList.add('active');
+    // 滚到顶
+    slot.scrollTop = 0;
+  }
+
+  function renderSplitPreviewEmpty() {
+    const slot = document.getElementById('split-preview-slot');
+    if (!slot) return;
+    slot.innerHTML =
+      '<div class="split-preview-placeholder">' +
+        'No linked docs for this module · add `docs:` in frontmatter or `## Related` section in body.' +
+      '</div>';
+  }
+
+  // 0.11.0-alpha.6 §4.d · sysdoc split-view · 左 navigator 是 systemDocs list ·
+  // 右 preview 渲染 active 那条 doc body
+  function _renderSysdocSplitNav(activeId) {
+    const slot = document.getElementById('split-nav-slot');
+    if (!slot) return;
+    const list = RAW.systemDocs || [];
+    const rowsHtml = list.map(d => {
+      const isActive = (d.id === activeId);
+      const iconSvg = iconForDoc(d.icon || 'doc');
+      return '<button type="button" class="sysdoc-row sysdoc-nav-row' + (isActive ? ' active' : '') + '" data-sysdoc-id="' + escapeHtml(d.id) + '">' +
+        '<span class="sd-icon">' + iconSvg + '</span>' +
+        '<div class="sd-info">' +
+          '<div class="sd-title">' + escapeHtml(d.title) + '</div>' +
+          '<div class="sd-desc">' + escapeHtml(d.desc || '') + '</div>' +
+        '</div>' +
+      '</button>';
+    }).join('');
+    slot.innerHTML =
+      '<div class="drawer-head" style="position:sticky;top:0;background:var(--c-bg);z-index:2;border-bottom:1px solid var(--c-hairline);padding:14px 20px;">' +
+        '<div>' +
+          '<div class="h-meta" style="font-family:var(--f-mono);font-size:11px;color:var(--c-graphite);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;">' + escapeHtml(t('sysdocs.eyebrow')) + '</div>' +
+          '<h2 style="margin:0;font-size:18px;font-weight:600;color:var(--c-ink);">' + escapeHtml(t('sysdocs.title')) + '</h2>' +
+        '</div>' +
+      '</div>' +
+      '<div class="drawer-body" style="padding:16px;">' +
+        '<div class="sysdoc-list">' + rowsHtml + '</div>' +
+      '</div>';
+    // 绑 click · 切 sysdoc(同 split-view 内导航)
+    slot.querySelectorAll('.sysdoc-row').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const newId = btn.dataset.sysdocId;
+        if (newId === activeId) return;
+        window.location.hash = '#/sysdoc/' + encodeURIComponent(newId);
+      });
+    });
+    // 渲染右 preview · 当前 active sysdoc 的 content
+    const active = list.find(d => d.id === activeId);
+    if (active) {
+      renderSplitPreviewDoc(active, null);
+    } else {
+      renderSplitPreviewEmpty();
+    }
   }
 
   function navigateTo(kind, id) {
