@@ -42,8 +42,29 @@ dependencies = [
   "pyyaml>=6.0",
 ]
 
+# 0.11.0-alpha.1:测试 / 类型检查 dev dep · plan §11 Step 1 + plan-eng-review 4A
+# 装法:`pip install -e .[dev]` 或 `uv pip install -e .[dev]`
+[project.optional-dependencies]
+dev = [
+  "pytest>=7",
+  "pytest-cov>=4",
+  # playwright 留给 Step 2 UI split-view 引入 · 当前 Step 1 单元 + 集成测试只用 pytest
+]
+
 [project.scripts]
 docs-cockpit = "docs_cockpit.build:main"
+
+# 0.11.0-alpha.1:pytest 配置 · 默认走 tests/ 目录 · 不递归扫 docs_cockpit/examples/
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "-ra --strict-markers"
+markers = [
+  "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+  "integration: end-to-end tests · run a full docs-cockpit build against fixture project",
+]
 
 [project.urls]
 Homepage = "https://github.com/Guohao1020/docs-cockpit"
