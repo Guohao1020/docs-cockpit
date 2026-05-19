@@ -4,6 +4,29 @@
 
 ## [Unreleased]
 
+## [0.12.1] · 2026-05-19
+
+修一个 dogfood 立刻暴露的 v0.12.0 dashboard 显空区域 bug · template/CSS-only patch。
+
+### Why · 用户截图反馈「下面这块区域应该没啥用了删除了吧」
+
+dashboard root(无 hash 路由)滚到底看到一对空白卡片 · 左空 / 右显「Select a doc to preview · §4.d will fill this with marked.js」alpha.6 开发占位文案。这块是 split-view 容器(`#split-page`)· 设计上应该 `hidden` 直到用户进 `#/module/X` 路由。
+
+根因:`.split-page { display: grid }` (specificity 0,0,1,0)跟 UA 的 `[hidden] { display: none }` (specificity 0,0,1,0)同级 · author CSS 后置 winning · 所以 `hidden` HTML 属性失效 · split-page 在 dashboard root 仍然渲染。
+
+### Changed · 1 行 CSS override
+
+`docs_cockpit/templates/index.html.tmpl` 加显式 `.split-page[hidden] { display: none; }` · 让 `hidden` 属性真生效。本来就有的 `body.split-mode .split-page[hidden] { display: grid !important; }` 继续 work · 进 split-view 时正常显。
+
+### Changed · placeholder 文案
+
+把 alpha.6 开发期遗留的「Select a doc to preview · §4.d will fill this with marked.js」改成用户友好版「Select a linked doc, code anchor, or doc anchor from the left to preview here.」(EN + 中)· 走 i18n key `split.placeholder`。
+
+### Not changed
+
+- 不动 schema · 不动 build pipeline · 不动 CLI · 不动 SKILL.md → 走 patch 不走 minor
+- 老用户 docs-cockpit upgrade 拿 0.12.1 不强制重启
+
 ## [0.12.0] · 2026-05-19
 
 v0.11 driver-seat 的「展示 → 驱动」叙事彻底闭环。v0.11 让用户在 dashboard 看到 + 复制 prompt;v0.12 让 AI 直接消费 prompt / 反向同步状态 / 软优化 MD 质量 · **不再需要人工搬运**。整体跨 4 个 module(M07-M10)· 4 个新 CLI 子命令 · 1 个 MCP server · 6 个新 prompt template · 105 新测试。

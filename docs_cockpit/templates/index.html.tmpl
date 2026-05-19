@@ -133,6 +133,10 @@ a:hover { text-decoration: underline; }
   gap: 20px;
   align-items: start;
 }
+/* 0.12.0 fix · 让 hidden 属性真生效 · 跟 UA [hidden]{display:none} specificity
+   相等被 .split-page 覆盖 · 必须显式 override 回 none · 否则 dashboard root
+   会露出空的 split-view 占位区(用户截图反馈) */
+.split-page[hidden] { display: none; }
 .split-nav-slot {
   /* §4.c · module-drawer DOM 移进来 · CSS override modal 样式
      0.11.0-alpha.7 follow-up · overflow-y: auto 让左 navigator 自己滚动 · 修被截断 */
@@ -1781,10 +1785,10 @@ body.split-mode #module-drawer .drawer-body {
   <section class="split-page" id="split-page" hidden>
     <!-- §4.c · 左 navigator slot · applyRoute 时 JS 移入 module-drawer DOM(复用现有渲染) -->
     <div class="split-nav-slot" id="split-nav-slot"></div>
-    <!-- §4.d · 右 preview · §4.d 接 marked.js 渲染 linked docs / sysdoc -->
+    <!-- 右 preview · marked.js 渲染 linked docs / code anchor / sysdoc · 进入 split-mode 后由 JS 填 -->
     <div class="split-preview-slot" id="split-preview-slot">
-      <div class="split-preview-placeholder" id="split-preview-placeholder">
-        Select a doc to preview · §4.d will fill this with marked.js
+      <div class="split-preview-placeholder" id="split-preview-placeholder" data-i18n="split.placeholder">
+        Select a linked doc, code anchor, or doc anchor from the left to preview here.
       </div>
     </div>
   </section>
@@ -1976,6 +1980,7 @@ body.split-mode #module-drawer .drawer-body {
       'topbar.export_btn': 'Export',
       'topbar.export_title': 'Export status overrides (download JSON · feed into docs-cockpit sync-status --import)',
       'toast.export_done': 'Overrides exported · run: docs-cockpit sync-status --import <file>',
+      'split.placeholder': 'Select a linked doc, code anchor, or doc anchor from the left to preview here.',
       'hero.eyebrow': 'PROJECT DASHBOARD · MODULE PROGRESS',
       'hero.title': 'Project progress overview',
       'hero.tagline': 'Module status · sprint progress · core concepts · one-stop visualization with fine-grained progress control.',
@@ -2258,6 +2263,7 @@ body.split-mode #module-drawer .drawer-body {
       'topbar.export_btn': '导出 override',
       'topbar.export_title': '导出 subtask 勾选状态(下载 JSON · 喂给 docs-cockpit sync-status --import)',
       'toast.export_done': 'Override 已导出 · 跑:docs-cockpit sync-status --import <file>',
+      'split.placeholder': '从左侧选关联文档 / code anchor / doc anchor · 这里渲染预览',
       'topbar.sysdocs_title': '系统文档 (D)',
       'hero.eyebrow': '通用项目看板 · 模块进度',
       'hero.title': '项目进度概览',
