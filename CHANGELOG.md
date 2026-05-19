@@ -4,6 +4,54 @@
 
 ## [Unreleased]
 
+## [0.11.0-alpha.8] · 2026-05-19
+
+补 v0.11 driver-seat 的最后一个 UI 缺口 · subtask 级 `code:` / `docs:` anchor 终于在 dashboard 里能看见、能点、能跳。alpha.6 split-view 接通了数据 · alpha.7 接通了 AI · 但 anchor 字段一直只 surface 第一条 code · subtask 级 docs 完全 invisible · 导致用户 refine 完看不到反馈。
+
+### Why
+
+dogfood 暴露的真实 friction:用户跑 Refine prompt 把每个 subtask 的 code 拆成 4 个具体 file path、docs 拆成多个 anchor 之后 · 打开 dashboard 看到的还是「📄 一个图标」 · 跟之前 directory anchor 长得一模一样 · 「为什么修改了驾驶舱没啥变化」。根因不在 build · 在 UI 没接住:模板里 `st.code_anchors[0]` 写死单条 · `st.docs` 模板里零命中。这是 plan §6.6 split-view 设计阶段的 known gap · 补上。
+
+### Added · subtask doc_anchors 后端切片(paths.py)
+
+`docs_cockpit/paths.py`:
+- `_parse_subtask_doc_ref(raw)` · 解析 `path[:lines][#heading]` 三态 ref
+- `_slice_by_lines(text, "88-100")` · 1-indexed 行切片(start-end / single 两种 spec)
+- `_slice_by_heading(text, "§6.2")` · 找标题包含 slug 的 heading · 切到下一同/更高级 heading
+- `_resolve_subtask_doc_anchor(raw, module_path, repo_root, vars_)` · 主入口 · 输出 `{raw, path, lines, heading, title, resolved, exists, content, mtime, warning}` · 100KB 截断护栏跟 module 级 docs 一致
+
+`docs_cockpit/build.py::_build_card`:
+- code_anchor 循环之后追加 doc_anchor 循环 · subtask `docs:` 不管 str 还是 list 都 normalize 到 list[dict] · 落到 `subtask.doc_anchors[]`
+
+### Added · subtask 多 anchor UI(index.html.tmpl)
+
+`docs_cockpit/templates/index.html.tmpl`:
+- subtask 行渲染 · `st.code_anchors` 和 `st.doc_anchors` 都改 forEach · 每条 anchor 画一颗按钮 · 多 anchor 时右上角小数字标 `.badge-idx` · CSS `.st-doc-btn` 复用 `.st-code-btn` 样式(HP 蓝 hover + active state)
+- click handler 用 `data-st-idx` 定位具体 anchor · 不再写死 `[0]`
+- `renderSplitPreviewCode(subtask, focusIdx, sourceBtn)` · 加 focusIdx 参数 · 单条聚焦时右栏只渲染那一条 + 标题加 "anchor N/M"
+- `renderSplitPreviewSubtaskDoc(da, subtask, sourceBtn)` · 新函数 · backend 已切好片直接走 `_markdownToHtml(da.content)` · 找不到 anchor 显 missing 状态 + warning · 头部带 vscode:// 深链按钮跳源文件
+
+### Schema · state.json 新增 `modules[].subtasks[].doc_anchors[]`
+
+形状:
+```json
+{ "raw": "CLAUDE.md:88-100", "path": "CLAUDE.md", "lines": "88-100",
+  "heading": null, "title": "", "resolved": "<abs>", "exists": true,
+  "content": "<sliced markdown>", "mtime": "2026-05-19 10:24", "warning": "" }
+```
+向后兼容:老 state.json 没有 `doc_anchors` 字段不影响读 · standup / portfolio skill 暂未消费 · 后续可加。
+
+### Verified
+
+- 6 module dogfood build 干净 · M03 7 subtask 全部有 `doc_anchors` · 16 个 anchor 全部带 sliced content(2-2589 chars)
+- M03-e6adea 3 个 anchor 验证三种 spec 形式都正常:`#§6.2` heading(2589 chars · 完整 §6.2 段)/ `:566-577` 行范围(789 chars · 12 行)/ `:367` 单行(69 chars · 1 行)
+- 模板 JS 结构 sanity check:`renderSplitPreviewSubtaskDoc` 已定义 · `.st-doc-btn` handler 已绑 · CSS class 全部 emit
+
+### Out of scope · 留 follow-up
+
+- 行号高亮:用户写 `path:88-100` UI 只显示 88-100 那 13 行 · 没有「整篇渲染并高亮 88-100」模式(MVP 选 slice · 因为整篇 marked.parse 后 line→DOM 映射 unreliable)。如果有需求再加。
+- standup / portfolio skill 消费 `doc_anchors` · 暂未做 · 现在两个 skill 还是读 raw `docs` 字段。
+
 ## [0.11.0-alpha.7] · 2026-05-18
 
 AI-augmented precision · 把语义精度让给 LLM · driver-seat 完成「AI 副驾」转型。两条线并行落地:模式 3(write-time · 教 AI 写 MD 时精确)+ 模式 2(on-demand · split-view 「Refine with AI」按钮)。

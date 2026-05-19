@@ -399,6 +399,187 @@ def _read_code_lines(
     return chunk, ""
 
 
+# ── v0.11 alpha.8 · subtask docs anchor resolver(plan §6.6 · UI 右栏需要 slice) ──
+#
+# subtask 的 `docs:` 字段是 string list,形如:
+#   "CLAUDE.md:88-100"          → 行范围 anchor
+#   "docs/plans/p.md#§6.2"      → heading slug anchor
+#   "docs/RFC/foo.md"           → 整 file(MVP 退化为 split_frontmatter 后 body)
+# UI 右栏要 marked.js 渲染 · 所以 build 阶段就把 slice 切好放进 content · 前端不再
+# 算 line → HTML 映射(那是 unreliable 的)。
+_SUBTASK_DOC_REF_RE = re.compile(
+    r"^(?P<path>[^:#]+?)"
+    r"(?::(?P<lines>\d+(?:-\d+)?))?"
+    r"(?:#(?P<heading>.+?))?$"
+)
+_HEADING_LINE_RE = re.compile(r"^(#{1,6})\s+(.*)$")
+
+
+def _parse_subtask_doc_ref(raw: str) -> tuple[str, str | None, str | None]:
+    """Parse 'path[:lines][#heading]' → (path, lines, heading)."""
+    if not raw:
+        return "", None, None
+    m = _SUBTASK_DOC_REF_RE.match(raw.strip())
+    if not m:
+        return raw.strip(), None, None
+    return (
+        (m.group("path") or "").strip(),
+        m.group("lines"),
+        m.group("heading"),
+    )
+
+
+def _slice_by_lines(raw_text: str, lines_spec: str) -> str:
+    """按 'start-end' / 'single' 切片(1-indexed · 含两端)."""
+    parts = lines_spec.split("-", 1)
+    try:
+        start = int(parts[0])
+        end = int(parts[1]) if len(parts) == 2 else start
+    except ValueError:
+        return raw_text
+    if start < 1:
+        start = 1
+    if end < start:
+        end = start
+    all_lines = raw_text.splitlines()
+    return "\n".join(all_lines[start - 1 : end])
+
+
+def _slice_by_heading(raw_text: str, heading_slug: str) -> tuple[str, str]:
+    """从 heading 匹配位置切到下一同/更高级 heading · 返回 (slice, found_title).
+
+    匹配规则:lines 里任意 ## 级 heading 的 title 包含 slug 字符串(case-insensitive)
+    即命中。子任务 docs 写 `#§6.2` 我们就找标题里有 `§6.2` 的行 · 比 markdown URL
+    slug 化更直观 · 跟用户在源文件 grep 的思路一致。
+    """
+    slug = (heading_slug or "").strip()
+    if not slug:
+        return "", ""
+    slug_low = slug.lower()
+    lines = raw_text.splitlines()
+    found_idx: int | None = None
+    found_level = 0
+    found_title = ""
+    for i, line in enumerate(lines):
+        m = _HEADING_LINE_RE.match(line)
+        if not m:
+            continue
+        title = m.group(2)
+        if slug_low in title.lower():
+            found_idx = i
+            found_level = len(m.group(1))
+            found_title = title.strip()
+            break
+    if found_idx is None:
+        return "", ""
+    end_idx = len(lines)
+    for j in range(found_idx + 1, len(lines)):
+        m = _HEADING_LINE_RE.match(lines[j])
+        if m and len(m.group(1)) <= found_level:
+            end_idx = j
+            break
+    return "\n".join(lines[found_idx:end_idx]), found_title
+
+
+def _resolve_subtask_doc_anchor(
+    raw: str,
+    module_path: pathlib.Path,
+    repo_root: pathlib.Path,
+    vars_: dict[str, str],
+) -> dict[str, Any]:
+    """把 subtask `docs:` 的单条字符串解析为右栏 marked.js 可消费的 anchor entry.
+
+    返回字段:
+      raw       · 原始字符串(保留)
+      path      · 切出来的纯路径
+      lines     · "88-100" / "88" / None
+      heading   · "§6.2" / None(取自 `#xxx` 后缀)
+      resolved  · 绝对路径 · 失败 ""
+      exists    · bool
+      title     · heading 匹配上时取找到的 heading 文本 · 否则 ""
+      content   · 切片后的 markdown 文本 · 非 MD / 失败为 ""
+      mtime     · "YYYY-MM-DD HH:MM" · 失败 None
+      warning   · 失败/降级原因 · 成功 ""
+    """
+    out: dict[str, Any] = {
+        "raw": raw or "",
+        "path": "",
+        "lines": None,
+        "heading": None,
+        "title": "",
+        "resolved": "",
+        "exists": False,
+        "content": "",
+        "mtime": None,
+        "warning": "",
+    }
+    if not raw:
+        out["warning"] = "empty doc anchor"
+        return out
+
+    path_s, lines, heading = _parse_subtask_doc_ref(raw)
+    out["path"] = path_s
+    out["lines"] = lines
+    out["heading"] = heading
+
+    resolved = _resolve_doc_path(path_s, module_path, repo_root, vars_)
+    if not resolved or not resolved.is_file():
+        out["warning"] = (
+            f"path not found: {path_s} (tried abs · relative to module · relative to repo)"
+        )
+        return out
+    out["resolved"] = str(resolved)
+    out["exists"] = True
+
+    try:
+        out["mtime"] = _dt.datetime.fromtimestamp(
+            resolved.stat().st_mtime
+        ).strftime("%Y-%m-%d %H:%M")
+    except OSError:
+        pass
+
+    if resolved.suffix.lower() not in (".md", ".markdown"):
+        # 非 MD 不嵌内容 · 前端走 vscode:// / file:// 外部打开
+        return out
+
+    try:
+        raw_text = resolved.read_text(encoding="utf-8", errors="replace")
+    except (OSError, UnicodeError) as e:
+        out["warning"] = f"read failed: {e}"
+        return out
+
+    if lines:
+        # 行号锚 · 直接对 raw 切(用户写行号默认就是源文件里的行 · 不剥 frontmatter)
+        out["content"] = _slice_by_lines(raw_text, lines)
+    elif heading:
+        slice_text, found_title = _slice_by_heading(raw_text, heading)
+        if slice_text:
+            out["content"] = slice_text
+            out["title"] = found_title
+        else:
+            out["warning"] = f"heading not found: {heading}"
+            # 降级 · 退到整 body
+            _, body = split_frontmatter(raw_text)
+            out["content"] = body
+    else:
+        # 整 file · 剥 frontmatter 让 marked 渲染更干净(跟 _resolve_and_embed_docs 一致)
+        _, body = split_frontmatter(raw_text)
+        out["content"] = body
+
+    # 大小护栏 · 跟 module 级 docs 一致 · 100KB 截断
+    body_bytes = out["content"].encode("utf-8")
+    if len(body_bytes) > _MAX_EMBED_BYTES:
+        kb = len(body_bytes) // 1024
+        out["content"] = body_bytes[:_MAX_EMBED_BYTES].decode(
+            "utf-8", errors="replace"
+        ) + (
+            f"\n\n---\n\n*[Content truncated · body is {kb} KB · "
+            f"embed limit 100 KB. Open the file directly to read the rest.]*\n"
+        )
+
+    return out
+
+
 def _resolve_code_anchor(
     raw: str,
     module_path: pathlib.Path,

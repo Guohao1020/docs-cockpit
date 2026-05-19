@@ -50,6 +50,7 @@ from .paths import (
     _expand,
     _resolve_and_embed_docs,
     _resolve_code_anchor,
+    _resolve_subtask_doc_anchor,
     _resolve_doc_path,
     _resolve_group_files,
     read_md,
@@ -123,6 +124,22 @@ def _build_card(
                 sub["code_anchors"] = [
                     _resolve_code_anchor(c, path, repo_root, vars_)
                     for c in raw_code_list
+                ]
+            # 0.11.0-alpha.8:subtask docs anchor · path[:lines] / path#heading
+            # 解析切片 · 给前端 marked.js 右栏渲染用(UI 缺口修复 · plan §6.6)
+            for sub in subtasks:
+                raw_docs = sub.get("docs")
+                if not raw_docs:
+                    continue
+                if isinstance(raw_docs, str):
+                    raw_docs_list = [raw_docs]
+                elif isinstance(raw_docs, list):
+                    raw_docs_list = [str(d) for d in raw_docs if d]
+                else:
+                    continue
+                sub["doc_anchors"] = [
+                    _resolve_subtask_doc_anchor(d, path, repo_root, vars_)
+                    for d in raw_docs_list
                 ]
         card["subtasks"] = subtasks
 
