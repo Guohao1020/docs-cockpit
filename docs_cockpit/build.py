@@ -536,6 +536,21 @@ def cmd_build(args: argparse.Namespace) -> int:
     except Exception as exc:  # noqa: BLE001
         _safe_print(f"     [warn] prompts.js sidecar 生成失败:{exc}")
 
+    # ── 0.14 M17 · bundle meta sidecar ──────────────────────────
+    # 给 backlog UI 算好 cohesion / conflict · 用户多选时直接读 · 不调 LLM
+    try:
+        from .bundle import render_bundle_meta
+        bundle_meta = render_bundle_meta(payload["modules"])
+        if bundle_meta and (bundle_meta.get("pairs") or bundle_meta.get("by_subtask")):
+            bundle_js_path = output.parent / "bundle-meta.js"
+            bundle_json = json.dumps(bundle_meta, ensure_ascii=False)
+            bundle_js_path.write_text(
+                f"window.__BUNDLE_META__ = {bundle_json};\n",
+                encoding="utf-8",
+            )
+    except Exception as exc:  # noqa: BLE001
+        _safe_print(f"     [warn] bundle-meta.js sidecar 生成失败:{exc}")
+
     # ── 统计 + 输出 ───────────────────────────────────────────
     n_modules = len(payload["modules"])
     n_concepts = len(payload["concepts"])

@@ -1,0 +1,107 @@
+Split: 12 train, 8 test (holdout=0.4)
+
+============================================================
+Iteration 1/5
+Description: Build a self-contained, live HTML cockpit (single `index.html`) that aggregates a project's Markdown documents — PRD, spec, plan, RFC, task cards, design system, todos, session memory — into one `file://`-openable preview page with sidebar navigation and an optional frontmatter-driven project dashboard (KPI / module kanban / sprint timeline). Markdown is rendered client-side via marked.js + highlight.js from CDN.
+============================================================
+Warning: query failed: [Errno 13] Permission denied: '/sessions/awesome-dazzling-davinci/mnt/.claude/commands'
+Warning: query failed: [Errno 13] Permission denied: '/sessions/awesome-dazzling-davinci/mnt/.claude/commands'
+Warning: query failed: [Errno 13] Permission denied: '/sessions/awesome-dazzling-davinci/mnt/.claude/commands'
+Warning: query failed: [Errno 13] Permission denied: '/sessions/awesome-dazzling-davinci/mnt/.claude/commands'
+Warning: query failed: [Errno 13] Permission denied: '/sessions/awesome-dazzling-davinci/mnt/.claude/commands'
+Warning: query failed: [Errno 13] Permission denied: '/sessions/awesome-dazzling-davinci/mnt/.claude/commands'
+Warning: query failed: [Errno 13] Permission denied: '/sessions/awesome-dazzling-davinci/mnt/.claude/commands'
+Warning: query failed: [Errno 13] Permission denied: '/sessions/awesome-dazzling-davinci/mnt/.claude/commands'
+Warning: query failed: [Errno 13] Permission denied: '/sessions/awesome-dazzling-davinci/mnt/.claude/commands'
+Warning: query failed: [Errno 13] Permission denied: '/sessions/awesome-dazzling-davinci/mnt/.claude/commands'
+Warning: query failed: [Errno 13] Permission denied: '/sessions/awesome-dazzling-davinci/mnt/.claude/commands'
+Warning: query failed: [Errno 13] Permission denied: '/sessions/awesome-dazzling-davinci/mnt/.claude/commands'
+Warning: query failed: [Errno 13] Permission denied: '/sessions/awesome-dazzling-davinci/mnt/.claude/commands'
+Warning: query failed: [Errno 13] Permission denied: '/sessions/awesome-dazzling-davinci/mnt/.claude/commands'
+Warning: query failed: [Errno 13] Permission denied: '/sessions/awesome-dazzling-davinci/mnt/.claude/commands'
+Warning: query failed: [Errno 13] Permission denied: '/sessions/awesome-dazzling-davinci/mnt/.claude/commands'
+Warning: query failed: [Errno 13] Permission denied: '/sessions/awesome-dazzling-davinci/mnt/.claude/commands'
+Warning: query failed: [Errno 13] Permission denied: '/sessions/awesome-dazzling-davinci/mnt/.claude/commands'
+Warning: query failed: [Errno 13] Permission denied: '/sessions/awesome-dazzling-davinci/mnt/.claude/commands'
+Warning: query failed: [Errno 13] Permission denied: '/sessions/awesome-dazzling-davinci/mnt/.claude/commands'
+Warning: query failed: [Errno 13] Permission denied: '/sessions/awesome-dazzling-davinci/mnt/.claude/commands'
+Warning: query failed: [Errno 13] Permission denied: '/sessions/awesome-dazzling-davinci/mnt/.claude/commands'
+Warning: query failed: [Errno 13] Permission denied: '/sessions/awesome-dazzling-davinci/mnt/.claude/commands'
+Warning: query failed: [Errno 13] Permission denied: '/sessions/awesome-dazzling-davinci/mnt/.claude/commands'
+Warning: query failed: [Errno 13] Permission denied: '/sessions/awesome-dazzling-davinci/mnt/.claude/commands'
+Warning: query failed: [Errno 13] Permission denied: '/sessions/awesome-dazzling-davinci/mnt/.claude/commands'
+Warning: query failed: [Errno 13] Permission denied: '/sessions/awesome-dazzling-davinci/mnt/.claude/commands'
+Warning: query failed: [Errno 13] Permission denied: '/sessions/awesome-dazzling-davinci/mnt/.claude/commands'
+Warning: query failed: [Errno 13] Permission denied: '/sessions/awesome-dazzling-davinci/mnt/.claude/commands'
+Warning: query failed: [Errno 13] Permission denied: '/sessions/awesome-dazzling-davinci/mnt/.claude/commands'
+Warning: query failed: [Errno 13] Permission denied: '/sessions/awesome-dazzling-davinci/mnt/.claude/commands'
+Warning: query failed: [Errno 13] Permission denied: '/sessions/awesome-dazzling-davinci/mnt/.claude/commands'
+Warning: query failed: [Errno 13] Permission denied: '/sessions/awesome-dazzling-davinci/mnt/.claude/commands'
+Warning: query failed: [Errno 13] Permission denied: '/sessions/awesome-dazzling-davinci/mnt/.claude/commands'
+Warning: query failed: [Errno 13] Permission denied: '/sessions/awesome-dazzling-davinci/mnt/.claude/commands'
+Warning: query failed: [Errno 13] Permission denied: '/sessions/awesome-dazzling-davinci/mnt/.claude/commands'
+Warning: query failed: [Errno 13] Permission denied: '/sessions/awesome-dazzling-davinci/mnt/.claude/commands'
+Warning: query failed: [Errno 13] Permission denied: '/sessions/awesome-dazzling-davinci/mnt/.claude/commands'
+Warning: query failed: [Errno 13] Permission denied: '/sessions/awesome-dazzling-davinci/mnt/.claude/commands'
+Warning: query failed: [Errno 13] Permission denied: '/sessions/awesome-dazzling-davinci/mnt/.claude/commands'
+Warning: query failed: [Errno 13] Permission denied: '/sessions/awesome-dazzling-davinci/mnt/.claude/commands'
+Warning: query failed: [Errno 13] Permission denied: '/sessions/awesome-dazzling-davinci/mnt/.claude/commands'
+Warning: query failed: [Errno 13] Permission denied: '/sessions/awesome-dazzling-davinci/mnt/.claude/commands'
+Warning: query failed: [Errno 13] Permission denied: '/sessions/awesome-dazzling-davinci/mnt/.claude/commands'
+Warning: query failed: [Errno 13] Permission denied: '/sessions/awesome-dazzling-davinci/mnt/.claude/commands'
+Warning: query failed: [Errno 13] Permission denied: '/sessions/awesome-dazzling-davinci/mnt/.claude/commands'
+Warning: query failed: [Errno 13] Permission denied: '/sessions/awesome-dazzling-davinci/mnt/.claude/commands'
+Warning: query failed: [Errno 13] Permission denied: '/sessions/awesome-dazzling-davinci/mnt/.claude/commands'
+Warning: query failed: [Errno 13] Permission denied: '/sessions/awesome-dazzling-davinci/mnt/.claude/commands'
+Warning: query failed: [Errno 13] Permission denied: '/sessions/awesome-dazzling-davinci/mnt/.claude/commands'
+Warning: query failed: [Errno 13] Permission denied: '/sessions/awesome-dazzling-davinci/mnt/.claude/commands'
+Warning: query failed: [Errno 13] Permission denied: '/sessions/awesome-dazzling-davinci/mnt/.claude/commands'
+Warning: query failed: [Errno 13] Permission denied: '/sessions/awesome-dazzling-davinci/mnt/.claude/commands'
+Warning: query failed: [Errno 13] Permission denied: '/sessions/awesome-dazzling-davinci/mnt/.claude/commands'
+Warning: query failed: [Errno 13] Permission denied: '/sessions/awesome-dazzling-davinci/mnt/.claude/commands'
+Warning: query failed: [Errno 13] Permission denied: '/sessions/awesome-dazzling-davinci/mnt/.claude/commands'
+Warning: query failed: [Errno 13] Permission denied: '/sessions/awesome-dazzling-davinci/mnt/.claude/commands'
+Warning: query failed: [Errno 13] Permission denied: '/sessions/awesome-dazzling-davinci/mnt/.claude/commands'
+Warning: query failed: [Errno 13] Permission denied: '/sessions/awesome-dazzling-davinci/mnt/.claude/commands'
+Warning: query failed: [Errno 13] Permission denied: '/sessions/awesome-dazzling-davinci/mnt/.claude/commands'
+Train: 18/36 correct, precision=100% recall=0% accuracy=50% (0.1s)
+  [FAIL] rate=0/3 expected=True: 可以给我做一个 docs/index.html 把项目的 PRD spec plan rfc 都集中起来 · 改 md 
+  [FAIL] rate=0/3 expected=True: 把 docs/plan/round-3-build-house.md 这些 plan 文档 + roadmap 子目录的
+  [FAIL] rate=0/3 expected=True: I have ~/Documents/myproject/docs and i want a single offlin
+  [FAIL] rate=0/3 expected=True: 我的项目 docs/ 下面有 spec/、plan/、RFC/、task/ 一堆 md 文档,想做个看板能在浏览器里集中
+  [FAIL] rate=0/3 expected=True: I want to add a kanban view to my markdown notes where each 
+  [FAIL] rate=0/3 expected=True: i've got like 70 markdown files spread across docs/PRD, docs
+  [PASS] rate=0/3 expected=False: set up a Sphinx documentation site for my Python library, wi
+  [PASS] rate=0/3 expected=False: 写一个 Python 脚本扫描 ~/Downloads 目录然后把所有 csv 文件的列名提取出来
+  [PASS] rate=0/3 expected=False: 我想要个像 Notion 一样的内部 wiki · 多人协作可以编辑那种 · 还要权限管理
+  [PASS] rate=0/3 expected=False: render this single README.md to HTML so I can preview it in 
+  [PASS] rate=0/3 expected=False: build a Jira-like kanban board where my team can drag cards 
+  [PASS] rate=0/3 expected=False: 帮我写个 GitHub Action,push 到 main 的时候自动 deploy 我的 docs 到 GitHub
+Test : 12/24 correct, precision=100% recall=0% accuracy=50% (0.0s)
+  [FAIL] rate=0/3 expected=True: 项目进度看板 · 文档驱动那种 · 每个 module spec 文件 frontmatter 写 status + p
+  [FAIL] rate=0/3 expected=True: 我们 Sourcery 现在的 scripts/build_docs_html.py 太长了 · 帮我抽出来做成项目无关
+  [FAIL] rate=0/3 expected=True: 把 D:\projects\foo\docs\ 下所有 md 汇总成一个 dashboard,含 frontmatter
+  [FAIL] rate=0/3 expected=True: build me a docs preview that scans docs/spec/module/M*.md an
+  [PASS] rate=0/3 expected=False: convert these 8 markdown files to a single PDF and merge the
+  [PASS] rate=0/3 expected=False: 我要给我的 GitHub README 加几个 status badge · 比如 build / coverage /
+  [PASS] rate=0/3 expected=False: I want a multi-page static site like Docusaurus for our prod
+  [PASS] rate=0/3 expected=False: explain to me how YAML frontmatter parsing works in Python w
+
+Improving description...
+Traceback (most recent call last):
+  File "/usr/lib/python3.10/runpy.py", line 196, in _run_module_as_main
+    return _run_code(code, main_globals, None,
+  File "/usr/lib/python3.10/runpy.py", line 86, in _run_code
+    exec(code, run_globals)
+  File "/sessions/awesome-dazzling-davinci/mnt/.claude/skills/skill-creator/scripts/run_loop.py", line 328, in <module>
+    main()
+  File "/sessions/awesome-dazzling-davinci/mnt/.claude/skills/skill-creator/scripts/run_loop.py", line 293, in main
+    output = run_loop(
+  File "/sessions/awesome-dazzling-davinci/mnt/.claude/skills/skill-creator/scripts/run_loop.py", line 199, in run_loop
+    new_description = improve_description(
+  File "/sessions/awesome-dazzling-davinci/mnt/.claude/skills/skill-creator/scripts/improve_description.py", line 144, in improve_description
+    text = _call_claude(prompt, model)
+  File "/sessions/awesome-dazzling-davinci/mnt/.claude/skills/skill-creator/scripts/improve_description.py", line 44, in _call_claude
+    raise RuntimeError(
+RuntimeError: claude -p exited 1
+stderr: 

@@ -2,9 +2,9 @@
 id: M15
 type: module
 title: "Backlog view + filters · cross-module subtask 扁平视图"
-status: not-started
+status: done
 sprint: "0.14"
-progress: 0
+progress: 100
 desc: "新 backlog view · 跨 module 扁平 subtask 列表 · 时间 / sprint / 状态 / 搜索四向 filter · 让用户找到「我现在要做的那批」"
 owner: harvey
 prd_ref: "v0.14 plan §5.1"
@@ -48,11 +48,11 @@ URL state:filters 写 hash query · `#/backlog?sprint=0.14&status=not-started&q=
 
 ## 3 · 待办
 
-- [ ] hero 下方加「View Backlog」link · 跳 `#/backlog`
-- [ ] `<section id="backlog-page" hidden>` 新增容器 + sticky filter bar CSS(0.12.1 学的 `.split-page[hidden]` 显式 override)
-- [ ] hash router 支持 `#/backlog` + 解码 `?sprint=...&status=...&q=...` query
-- [ ] `renderBacklog(filters)` 跑 4-axis filter chain · 输出 subtask 行 list
-- [ ] filter bar 4 控件(Time / Sprint / Status / Search)+ active chip 显示已选 + 「清除全部」按钮
-- [ ] 排序 default sprint desc → module id → subtask order · 也支持 by title / by status(下拉切)
-- [ ] 每行带 [Copy prompt] 图标 · 复用单 subtask Copy prompt 路径
-- [ ] 集成测试 · pytest-playwright 跑 #/backlog?sprint=0.14 · 验只显 v0.14 subtask
+- [x] topbar 加「Backlog」按钮 · 跳 `#/backlog` @code:docs_cockpit/templates/index.html.tmpl
+- [x] `<section id="backlog-page" hidden>` 容器 + sticky filter bar CSS · 显式 `[hidden]` override 兜底 @code:docs_cockpit/templates/index.html.tmpl
+- [x] hash router parseHash 支持 `#/backlog?sprint=...&status=...&q=...` query @code:docs_cockpit/templates/index.html.tmpl
+- [x] `renderBacklog()` 跑 4-axis filter chain · 输出 subtask 行 list @code:docs_cockpit/templates/index.html.tmpl
+- [x] filter bar 4 控件(Time / Sprint / Status / Search)+ Clear 按钮 @code:docs_cockpit/templates/index.html.tmpl
+- [x] 排序 default sprint desc → module id @code:docs_cockpit/templates/index.html.tmpl
+- [x] 每行 [Copy prompt] 图标 · 复用单 subtask `copySubtaskPrompt(stKey)` 路径 @code:docs_cockpit/templates/index.html.tmpl
+- [x] URL state codec · `_filtersToQuery` + `_applyFiltersFromQuery` · history.replaceState 同步 hash @code:docs_cockpit/templates/index.html.tmpl

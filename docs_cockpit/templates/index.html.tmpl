@@ -393,6 +393,192 @@ body.split-mode #sprints-section,
 body.split-mode #concepts-section { display: none; }
 body.split-mode .split-page[hidden] { display: grid !important; }
 
+/* 0.14 M15 · backlog-mode 下 · 隐藏 Kanban / Sprint / Concept · 显 backlog-page */
+body.backlog-mode #hero-section,
+body.backlog-mode #kpi-section,
+body.backlog-mode #kanban-section,
+body.backlog-mode #sprints-section,
+body.backlog-mode #concepts-section { display: none; }
+body.backlog-mode .backlog-page[hidden] { display: block !important; }
+
+/* ─ 0.14 M15 · backlog page · 扁平 subtask 列表 + 4-axis filter ─ */
+.backlog-page {
+  padding: 16px 0 100px;  /* bottom padding 给 bundle-bar 留空 */
+  min-height: 70vh;
+}
+.backlog-page[hidden] { display: none; }
+.backlog-filters {
+  position: sticky;
+  top: 56px;  /* topbar 下方 */
+  z-index: 6;
+  background: var(--c-canvas);
+  border-bottom: 1px solid var(--c-hairline);
+  padding: 12px 0;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.backlog-filter-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.backlog-filter-group label {
+  font-family: var(--f-mono);
+  font-size: 11px;
+  color: var(--c-graphite);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.backlog-filter-group select,
+.backlog-filter-group input[type="search"] {
+  font-family: var(--f-display);
+  font-size: 13px;
+  padding: 6px 10px;
+  border: 1px solid var(--c-hairline);
+  border-radius: var(--r-sm);
+  background: var(--c-paper);
+  color: var(--c-ink);
+  min-width: 100px;
+}
+.backlog-filter-group input[type="search"] { min-width: 200px; }
+.backlog-filter-clear {
+  background: transparent;
+  border: 1px solid var(--c-hairline);
+  border-radius: var(--r-sm);
+  padding: 6px 10px;
+  font-family: var(--f-display);
+  font-size: 12px;
+  color: var(--c-graphite);
+  cursor: pointer;
+  margin-left: auto;
+}
+.backlog-filter-clear:hover { color: var(--c-primary); border-color: var(--c-primary); }
+.backlog-summary {
+  font-family: var(--f-mono);
+  font-size: 12px;
+  color: var(--c-graphite);
+  padding: 12px 0;
+}
+.backlog-list { display: flex; flex-direction: column; gap: 0; }
+.backlog-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--c-hairline);
+  transition: background 0.1s;
+  cursor: pointer;
+}
+.backlog-row:hover { background: var(--c-tint); }
+.backlog-row.selected { background: var(--c-tint); }
+.backlog-row.done { opacity: 0.55; }
+.backlog-row input[type="checkbox"] { cursor: pointer; flex-shrink: 0; }
+.backlog-row .br-id {
+  font-family: var(--f-mono);
+  font-size: 11px;
+  color: var(--c-graphite);
+  flex-shrink: 0;
+  min-width: 88px;
+}
+.backlog-row .br-title {
+  flex: 1;
+  font-family: var(--f-display);
+  font-size: 13px;
+  color: var(--c-ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.backlog-row.done .br-title { text-decoration: line-through; }
+.backlog-row .br-meta {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  flex-shrink: 0;
+}
+.backlog-row .br-badge {
+  font-family: var(--f-mono);
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 8px;
+  background: var(--c-fog);
+  color: var(--c-graphite);
+}
+.backlog-row .br-badge.s-done   { background: rgba(56,142,60,0.12); color: #2e7d32; }
+.backlog-row .br-badge.s-blocked { background: rgba(229,57,53,0.12); color: #c62828; }
+.backlog-row .br-badge.s-in-progress { background: rgba(2,74,216,0.12); color: var(--c-primary); }
+.backlog-row .br-prompt-btn {
+  background: transparent;
+  border: 1px solid var(--c-hairline);
+  border-radius: var(--r-sm);
+  width: 26px;
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--c-graphite);
+  flex-shrink: 0;
+}
+.backlog-row .br-prompt-btn:hover { color: var(--c-primary); border-color: var(--c-primary); }
+.backlog-row .br-prompt-btn svg { width: 12px; height: 12px; }
+
+/* 0.14 M16 · bundle floating bar(底部 sticky) */
+.bundle-bar {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 50;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 12px 20px;
+  background: var(--c-ink);
+  color: var(--c-on-ink);
+  border-radius: 12px;
+  box-shadow: var(--shadow-lg);
+  font-family: var(--f-display);
+  font-size: 13px;
+}
+.bundle-bar[hidden] { display: none; }
+.bundle-bar .bb-count {
+  font-family: var(--f-mono);
+  font-size: 14px;
+  font-weight: 600;
+}
+.bundle-bar .bb-verdict {
+  font-family: var(--f-mono);
+  font-size: 11px;
+  opacity: 0.7;
+  max-width: 280px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.bundle-bar button {
+  font-family: var(--f-display);
+  font-size: 12px;
+  padding: 6px 12px;
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+.bundle-bar .bb-copy {
+  background: var(--c-primary);
+  color: var(--c-on-ink);
+  border-color: var(--c-primary);
+}
+.bundle-bar .bb-copy:hover { background: var(--c-primary-bright); border-color: var(--c-primary-bright); }
+.bundle-bar .bb-clear {
+  background: transparent;
+  color: var(--c-on-ink);
+  border-color: rgba(255,255,255,0.3);
+}
+.bundle-bar .bb-clear:hover { border-color: var(--c-on-ink); }
+
 /* §4.c · split-mode 下 · module-drawer 不再是 modal · 嵌进 split-nav-slot */
 body.split-mode #scrim { display: none !important; }
 body.split-mode #module-drawer {
@@ -1698,6 +1884,18 @@ body.split-mode #module-drawer .drawer-body {
       <span data-i18n="topbar.sysdocs_btn">System Docs</span>
       <span class="docs-count" id="docs-count">0</span>
     </button>
+    <!-- 0.14 M15 · Backlog 入口 · 跳 #/backlog 扁平 subtask 视图 + 4-axis filter -->
+    <button class="docs-btn" id="open-backlog" type="button" data-i18n-title="topbar.backlog_title" title="Open backlog view · cross-module flat subtask list with filters">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="width:14px;height:14px">
+        <line x1="3" y1="4" x2="13" y2="4"/>
+        <line x1="3" y1="8" x2="13" y2="8"/>
+        <line x1="3" y1="12" x2="13" y2="12"/>
+        <circle cx="2" cy="4" r="0.8" fill="currentColor"/>
+        <circle cx="2" cy="8" r="0.8" fill="currentColor"/>
+        <circle cx="2" cy="12" r="0.8" fill="currentColor"/>
+      </svg>
+      <span data-i18n="topbar.backlog_btn">Backlog</span>
+    </button>
     <!-- 0.12 M09 · Export status overrides 按钮 · 下载 localStorage JSON · 给 docs-cockpit sync-status --import 用 -->
     <button class="docs-btn" id="export-overrides" type="button" data-i18n-title="topbar.export_title" title="Export status overrides (download JSON for docs-cockpit sync-status --import)">
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="width:14px;height:14px">
@@ -1781,6 +1979,51 @@ body.split-mode #module-drawer .drawer-body {
     <div class="concept-grid" id="concepts"></div>
   </section>
 
+  <!-- 0.14 M15 · Backlog page · 扁平 subtask 列表 + 4-axis filter · hash route #/backlog -->
+  <section class="backlog-page" id="backlog-page" hidden>
+    <div class="backlog-filters" id="backlog-filters">
+      <div class="backlog-filter-group">
+        <label data-i18n="backlog.filter.time">Time</label>
+        <select id="backlog-filter-time">
+          <option value="all" data-i18n="backlog.filter.time.all">All</option>
+          <option value="7d" data-i18n="backlog.filter.time.7d">7 days</option>
+          <option value="30d" data-i18n="backlog.filter.time.30d">30 days</option>
+        </select>
+      </div>
+      <div class="backlog-filter-group">
+        <label data-i18n="backlog.filter.sprint">Sprint</label>
+        <select id="backlog-filter-sprint">
+          <option value="all" data-i18n="backlog.filter.sprint.all">All</option>
+        </select>
+      </div>
+      <div class="backlog-filter-group">
+        <label data-i18n="backlog.filter.status">Status</label>
+        <select id="backlog-filter-status">
+          <option value="all" data-i18n="backlog.filter.status.all">All</option>
+          <option value="not-started">not-started</option>
+          <option value="planned">planned</option>
+          <option value="in-progress">in-progress</option>
+          <option value="blocked">blocked</option>
+          <option value="done">done</option>
+        </select>
+      </div>
+      <div class="backlog-filter-group">
+        <input type="search" id="backlog-filter-search" data-i18n-placeholder="backlog.filter.search.placeholder" placeholder="🔍 search title / id…">
+      </div>
+      <button class="backlog-filter-clear" id="backlog-filter-clear" type="button" data-i18n="backlog.filter.clear">Clear</button>
+    </div>
+    <div class="backlog-summary" id="backlog-summary"></div>
+    <div class="backlog-list" id="backlog-list"></div>
+  </section>
+
+  <!-- 0.14 M16 · Bundle floating bar(底部 sticky · 多选时弹出) -->
+  <aside class="bundle-bar" id="bundle-bar" hidden role="region" aria-label="Bundle action bar">
+    <span class="bb-count" id="bb-count">0 selected</span>
+    <span class="bb-verdict" id="bb-verdict" title=""></span>
+    <button class="bb-copy" id="bb-copy" type="button" data-i18n="bundle.copy">Copy bundle prompt</button>
+    <button class="bb-clear" id="bb-clear" type="button" data-i18n="bundle.clear">Clear</button>
+  </aside>
+
   <!-- 0.11.0-alpha.6 §4.b/c · Split-view 二级页面容器 -->
   <section class="split-page" id="split-page" hidden>
     <!-- §4.c · 左 navigator slot · applyRoute 时 JS 移入 module-drawer DOM(复用现有渲染) -->
@@ -1847,6 +2090,9 @@ body.split-mode #module-drawer .drawer-body {
 <!-- 0.11.0-alpha.7 §4.b · prompts-refine.js · module-level refine prompts(模式 2)
      · 给 split-view 左 navigator 「🤖 Ask AI to refine」按钮用 -->
 <script src="prompts-refine.js" defer></script>
+<!-- 0.14 M17 · bundle-meta.js · 跨 subtask pairwise cohesion / conflict · 给 backlog
+     multi-select tooltip 用(M16)· 单 subtask 看板不需要 -->
+<script src="bundle-meta.js" defer></script>
 
 <script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/core.min.js"></script>
@@ -1981,6 +2227,23 @@ body.split-mode #module-drawer .drawer-body {
       'topbar.export_title': 'Export status overrides (download JSON · feed into docs-cockpit sync-status --import)',
       'toast.export_done': 'Overrides exported · run: docs-cockpit sync-status --import <file>',
       'split.placeholder': 'Select a linked doc, code anchor, or doc anchor from the left to preview here.',
+      // 0.14 M15 / M16 backlog + bundle
+      'topbar.backlog_btn': 'Backlog',
+      'topbar.backlog_title': 'Open backlog · cross-module flat subtask list with filters',
+      'topbar.backlog_crumb': 'Backlog',
+      'backlog.filter.time': 'Time',
+      'backlog.filter.time.all': 'All',
+      'backlog.filter.time.7d': '7 days',
+      'backlog.filter.time.30d': '30 days',
+      'backlog.filter.sprint': 'Sprint',
+      'backlog.filter.sprint.all': 'All',
+      'backlog.filter.status': 'Status',
+      'backlog.filter.status.all': 'All',
+      'backlog.filter.search.placeholder': '🔍 search title / id…',
+      'backlog.filter.clear': 'Clear',
+      'bundle.copy': 'Copy bundle prompt',
+      'bundle.clear': 'Clear',
+      'toast.bundle_cli_copied': 'CLI copied · paste in terminal · prompt → clipboard',
       'hero.eyebrow': 'PROJECT DASHBOARD · MODULE PROGRESS',
       'hero.title': 'Project progress overview',
       'hero.tagline': 'Module status · sprint progress · core concepts · one-stop visualization with fine-grained progress control.',
@@ -2264,6 +2527,23 @@ body.split-mode #module-drawer .drawer-body {
       'topbar.export_title': '导出 subtask 勾选状态(下载 JSON · 喂给 docs-cockpit sync-status --import)',
       'toast.export_done': 'Override 已导出 · 跑:docs-cockpit sync-status --import <file>',
       'split.placeholder': '从左侧选关联文档 / code anchor / doc anchor · 这里渲染预览',
+      // 0.14 M15 / M16 backlog + bundle
+      'topbar.backlog_btn': '任务列表',
+      'topbar.backlog_title': '打开 backlog · 跨 module 扁平 subtask 列表 + 4-axis 筛选',
+      'topbar.backlog_crumb': '任务列表',
+      'backlog.filter.time': '时间',
+      'backlog.filter.time.all': '全部',
+      'backlog.filter.time.7d': '7 天',
+      'backlog.filter.time.30d': '30 天',
+      'backlog.filter.sprint': '版本',
+      'backlog.filter.sprint.all': '全部',
+      'backlog.filter.status': '状态',
+      'backlog.filter.status.all': '全部',
+      'backlog.filter.search.placeholder': '🔍 搜索 title / id…',
+      'backlog.filter.clear': '清除',
+      'bundle.copy': '复制 bundle 提示词',
+      'bundle.clear': '清除',
+      'toast.bundle_cli_copied': 'CLI 命令已复制 · 在终端粘贴运行 · prompt 自动进剪贴板',
       'topbar.sysdocs_title': '系统文档 (D)',
       'hero.eyebrow': '通用项目看板 · 模块进度',
       'hero.title': '项目进度概览',
@@ -3368,13 +3648,24 @@ body.split-mode #module-drawer .drawer-body {
   function parseHash() {
     const raw = (window.location.hash || '').replace(/^#\/?/, '').trim();
     if (!raw) return { kind: 'dashboard', id: null };
-    const parts = raw.split('/');
+    // 0.14 M15 · 支持 query string · #/backlog?sprint=0.14&status=not-started
+    const qIdx = raw.indexOf('?');
+    const pathPart = qIdx >= 0 ? raw.slice(0, qIdx) : raw;
+    const queryPart = qIdx >= 0 ? raw.slice(qIdx + 1) : '';
+    const parts = pathPart.split('/');
     const kind = parts[0];
     const id = parts[1] ? decodeURIComponent(parts[1]) : null;
-    if (['module', 'sysdoc', 'concept'].indexOf(kind) >= 0) {
-      return { kind, id };
+    const query = {};
+    if (queryPart) {
+      for (const seg of queryPart.split('&')) {
+        const [k, v] = seg.split('=');
+        if (k) query[decodeURIComponent(k)] = decodeURIComponent(v || '');
+      }
     }
-    return { kind: 'dashboard', id: null };
+    if (['module', 'sysdoc', 'concept', 'backlog'].indexOf(kind) >= 0) {
+      return { kind, id, query };
+    }
+    return { kind: 'dashboard', id: null, query: {} };
   }
 
   // 当前路由状态 · 全局
@@ -3441,6 +3732,328 @@ body.split-mode #module-drawer .drawer-body {
     head.appendChild(btn);
   }
 
+  // ─── 0.14 M15 · Backlog view + 4-axis filter ────────────────────────
+  // backlog state · query-encoded:time / sprint / status / q(search)
+  let _backlogFilters = { time: 'all', sprint: 'all', status: 'all', q: '' };
+  const BUNDLE_SELECTION_KEY = 'docs-cockpit-bundle-selection-v1';
+  let _bundleSelection = new Set();
+
+  function _loadBundleSelection() {
+    try {
+      const raw = localStorage.getItem(BUNDLE_SELECTION_KEY);
+      if (!raw) return new Set();
+      const parsed = JSON.parse(raw);
+      // 跟 0.11.3 build-time invalidation 一致 · build 切就清
+      if (parsed._built_at && parsed._built_at !== BUILD_TIME) return new Set();
+      return new Set(parsed.ids || []);
+    } catch (e) { return new Set(); }
+  }
+  function _saveBundleSelection() {
+    try {
+      localStorage.setItem(BUNDLE_SELECTION_KEY, JSON.stringify({
+        _built_at: BUILD_TIME,
+        ids: Array.from(_bundleSelection),
+      }));
+    } catch (e) {}
+  }
+
+  function _flatSubtasks() {
+    // 把 RAW.modules 摊成 [{subtask, module}] 跨 module flat list
+    const out = [];
+    for (const m of (RAW.modules || [])) {
+      for (const s of (m.subtasks || [])) {
+        if (!s.id) continue;
+        out.push({ ...s, _module: m });
+      }
+    }
+    return out;
+  }
+
+  function _passesFilter(item, filters) {
+    if (filters.status !== 'all') {
+      if (item.status !== filters.status) return false;
+    }
+    if (filters.sprint !== 'all') {
+      if ((item._module.sprint || '') !== filters.sprint) return false;
+    }
+    if (filters.time !== 'all') {
+      // module.mtime 是 "YYYY-MM-DD HH:MM" · 解析对比
+      const mt = item._module.mtime;
+      if (!mt) return false;
+      const t = Date.parse(mt.replace(' ', 'T'));
+      if (isNaN(t)) return false;
+      const days = filters.time === '7d' ? 7 : filters.time === '30d' ? 30 : null;
+      if (days != null) {
+        const cutoff = Date.now() - days * 86400 * 1000;
+        if (t < cutoff) return false;
+      }
+    }
+    if (filters.q) {
+      const q = filters.q.toLowerCase();
+      const hay = (item.id + ' ' + (item.title || '') + ' ' + item._module.id).toLowerCase();
+      if (hay.indexOf(q) < 0) return false;
+    }
+    return true;
+  }
+
+  function _filtersToQuery(filters) {
+    const parts = [];
+    if (filters.time !== 'all') parts.push('time=' + encodeURIComponent(filters.time));
+    if (filters.sprint !== 'all') parts.push('sprint=' + encodeURIComponent(filters.sprint));
+    if (filters.status !== 'all') parts.push('status=' + encodeURIComponent(filters.status));
+    if (filters.q) parts.push('q=' + encodeURIComponent(filters.q));
+    return parts.length ? '?' + parts.join('&') : '';
+  }
+
+  function _applyFiltersFromQuery(query) {
+    _backlogFilters.time = query.time || 'all';
+    _backlogFilters.sprint = query.sprint || 'all';
+    _backlogFilters.status = query.status || 'all';
+    _backlogFilters.q = query.q || '';
+    // sync DOM controls
+    const setEl = (id, v) => { const e = document.getElementById(id); if (e) e.value = v; };
+    setEl('backlog-filter-time', _backlogFilters.time);
+    setEl('backlog-filter-status', _backlogFilters.status);
+    setEl('backlog-filter-search', _backlogFilters.q);
+    // sprint dropdown 是动态生成 · 在 _populateSprintFilter 之后再 set
+    setTimeout(() => setEl('backlog-filter-sprint', _backlogFilters.sprint), 0);
+  }
+
+  function _populateSprintFilter() {
+    const sel = document.getElementById('backlog-filter-sprint');
+    if (!sel) return;
+    // 收 module 里所有 unique sprint
+    const sprints = new Set();
+    for (const m of (RAW.modules || [])) {
+      if (m.sprint) sprints.add(m.sprint);
+    }
+    const sorted = Array.from(sprints).sort().reverse();
+    // 保留第一个 "All" option · 清掉旧的 sprint options
+    while (sel.options.length > 1) sel.remove(1);
+    for (const s of sorted) {
+      const opt = document.createElement('option');
+      opt.value = s;
+      opt.textContent = s;
+      sel.appendChild(opt);
+    }
+  }
+
+  function _renderBundleVerdict() {
+    // 走 window.__BUNDLE_META__ 算 selected 的 cohesion / conflict 总分
+    const ids = Array.from(_bundleSelection);
+    const verdictEl = document.getElementById('bb-verdict');
+    if (!verdictEl) return;
+    if (ids.length < 2) {
+      verdictEl.textContent = '';
+      verdictEl.title = '';
+      return;
+    }
+    const meta = window.__BUNDLE_META__;
+    if (!meta || !meta.pairs) {
+      verdictEl.textContent = '(bundle-meta.js not loaded · run build)';
+      verdictEl.title = '';
+      return;
+    }
+    let cohSum = 0, cohN = 0, maxConf = 0;
+    for (let i = 0; i < ids.length; i++) {
+      for (let j = i + 1; j < ids.length; j++) {
+        const a = ids[i], b = ids[j];
+        const k = a < b ? a + '__' + b : b + '__' + a;
+        const p = meta.pairs[k];
+        if (p) {
+          cohSum += p.cohesion;
+          if (p.conflict > maxConf) maxConf = p.conflict;
+        }
+        cohN++;
+      }
+    }
+    const avg = cohN ? (cohSum / cohN) : 0;
+    const score = avg - maxConf;
+    let verdict;
+    if (maxConf >= 5) verdict = '⚠ conflict';
+    else if (avg >= 4) verdict = '✅ highly cohesive';
+    else if (avg >= 2) verdict = 'ok';
+    else verdict = 'weak';
+    verdictEl.textContent = verdict + ' · avg ' + avg.toFixed(1);
+    verdictEl.title = 'avg cohesion ' + avg.toFixed(2) + ' · max conflict ' + maxConf + ' · score ' + score.toFixed(2);
+  }
+
+  function _renderBundleBar() {
+    const bar = document.getElementById('bundle-bar');
+    const countEl = document.getElementById('bb-count');
+    if (!bar) return;
+    if (_bundleSelection.size === 0) {
+      bar.setAttribute('hidden', '');
+      return;
+    }
+    bar.removeAttribute('hidden');
+    if (countEl) countEl.textContent = _bundleSelection.size + ' selected';
+    _renderBundleVerdict();
+  }
+
+  function _toggleBundleSelection(stKey, checked) {
+    if (checked) _bundleSelection.add(stKey);
+    else _bundleSelection.delete(stKey);
+    _saveBundleSelection();
+    _renderBundleBar();
+    // 同步行的 selected 样式
+    const row = document.querySelector('.backlog-row[data-st-key="' + stKey + '"]');
+    if (row) row.classList.toggle('selected', checked);
+  }
+
+  function renderBacklog() {
+    const list = document.getElementById('backlog-list');
+    const summary = document.getElementById('backlog-summary');
+    if (!list) return;
+    _populateSprintFilter();
+    const all = _flatSubtasks();
+    const filtered = all.filter(x => _passesFilter(x, _backlogFilters));
+    // sort · sprint desc · module id · subtask order(stable)
+    filtered.sort((a, b) => {
+      const sa = (a._module.sprint || ''), sb = (b._module.sprint || '');
+      if (sa !== sb) return sb.localeCompare(sa);
+      return (a._module.id || '').localeCompare(b._module.id || '');
+    });
+    if (summary) {
+      summary.textContent = filtered.length + ' / ' + all.length + ' subtasks shown';
+    }
+    list.innerHTML = filtered.map(s => {
+      const stKey = s.id;
+      const sel = _bundleSelection.has(stKey);
+      const doneClass = s.done ? ' done' : '';
+      const statusBadgeClass = s.done ? 's-done' : (s.status === 'blocked' ? 's-blocked' : (s.status === 'in-progress' ? 's-in-progress' : ''));
+      return '<div class="backlog-row' + doneClass + (sel ? ' selected' : '') + '" data-st-key="' + escapeHtml(stKey) + '">' +
+        '<input type="checkbox"' + (sel ? ' checked' : '') + ' aria-label="Select subtask for bundle">' +
+        '<span class="br-id">' + escapeHtml(stKey) + '</span>' +
+        '<span class="br-title">' + escapeHtml(s.title || '') + '</span>' +
+        '<span class="br-meta">' +
+          '<span class="br-badge">' + escapeHtml(s._module.id) + '</span>' +
+          '<span class="br-badge">' + escapeHtml(s._module.sprint || '') + '</span>' +
+          '<span class="br-badge ' + statusBadgeClass + '">' + escapeHtml(s.status || '') + '</span>' +
+        '</span>' +
+        '<button class="br-prompt-btn" type="button" data-action="copy-prompt" title="Copy single subtask prompt">' +
+          '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3" width="9" height="11" rx="1.5"/><path d="M3 5v8.5A1.5 1.5 0 0 0 4.5 15h7"/></svg>' +
+        '</button>' +
+      '</div>';
+    }).join('');
+    // 行 click → 切 #/module/<id> · checkbox click stop propagation
+    list.querySelectorAll('.backlog-row').forEach(row => {
+      const stKey = row.dataset.stKey;
+      const cb = row.querySelector('input[type="checkbox"]');
+      if (cb) {
+        cb.addEventListener('click', (e) => {
+          e.stopPropagation();
+          _toggleBundleSelection(stKey, cb.checked);
+        });
+      }
+      const promptBtn = row.querySelector('[data-action="copy-prompt"]');
+      if (promptBtn) {
+        promptBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          copySubtaskPrompt(stKey);
+        });
+      }
+      row.addEventListener('click', (e) => {
+        // 点空白 / id / title → navigate
+        if (e.target.tagName === 'INPUT' || e.target.closest('button')) return;
+        // 找 module id
+        const item = all.find(x => x.id === stKey);
+        if (item) {
+          window.location.hash = '#/module/' + item._module.id;
+        }
+      });
+    });
+    _renderBundleBar();
+  }
+
+  // filter control bindings · 一次绑定 · setState + re-render + URL sync
+  function _bindBacklogFilters() {
+    const ids = ['backlog-filter-time', 'backlog-filter-sprint', 'backlog-filter-status'];
+    ids.forEach(id => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.addEventListener('change', () => {
+        const key = id.replace('backlog-filter-', '');
+        _backlogFilters[key] = el.value;
+        _syncBacklogUrl();
+        renderBacklog();
+      });
+    });
+    const search = document.getElementById('backlog-filter-search');
+    if (search) {
+      let debounce;
+      search.addEventListener('input', () => {
+        clearTimeout(debounce);
+        debounce = setTimeout(() => {
+          _backlogFilters.q = search.value || '';
+          _syncBacklogUrl();
+          renderBacklog();
+        }, 150);
+      });
+    }
+    const clearBtn = document.getElementById('backlog-filter-clear');
+    if (clearBtn) {
+      clearBtn.addEventListener('click', () => {
+        _backlogFilters = { time: 'all', sprint: 'all', status: 'all', q: '' };
+        _applyFiltersFromQuery({});
+        _syncBacklogUrl();
+        renderBacklog();
+      });
+    }
+  }
+
+  function _syncBacklogUrl() {
+    const q = _filtersToQuery(_backlogFilters);
+    const newHash = '#/backlog' + q;
+    if (window.location.hash !== newHash) {
+      // replaceState 避免 history pollution
+      history.replaceState(null, '', newHash);
+    }
+  }
+
+  function copyBundlePrompt() {
+    const ids = Array.from(_bundleSelection);
+    if (ids.length === 0) {
+      toast('No subtasks selected');
+      return;
+    }
+    // 走 CLI command copy(MVP · 无 server fetch)
+    const cmd = 'docs-cockpit prompt --bundle ' + ids.join(',') + ' --copy';
+    (async () => {
+      try {
+        await navigator.clipboard.writeText(cmd);
+        toast(t('toast.bundle_cli_copied') || 'CLI command copied · paste in terminal · prompt → clipboard');
+        return;
+      } catch (e) {}
+      try {
+        const ta = document.createElement('textarea');
+        ta.value = cmd;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        const ok = document.execCommand('copy');
+        document.body.removeChild(ta);
+        toast(ok ? (t('toast.bundle_cli_copied') || 'CLI copied') : 'Copy failed');
+      } catch (e) {
+        toast('Copy failed · ' + e.message);
+      }
+    })();
+  }
+
+  function _bindBundleBar() {
+    const copyBtn = document.getElementById('bb-copy');
+    const clearBtn = document.getElementById('bb-clear');
+    if (copyBtn) copyBtn.addEventListener('click', copyBundlePrompt);
+    if (clearBtn) clearBtn.addEventListener('click', () => {
+      _bundleSelection.clear();
+      _saveBundleSelection();
+      _renderBundleBar();
+      // re-render to clear checked state
+      renderBacklog();
+    });
+  }
+
   function copyModuleRefinePrompt(moduleId) {
     const prompt = (window.__REFINE_PROMPTS__ || {})[moduleId];
     if (!prompt) {
@@ -3481,21 +4094,37 @@ body.split-mode #module-drawer .drawer-body {
     _currentRoute = parseHash();
     const body = document.body;
     const splitPage = document.getElementById('split-page');
+    const backlogPage = document.getElementById('backlog-page');
     const backBtn = document.getElementById('back-btn');
     const crumb = document.getElementById('topbar-crumb');
 
     if (_currentRoute.kind === 'dashboard') {
       body.classList.remove('split-mode');
+      body.classList.remove('backlog-mode');
       splitPage.setAttribute('hidden', '');
+      if (backlogPage) backlogPage.setAttribute('hidden', '');
       if (backBtn) backBtn.setAttribute('hidden', '');
       if (crumb) crumb.textContent = t('topbar.crumb');
       _moveModuleDrawerBackToBody();
-      // 关闭遗留 modal scrim
       const scrim = document.getElementById('scrim');
       if (scrim) scrim.classList.remove('open');
+    } else if (_currentRoute.kind === 'backlog') {
+      // 0.14 M15 · backlog view · 跨 module 扁平 subtask 列表 + 4-axis filter
+      body.classList.remove('split-mode');
+      body.classList.add('backlog-mode');
+      splitPage.setAttribute('hidden', '');
+      if (backlogPage) backlogPage.removeAttribute('hidden');
+      if (backBtn) backBtn.removeAttribute('hidden');
+      if (crumb) crumb.textContent = t('topbar.backlog_crumb') || 'Backlog';
+      _moveModuleDrawerBackToBody();
+      // 从 URL query 加载 filters · 应用 + 渲染
+      try { _applyFiltersFromQuery(_currentRoute.query || {}); } catch (e) { console.error(e); }
+      try { renderBacklog(); } catch (e) { console.error(e); }
     } else {
+      body.classList.remove('backlog-mode');
       body.classList.add('split-mode');
       splitPage.removeAttribute('hidden');
+      if (backlogPage) backlogPage.setAttribute('hidden', '');
       if (backBtn) backBtn.removeAttribute('hidden');
       if (crumb) {
         const kindLabel = _currentRoute.kind === 'module' ? 'Module'
@@ -3809,6 +4438,18 @@ body.split-mode #module-drawer .drawer-body {
     });
 
     document.getElementById('open-docs').addEventListener('click', () => openDrawer('docs-drawer'));
+
+    // 0.14 M15 · Backlog 入口 · 跳 #/backlog hash route
+    const _backlogBtn = document.getElementById('open-backlog');
+    if (_backlogBtn) {
+      _backlogBtn.addEventListener('click', () => {
+        window.location.hash = '#/backlog';
+      });
+    }
+    // 0.14 M15 + M16 · bind backlog filter controls + bundle bar buttons + load selection state
+    try { _bundleSelection = _loadBundleSelection(); } catch (e) {}
+    try { _bindBacklogFilters(); } catch (e) { console.error(e); }
+    try { _bindBundleBar(); } catch (e) { console.error(e); }
 
     // 0.12 M09 · Export overrides button · download localStorage JSON · 给 docs-cockpit sync-status --import 用
     const _exportBtn = document.getElementById('export-overrides');

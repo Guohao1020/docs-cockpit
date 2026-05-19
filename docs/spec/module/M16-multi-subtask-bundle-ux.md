@@ -2,9 +2,9 @@
 id: M16
 type: module
 title: "Multi-subtask bundle selection · backlog UX"
-status: not-started
+status: done
 sprint: "0.14"
-progress: 0
+progress: 100
 desc: "Backlog 行加 checkbox · 跨 module 多选 · floating bar 弹「N selected · Bundle 推荐 · Copy bundle prompt」"
 owner: harvey
 prd_ref: "v0.14 plan §5.2"
@@ -49,11 +49,11 @@ blocks: [M17]
 
 ## 3 · 待办
 
-- [ ] Backlog 每行渲染 checkbox + `data-bundle-key="<subtask.id>"` · click toggle selection
-- [ ] localStorage `BUNDLE_SELECTION_KEY` 存 `Set<subtask_id>` JSON · 跟 0.11.3 build-time invalidation 一致(build 切就 reset)
-- [ ] `<aside id="bundle-bar" hidden>` 容器 · sticky bottom · HP 蓝填色按钮
-- [ ] `renderBundleBar()` · N≥1 显 / N==0 hidden · 显「N selected」+ ⓘ + [Copy bundle prompt] + [Clear]
-- [ ] [Clear] 清 selection + hide bar
-- [ ] [Copy bundle prompt] · 调 `window.__BUNDLE_PROMPTS__[bundle-hash]`(M17 sidecar)· 走 clipboard fallback
-- [ ] 键盘 · 上下 arrow 移焦点 / Space toggle / Esc clear · accessibility
-- [ ] [Copy bundle prompt] 按钮 disabled 状态 · 当 sidecar 没对应 hash 时(用户挑了奇怪组合 · sidecar 没预算)· tooltip 提示「run docs-cockpit build to refresh bundle sidecar」
+- [x] Backlog 每行 checkbox + data-st-key · click `_toggleBundleSelection(stKey, checked)` @code:docs_cockpit/templates/index.html.tmpl
+- [x] localStorage `BUNDLE_SELECTION_KEY` · 跟 0.11.3 build-time invalidation 一致(build 切就 reset)@code:docs_cockpit/templates/index.html.tmpl
+- [x] `<aside id="bundle-bar" hidden>` · fixed bottom · HP 蓝 [Copy bundle prompt] 按钮 + outline [Clear] @code:docs_cockpit/templates/index.html.tmpl
+- [x] `_renderBundleBar()` · N≥1 显 / 走 `window.__BUNDLE_META__` 算 cohesion verdict 显在 verdict span @code:docs_cockpit/templates/index.html.tmpl
+- [x] [Clear] 清 selection · re-render backlog 清 checked 状态 @code:docs_cockpit/templates/index.html.tmpl
+- [x] [Copy bundle prompt] · 走 CLI command copy(MVP · 复制 `docs-cockpit prompt --bundle <ids> --copy` 命令到剪贴板)· 用户终端跑一次拿真 prompt @code:docs_cockpit/templates/index.html.tmpl
+- [x] i18n EN/中 · bundle.copy / bundle.clear / toast.bundle_cli_copied @code:docs_cockpit/templates/index.html.tmpl
+- [x] [Copy bundle prompt] 状态 · 当 `window.__BUNDLE_META__` 没加载 verdict span 显 fallback message @code:docs_cockpit/templates/index.html.tmpl

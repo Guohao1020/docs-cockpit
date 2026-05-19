@@ -614,3 +614,52 @@ Context vars available to suggest templates:
 - `repo_root` · str
 - `thresholds` · dict with `desc_min_chars` / `subtasks_max` / `subtasks_min`
 
+
+## §14 · Bundle heuristics (0.14.0+ · M17 batch driver)
+
+When the user wants to **run multiple subtasks together** (via `docs-cockpit prompt --bundle <ids>` or the dashboard's Backlog multi-select), help them decide which subtasks bundle well. The cockpit precomputes pairwise cohesion / conflict scores into `docs/bundle-meta.js`; this section is the rubric.
+
+### §14.1 · Cohesion · 4 维(高 = 一起做有意义)
+
+- **+3 · Same module** — sibling subtasks share the same plan / RFC / context · they're already related work
+- **+2 · Same code file** (`code_anchors[].path_only` overlap) — edits to one will touch the other · do them together to keep diff coherent
+- **+1 · Same doc anchor path** (`doc_anchors[].path` overlap) — referencing the same spec / plan section · context loads once
+- **+2 · depends_on chain** (A's module depends_on B's module, or vice versa) — sequential bundle · upstream first
+
+### §14.2 · Conflict · 4 维(高 = 别一起做)
+
+- **+5 · Same file, overlapping line ranges** — merge conflict guaranteed · split or refactor first
+- **+1 · Cross-sprint** (different `module.sprint`) — usually means different release timing · review separately
+- **+1 · Cross-owner** (different `module.owner`) — coordination cost · async-friendly to split
+- **+1 · Reverse blocking** (A blocks B but bundled in wrong order) — sequencing matters
+
+### §14.3 · Recommended execution order
+
+When a bundle is approved, order subtasks by:
+1. **depends_on chain · upstream first** — if M07.blocks=[M08] and both in bundle, M07 subtasks come first
+2. **Same file together** — minimize editor context switches · cluster by `code_anchors.path_only`
+3. **Free order otherwise** — alphabetical / by id for determinism
+
+The `docs_cockpit/bundle.py::recommended_order` function implements this · `render_bundle_prompt` outputs the result.
+
+### §14.4 · How to use the recommendation skill
+
+```bash
+# Soft recommendation · LLM checks one module's bundle candidates
+docs-cockpit suggest M07 --template bundle-recommendation
+
+# Hard bundle execution · CLI renders prompt for selected subtasks
+docs-cockpit prompt --bundle M07-f75501,M07-53a63a,M11-S1 --copy
+```
+
+When responding to a `bundle-recommendation` prompt, output:
+1. A pairwise cohesion table (or top 10 if N is large)
+2. 1-3 **positive bundle recommendations** with execution order + ready-to-run CLI command
+3. 1 **negative example** ("don't bundle these") with the conflict reason
+
+### §14.5 · Anti-patterns
+
+- ❌ Bundling 10+ subtasks at once — Claude's attention degrades · the bundle prompt itself becomes a wall of text · split into 2-3 bundles of 3-5 subtasks each
+- ❌ Bundling across sprints just because cohesion is high — usually means the sprint boundary is wrong · fix the sprint assignment first
+- ❌ Bundling a `done` subtask with `not-started` ones — skip done subtasks · they're noise in the prompt
+- ❌ Ignoring conflict warnings · `⚠ same file lines overlap` means merge conflict guaranteed

@@ -108,8 +108,19 @@ def main(argv: list[str] | None = None) -> int:
         "--list", action="store_true",
         help="列内置 prompt template 名 · 不渲染",
     )
-    from .build import cmd_prompt
-    pr_p.set_defaults(func=cmd_prompt)
+    # 0.14 M17 · bundle 路径 · 跟单 subtask 路径同 subcommand 二选一
+    pr_p.add_argument(
+        "--bundle", default=None,
+        help="把多 subtask 聚合渲染一份 prompt(逗号分隔 id · 例 M07-f75501,M07-53a63a)",
+    )
+    def _cmd_prompt_dispatch(args):
+        # --bundle 优先 · 否则走单 subtask
+        if getattr(args, "bundle", None):
+            from . import bundle as _bundle_mod
+            return _bundle_mod.cmd_bundle_prompt(args)
+        from .build import cmd_prompt
+        return cmd_prompt(args)
+    pr_p.set_defaults(func=_cmd_prompt_dispatch)
 
     mig_p = sub.add_parser(
         "migrate",

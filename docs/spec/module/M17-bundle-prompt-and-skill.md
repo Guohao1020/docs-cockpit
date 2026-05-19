@@ -2,9 +2,9 @@
 id: M17
 type: module
 title: "Bundle prompt + recommendation skill · 后端 + LLM 指南"
-status: not-started
+status: done
 sprint: "0.14"
-progress: 0
+progress: 100
 desc: "docs-cockpit prompt --bundle CLI + bundle.md.j2 模板 + author skill §14 bundle 启发式 + build-time cohesion scoring sidecar"
 owner: harvey
 prd_ref: "v0.14 plan §5.3"
@@ -106,11 +106,10 @@ blocks: []
 
 ## 3 · 待办
 
-- [ ] `docs_cockpit/bundle.py` scaffold · `render_bundle_prompt` + `cohesion_score(a, b)` + `recommended_order(subtasks)` + `render_all_bundles(modules)`
-- [ ] `templates/prompts/bundle.md.j2` · 聚合 prompt 模板 · §3 结构
-- [ ] `templates/suggest/bundle-recommendation.md.j2` · LLM 检查 module 内 bundle 候选
-- [ ] `cli.py prompt` subcommand 加 `--bundle <id1>,<id2>,...` flag · 路由到 render_bundle_prompt
-- [ ] `cli.py suggest` 加 `--bundle-candidates <module_id>` · 走 bundle-recommendation 模板
-- [ ] `build.py::cmd_build` 写 `docs/prompts-bundle.js` sidecar · key = sorted-ids hash → bundle prompt text
-- [ ] author skill §14 「Bundle heuristics」全章节(4 cohesion + 4 conflict + 推荐顺序)
-- [ ] tests/unit/test_bundle.py · cohesion_score 8 case + render_bundle_prompt sentinel test + recommended_order chain test
+- [x] `docs_cockpit/bundle.py` · render_bundle_prompt + cohesion_score + conflict_score + recommended_order + bundle_score + render_bundle_meta @code:docs_cockpit/bundle.py
+- [x] `templates/prompts/bundle.md.j2` · 聚合 prompt 模板 · 共享 context 去重 + 推荐顺序 + caller-aware sync @code:docs_cockpit/templates/prompts/bundle.md.j2
+- [x] `templates/suggest/bundle-recommendation.md.j2` · LLM 检查 module 内 bundle 候选 @code:docs_cockpit/templates/suggest/bundle-recommendation.md.j2
+- [x] `cli.py prompt` 加 `--bundle <id1>,<id2>,...` · 走 `bundle.cmd_bundle_prompt` @code:docs_cockpit/cli.py @code:docs_cockpit/bundle.py:325-370
+- [x] `build.py::cmd_build` 写 `docs/bundle-meta.js` sidecar · pairwise cohesion / conflict precompute · 给 backlog UI verdict 用 @code:docs_cockpit/build.py @code:docs_cockpit/bundle.py:298-322
+- [x] author skill §14 「Bundle heuristics」(4 cohesion + 4 conflict + 推荐顺序 + 用法 + anti-patterns)@code:skills/docs-cockpit-author/SKILL.md
+- [x] tests/unit/test_bundle.py · 22 tests cover cohesion/conflict/order/render/meta · 全 pass @code:tests/unit/test_bundle.py

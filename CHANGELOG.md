@@ -2,7 +2,79 @@
 
 本项目遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/) · 版本号采用 [SemVer](https://semver.org/lang/zh-CN/)。
 
-## [Unreleased] · v0.13 + v0.14 sprints kickoff(并行排队)
+## [Unreleased] · v0.13 sprint(待实施)
+
+v0.13 主题 · DX polish · schema 一致性 · 边界场景。Plan: `docs/plans/P-v0.13-polish-and-edges.md`。M11-M14 模块骨架已 seed · 实施待启动。
+
+## [0.14.0] · 2026-05-19
+
+Kanban 升级到 **批量执行调度台**。回应用户反馈「dashboard 增加时间/版本/状态筛选 + 多 subtask 一起跑 + bundle 推荐 skill + 复制提示词开发」。3 个 module 一次性 ship · 跳过 v0.13 polish(下次回头补)。
+
+### Why
+
+v0.11/v0.12/v0.13 把 driver-seat 模式 1/2/3 ship 完 · 但都是「单 subtask 闭环」。真实工作里 subtask 经常成组(同 file / 同 plan § / 同 dependency chain)· 一次跑省 context 加载 + review 来回。v0.14 升级:**从单 subtask 闭环 → subtask 集合闭环**。
+
+### Added · M15 · Backlog view + filters
+
+新 hash route `#/backlog` · 扁平 subtask 列表 · 跨 module。
+
+- 4-axis filter:Time(All / 7d / 30d) · Sprint(动态枚举) · Status · Search(substring on title+id+module)
+- URL state codec · `#/backlog?sprint=0.14&status=not-started&q=parser` · 可分享 + 还原
+- 每行带 [Copy prompt] icon · 复用单 subtask `copySubtaskPrompt` 路径
+- Sort default · sprint desc → module id
+- topbar 「Backlog」按钮一键进入(英文 / 中文 i18n 全套)
+
+### Added · M16 · Multi-subtask bundle selection UX
+
+- Backlog 每行 checkbox · 跨 module 多选
+- localStorage `BUNDLE_SELECTION_KEY` 持久 · 跟 0.11.3 build-time invalidation 一致(build 切就 reset)
+- 底部 fixed `bundle-bar` · N≥1 弹出 · 显「N selected · cohesion verdict · [Copy bundle prompt] [Clear]」
+- Verdict 实时计算 · 走 `window.__BUNDLE_META__` sidecar · 显 `highly cohesive / ok / weak / ⚠ conflict`
+- [Copy bundle prompt] MVP · 复制 CLI 命令 `docs-cockpit prompt --bundle <ids> --copy` 到剪贴板 · 终端跑一次拿真 prompt(避免 file:// 内 fetch 限制)
+
+### Added · M17 · Bundle prompt + recommendation skill
+
+- `docs_cockpit/bundle.py` · backend:
+  - `render_bundle_prompt(ids, modules, repo_root)` · 共享 context 去重 · 推荐顺序沿 depends_on chain
+  - `cohesion_score(a, b)` 4 维(module / file / doc / depends_on)· +3 / +2 / +1 / +2
+  - `conflict_score(a, b)` 2 维(file lines overlap +5 / cross-sprint +1)
+  - `bundle_score(subtasks)` · 整 bundle verdict + avg cohesion + max conflict
+  - `recommended_order(subtasks)` · toposort 沿 depends_on
+  - `render_bundle_meta(modules)` · build-time sidecar precompute 所有 pair 的 cohesion / conflict
+- `docs_cockpit/templates/prompts/bundle.md.j2` · 聚合 prompt 模板 · 含 N subtask 详情 + 共享 module 上下文 + 推荐执行顺序 + caller-aware sync(N 个 subtask 都要勾完才报告)
+- `docs_cockpit/templates/suggest/bundle-recommendation.md.j2` · LLM 检查 module 内 bundle 候选 · pairwise cohesion table + 1-3 推荐 bundle + 1 反例
+- `docs-cockpit prompt --bundle M07-f75501,M07-53a63a,M11-9adb12 [--copy]` CLI
+- `docs/bundle-meta.js` sidecar · 给 backlog UI verdict tooltip 直读(没 LLM 调用)
+- `skills/docs-cockpit-author/SKILL.md` §14 「Bundle heuristics」全章节:4 cohesion + 4 conflict + 推荐顺序 + CLI 用法 + anti-patterns
+
+### Changed · build.py + cli.py
+
+- `cli.py prompt` subcommand 加 `--bundle <ids>` flag · `_cmd_prompt_dispatch` 根据 flag 路由到 bundle 或单 subtask
+- `build.py::cmd_build` 写 `docs/bundle-meta.js` sidecar(跟 prompts.js / prompts-refine.js 同款机制)
+- `index.html.tmpl` 加 `<script src="bundle-meta.js" defer>` · 给 M16 backlog UI 读
+
+### Schema · state.json 不变
+
+`bundle.py` 是新模块 · 不动 state.json schema。`bundle-meta.js` 是新 sidecar · 跟 `prompts.js` 同款独立 file · 不影响下游 standup / portfolio 老逻辑。
+
+### Verified
+
+- 220 unit + integration tests pass · 0 回归(原 198 + 22 bundle 测试)
+- dogfood build clean · 17 modules / 10 done(M07-M10 + M15-M17 = M15/M16/M17 v0.14 全成)/ overall 76.5%
+- `bundle-meta.js` 输出 ~340KB sparse pair scores · 浏览器一次 load 给 backlog 直读
+
+### Migration · 无
+
+- 老 `docs-cockpit.yaml` / 老 MD / 老 state.json 完全不变
+- 新 CLI flag `--bundle` 是 prompt subcommand 内可选 path · 不传走原单 subtask 路径
+- Backlog view 是新 hash route `#/backlog` · 不进就跟 v0.12.2 dashboard 完全一致
+- 老 docs-cockpit upgrade 拿 0.14.0 · plugin cache 失效 + 重启提示(SKILL.md §14 加内容算 minor)
+
+### Skipped · v0.13 polish backlog 留下次
+
+v0.13 M11-M14(schema cleanup / parser robustness / --from-browser / CSS audit)未实施 · sprint 骨架在 dashboard 上。用户选 「先做 v0.14」· v0.13 留 backlog · 下次 release 回头补。
+
+
 
 ### v0.13 · DX polish · schema 一致性 · 边界场景
 
