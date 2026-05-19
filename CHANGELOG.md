@@ -2,7 +2,18 @@
 
 本项目遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/) · 版本号采用 [SemVer](https://semver.org/lang/zh-CN/)。
 
-## [Unreleased]
+## [Unreleased] · v0.13 sprint kickoff
+
+v0.13 主题:**DX polish · schema 一致性 · 边界场景**。不引大功能 · 清光 v0.11/v0.12 dogfood 累积的 4 类 maintenance debt。Plan: `docs/plans/P-v0.13-polish-and-edges.md`。
+
+### Sprint backlog seeded(模块 stub · 待实施)
+
+- **M11** · Schema consistency cleanup · 加 `code_anchors[].path_only` + `doc_anchors[].raw_with_anchor` alias · 修 0.11.2 `:lines:lines` 双拼 bug 根 schema 不一致
+- **M12** · Parser robustness · `_SUBTASK_SECTION_RE` / `_DOCS_SECTION_RE` 放宽 · 接受 `## §4 · 待办` / `### 待办` / tab 空格
+- **M13** · `sync-status --from-browser` · 兑现 M09-1be62a stub · Chrome LevelDB + Firefox SQLite 直读 profile localStorage
+- **M14** · CSS time-bomb audit + UX polish · `[hidden]` specificity safety net · subtask doc preview 加 `path:lines` 标识 · 扫光 alpha 占位文案
+
+Distribution plan:alpha.1 (M11) → alpha.2 (M12) → alpha.3 (M13) → alpha.4 (M14) → 0.13.0 finalize。
 
 ## [0.12.1] · 2026-05-19
 
