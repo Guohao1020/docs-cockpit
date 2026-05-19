@@ -459,7 +459,46 @@ body.backlog-mode .backlog-page[hidden] { display: block !important; }
   font-family: var(--f-mono);
   font-size: 12px;
   color: var(--c-graphite);
-  padding: 12px 0;
+  padding: 12px 0 0;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.backlog-summary .bs-count {
+  flex: 1;
+  min-width: 200px;
+}
+.backlog-summary .bs-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.backlog-summary label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  user-select: none;
+}
+.backlog-summary .bs-quick {
+  background: transparent;
+  border: 1px solid var(--c-hairline);
+  border-radius: var(--r-sm);
+  padding: 4px 10px;
+  font-family: var(--f-mono);
+  font-size: 11px;
+  color: var(--c-graphite);
+  cursor: pointer;
+  transition: color 0.12s, border-color 0.12s;
+}
+.backlog-summary .bs-quick:hover {
+  color: var(--c-primary);
+  border-color: var(--c-primary);
+}
+.backlog-summary .bs-quick:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 .backlog-list { display: flex; flex-direction: column; gap: 0; }
 .backlog-row {
@@ -2244,6 +2283,13 @@ body.split-mode #module-drawer .drawer-body {
       'bundle.copy': 'Copy bundle prompt',
       'bundle.clear': 'Clear',
       'toast.bundle_cli_copied': 'CLI copied · paste in terminal · prompt → clipboard',
+      // 0.14.1 multi-select
+      'backlog.selectall': 'Select all visible',
+      'backlog.selectall_title': 'Select all visible rows (or Shift-click a checkbox to range-select)',
+      'backlog.quick.notstarted': '+ not-started',
+      'backlog.quick.notstarted_title': 'Add all not-started visible rows to selection',
+      'backlog.quick.inprogress': '+ in-progress',
+      'backlog.quick.clearvisible': '× clear visible',
       'hero.eyebrow': 'PROJECT DASHBOARD · MODULE PROGRESS',
       'hero.title': 'Project progress overview',
       'hero.tagline': 'Module status · sprint progress · core concepts · one-stop visualization with fine-grained progress control.',
@@ -2544,6 +2590,13 @@ body.split-mode #module-drawer .drawer-body {
       'bundle.copy': '复制 bundle 提示词',
       'bundle.clear': '清除',
       'toast.bundle_cli_copied': 'CLI 命令已复制 · 在终端粘贴运行 · prompt 自动进剪贴板',
+      // 0.14.1 multi-select
+      'backlog.selectall': '全选当前',
+      'backlog.selectall_title': '全选当前筛选内的所有 subtask(或 Shift+点 checkbox 范围选)',
+      'backlog.quick.notstarted': '+ 未启动',
+      'backlog.quick.notstarted_title': '把当前筛选的未启动行加进选区',
+      'backlog.quick.inprogress': '+ 进行中',
+      'backlog.quick.clearvisible': '× 清当前',
       'topbar.sysdocs_title': '系统文档 (D)',
       'hero.eyebrow': '通用项目看板 · 模块进度',
       'hero.title': '项目进度概览',
@@ -3737,6 +3790,8 @@ body.split-mode #module-drawer .drawer-body {
   let _backlogFilters = { time: 'all', sprint: 'all', status: 'all', q: '' };
   const BUNDLE_SELECTION_KEY = 'docs-cockpit-bundle-selection-v1';
   let _bundleSelection = new Set();
+  // 0.14.1 · multi-select shift-range pivot · 最后被点的 row · 给 shift-click 算范围
+  let _lastClickedStKey = null;
 
   function _loadBundleSelection() {
     try {
@@ -3899,7 +3954,92 @@ body.split-mode #module-drawer .drawer-body {
     // 同步行的 selected 样式
     const row = document.querySelector('.backlog-row[data-st-key="' + stKey + '"]');
     if (row) row.classList.toggle('selected', checked);
+    // 同步 summary 的 select-all 状态(part of selection 变化)
+    _refreshSelectAllState();
   }
+
+  function _refreshSelectAllState() {
+    const sa = document.getElementById('backlog-select-all');
+    if (!sa) return;
+    const visible = _backlogVisibleIds;
+    if (visible.length === 0) {
+      sa.checked = false;
+      sa.indeterminate = false;
+      return;
+    }
+    const selectedCount = visible.filter(id => _bundleSelection.has(id)).length;
+    sa.checked = (selectedCount === visible.length);
+    sa.indeterminate = (selectedCount > 0 && selectedCount < visible.length);
+    // 也同步 count 数字
+    const summary = document.getElementById('backlog-summary');
+    const countEl = summary && summary.querySelector('.bs-count');
+    if (countEl) {
+      const all = _flatSubtasks();
+      countEl.textContent = visible.length + ' / ' + all.length + ' subtasks shown · ' + _bundleSelection.size + ' selected';
+    }
+  }
+
+  // 0.14.1 · shift-click range select · 从 pivot 到 current 之间全 toggle
+  function _toggleBundleRange(fromKey, toKey, targetState) {
+    if (!fromKey || !toKey) return;
+    const visible = _backlogVisibleIds;
+    const i = visible.indexOf(fromKey);
+    const j = visible.indexOf(toKey);
+    if (i < 0 || j < 0) return;
+    const [lo, hi] = i < j ? [i, j] : [j, i];
+    for (let k = lo; k <= hi; k++) {
+      const sid = visible[k];
+      if (targetState) _bundleSelection.add(sid);
+      else _bundleSelection.delete(sid);
+      const row = document.querySelector('.backlog-row[data-st-key="' + sid + '"]');
+      if (row) {
+        row.classList.toggle('selected', targetState);
+        const cb = row.querySelector('input[type="checkbox"]');
+        if (cb) cb.checked = targetState;
+      }
+    }
+    _saveBundleSelection();
+    _renderBundleBar();
+    _refreshSelectAllState();
+  }
+
+  function _bindBacklogSummaryActions(filtered) {
+    // Select all visible · master checkbox
+    const sa = document.getElementById('backlog-select-all');
+    if (sa) {
+      sa.addEventListener('change', () => {
+        const targetState = sa.checked;
+        for (const item of filtered) {
+          if (targetState) _bundleSelection.add(item.id);
+          else _bundleSelection.delete(item.id);
+        }
+        _saveBundleSelection();
+        // re-render 同步所有 checkbox + selected class
+        renderBacklog();
+      });
+    }
+    // 快捷按钮:+ not-started · + in-progress · × clear visible
+    const summary = document.getElementById('backlog-summary');
+    if (!summary) return;
+    summary.querySelectorAll('.bs-quick').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const action = btn.dataset.bsQuick;
+        if (action === 'clear-visible') {
+          for (const item of filtered) _bundleSelection.delete(item.id);
+        } else {
+          // 把 filtered 内 status == action 的全部加进 selection
+          for (const item of filtered) {
+            if (item.status === action) _bundleSelection.add(item.id);
+          }
+        }
+        _saveBundleSelection();
+        renderBacklog();
+      });
+    });
+  }
+
+  // 0.14.1 · 渲染时记下当前 filtered 顺序 · shift-click range 算法用
+  let _backlogVisibleIds = [];
 
   function renderBacklog() {
     const list = document.getElementById('backlog-list');
@@ -3914,8 +4054,34 @@ body.split-mode #module-drawer .drawer-body {
       if (sa !== sb) return sb.localeCompare(sa);
       return (a._module.id || '').localeCompare(b._module.id || '');
     });
+    _backlogVisibleIds = filtered.map(s => s.id);
     if (summary) {
-      summary.textContent = filtered.length + ' / ' + all.length + ' subtasks shown';
+      // 0.14.1 · summary 改成 select-all + 快捷按钮 + count
+      const allSelected = filtered.length > 0 && filtered.every(s => _bundleSelection.has(s.id));
+      const someSelected = filtered.some(s => _bundleSelection.has(s.id));
+      summary.innerHTML =
+        '<span class="bs-count">' +
+          escapeHtml(filtered.length + ' / ' + all.length + ' subtasks shown · ' + _bundleSelection.size + ' selected') +
+        '</span>' +
+        '<span class="bs-actions">' +
+          '<label title="' + escapeHtml(t('backlog.selectall_title') || 'Select all visible (or Shift-click to range-select rows)') + '">' +
+            '<input type="checkbox" id="backlog-select-all"' + (allSelected ? ' checked' : '') + '>' +
+            '<span>' + escapeHtml(t('backlog.selectall') || 'Select all visible') + '</span>' +
+          '</label>' +
+          '<button class="bs-quick" data-bs-quick="not-started" type="button" title="' + escapeHtml(t('backlog.quick.notstarted_title') || 'Select all not-started in current filter') + '">' +
+            escapeHtml(t('backlog.quick.notstarted') || '+ not-started') +
+          '</button>' +
+          '<button class="bs-quick" data-bs-quick="in-progress" type="button">' +
+            escapeHtml(t('backlog.quick.inprogress') || '+ in-progress') +
+          '</button>' +
+          '<button class="bs-quick" data-bs-quick="clear-visible" type="button">' +
+            escapeHtml(t('backlog.quick.clearvisible') || '× clear visible') +
+          '</button>' +
+        '</span>';
+      // 半选状态 indeterminate
+      const sa = document.getElementById('backlog-select-all');
+      if (sa) sa.indeterminate = someSelected && !allSelected;
+      _bindBacklogSummaryActions(filtered);
     }
     list.innerHTML = filtered.map(s => {
       const stKey = s.id;
@@ -3943,7 +4109,14 @@ body.split-mode #module-drawer .drawer-body {
       if (cb) {
         cb.addEventListener('click', (e) => {
           e.stopPropagation();
-          _toggleBundleSelection(stKey, cb.checked);
+          // 0.14.1 · shift-click range · 从上次点的 row 到当前
+          if (e.shiftKey && _lastClickedStKey && _lastClickedStKey !== stKey) {
+            // checkbox click 先 toggle 自己 · 用 cb.checked 当 target state
+            _toggleBundleRange(_lastClickedStKey, stKey, cb.checked);
+          } else {
+            _toggleBundleSelection(stKey, cb.checked);
+          }
+          _lastClickedStKey = stKey;
         });
       }
       const promptBtn = row.querySelector('[data-action="copy-prompt"]');

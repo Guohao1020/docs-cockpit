@@ -6,6 +6,46 @@
 
 v0.13 主题 · DX polish · schema 一致性 · 边界场景。Plan: `docs/plans/P-v0.13-polish-and-edges.md`。M11-M14 模块骨架已 seed · 实施待启动。
 
+## [0.14.1] · 2026-05-19
+
+Backlog 多选体验增强 · 用户截图反馈「增加多选功能」(19 行手点 19 次太烦)。
+
+### Added · select-all + shift-click + 快捷选项
+
+backlog summary 区从单行 count 文字升级成多选 toolbar:
+
+```
+[19 / 113 subtasks shown · 3 selected]    ☐ Select all visible   [+ not-started] [+ in-progress] [× clear visible]
+```
+
+- **Select all visible** · master checkbox · 一键勾全当前筛选 · indeterminate 状态自动判(部分选)
+- **Shift-click range** · 点 row A · Shift+点 row B · A→B 之间所有 row toggle 到 cb.checked 状态(标准多选 UX)
+- **+ not-started** / **+ in-progress** · 快捷加当前 filter 内的 status 子集到 selection · 不破坏现有勾选
+- **× clear visible** · 只清当前 filter 内的 selection · 不影响其它 filter / sprint 的勾选
+
+`_lastClickedStKey` pivot 记下上次 checkbox click · shift-click 算 visible-ids 区间。
+
+### Changed · backlog summary HTML
+
+从 `<div>19 / 113 subtasks shown</div>` 改成 `<span class="bs-count"> + <span class="bs-actions"> + actions...` · CSS 走 flex layout · 小屏可 wrap。
+
+### i18n · EN + 中 全套
+
+- `backlog.selectall`:Select all visible / 全选当前
+- `backlog.quick.notstarted`:+ not-started / + 未启动
+- `backlog.quick.inprogress`:+ in-progress / + 进行中
+- `backlog.quick.clearvisible`:× clear visible / × 清当前
+
+### Verified
+
+- 220 tests pass · 0 回归(纯 template/JS · 没动 schema / Python backend)
+- dogfood build clean · 17 modules · select-all + shift-click + 快捷 3 路径全 wire
+
+### Not changed
+
+- 走 patch 不走 minor · template-only · 不动 schema / CLI / SKILL.md
+- localStorage shape 不变 · 跟 v0.14.0 兼容
+
 ## [0.14.0] · 2026-05-19
 
 Kanban 升级到 **批量执行调度台**。回应用户反馈「dashboard 增加时间/版本/状态筛选 + 多 subtask 一起跑 + bundle 推荐 skill + 复制提示词开发」。3 个 module 一次性 ship · 跳过 v0.13 polish(下次回头补)。
