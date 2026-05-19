@@ -2,7 +2,26 @@
 
 本项目遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/) · 版本号采用 [SemVer](https://semver.org/lang/zh-CN/)。
 
-## [Unreleased] · v0.13 sprint kickoff
+## [Unreleased] · v0.13 + v0.14 sprints kickoff(并行排队)
+
+### v0.13 · DX polish · schema 一致性 · 边界场景
+
+Plan: `docs/plans/P-v0.13-polish-and-edges.md`。不引大功能 · 清 v0.11/v0.12 dogfood 累积 maintenance debt:
+
+- **M11** · Schema consistency cleanup · 加 `code_anchors[].path_only` + `doc_anchors[].raw_with_anchor` alias
+- **M12** · Parser robustness · subtask section heading regex 接受 §/三级/tab
+- **M13** · `sync-status --from-browser` · 兑现 M09-1be62a · Chrome LevelDB + Firefox SQLite
+- **M14** · CSS time-bomb audit + UX polish · `[hidden]` specificity safety net
+
+### v0.14 · Batch driver · Kanban 升级到批量执行调度台
+
+Plan: `docs/plans/P-v0.14-batch-driver.md`。用户反馈「dashboard 增加时间/版本/状态筛选 + 多 subtask 一起跑 + bundle 推荐 skill」:
+
+- **M15** · Backlog view + filters · `#/backlog` 扁平 subtask 列表 + 4-axis filter + URL state codec
+- **M16** · Multi-subtask bundle selection UX · 跨 module 多选 · floating bar 「N selected · Bundle 推荐 · Copy bundle prompt」
+- **M17** · Bundle prompt + recommendation skill · `prompt --bundle` CLI + `bundle.md.j2` + cohesion scoring + author skill §14
+
+Distribution plan:v0.13 alpha.1-4 → 0.13.0 → v0.14 alpha.1-3 → 0.14.0。可并行实施 · 看调度。
 
 ## [0.12.2] · 2026-05-19
 
