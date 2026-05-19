@@ -43,5 +43,12 @@ Thumbs.db
 /docs/code_previews.js
 /docs/code_previews.json
 
+# v0.14 M17 sidecar artifact · bundle-meta.js 是 build 产物
+/docs/bundle-meta.js
+
+# git bundle archives · 不入库
+*.bundle
+*.tar.gz
+
 # Smoke test outputs
 /tmp/
