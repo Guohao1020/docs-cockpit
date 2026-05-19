@@ -2,9 +2,10 @@
 id: M13
 type: module
 title: "sync-status --from-browser · profile localStorage reader"
-status: not-started
+status: done
 sprint: "0.13"
-progress: 0
+progress: 100
+manualProgress: true   # 实施落在 M09-b23cac · M13 是计划早期 placeholder · scope 重复 · 走 manual done
 desc: "兑现 M09 留的 stub · 直读 Chrome LevelDB / Firefox SQLite · 用户不用先 Export JSON"
 owner: harvey
 prd_ref: "v0.13 plan §5.3 · M09-1be62a follow-up"
@@ -50,11 +51,11 @@ backend 把 localStorage[`project-kanban-state-v1`] 拉出来 · 走现有 `pars
 
 ## §4 · 待办
 
-- [ ] `browser_storage.py` scaffold · `find_profile_dir(name)` 跨平台 + `read_localstorage_chrome(dir)` + `read_localstorage_firefox(path)`
-- [ ] Chrome / Edge LevelDB reader · 走 plyvel(optional dep)+ leveldb key 前缀 filter
-- [ ] Firefox SQLite reader · 走 stdlib sqlite3 · 不加新 dep
-- [ ] pyproject.toml 加 `[project.optional-dependencies] browser = ["plyvel>=1.5"]`
-- [ ] sync_status.py::cmd_sync_status `--from-browser` 路径接通 · 替换 stub 报错
-- [ ] `--profile <name>` 显式选 profile · default 走 macOS / Windows / Linux per-platform default-release
-- [ ] tests/unit/test_browser_storage.py · fixture LevelDB(从 string dict 构造)+ fixture SQLite
-- [ ] references/sync_status_workflow.md 更新 Path 2 章节 · 标 v0.13+
+- [x] `browser_storage.py` scaffold · `find_profile_dir(name)` 跨平台 + `read_localstorage_chrome(dir)` + `read_localstorage_firefox(path)`
+- [x] Chrome / Edge LevelDB reader · 走 plyvel(optional dep)+ leveldb key 前缀 filter
+- [x] Firefox SQLite reader · 走 stdlib sqlite3 · 不加新 dep
+- [x] pyproject.toml 加 `[project.optional-dependencies] browser = ["plyvel>=1.5"]`
+- [x] sync_status.py::cmd_sync_status `--from-browser` 路径接通 · 替换 stub 报错
+- [x] `--profile <name>` 显式选 profile · default 走 macOS / Windows / Linux per-platform default-release
+- [x] tests/unit/test_browser_storage.py · fixture LevelDB(从 string dict 构造)+ fixture SQLite
+- [x] references/sync_status_workflow.md 更新 Path 2 章节 · 标 v0.13+

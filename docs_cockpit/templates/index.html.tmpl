@@ -192,6 +192,18 @@ a:hover { text-decoration: underline; }
   color: var(--c-charcoal);
   margin-top: 4px;
 }
+/* 0.14.3 M14-f53acd · subtask doc preview slice info badge · 让用户知道这是切片不是全文 */
+.split-preview-head .pv-slice-badge {
+  display: inline-block;
+  margin-top: 6px;
+  padding: 3px 9px;
+  background: var(--c-tint);
+  color: var(--c-primary);
+  border-radius: 9999px;
+  font-family: var(--f-mono);
+  font-size: 11px;
+  font-weight: 500;
+}
 /* §4.d · 左 navigator 里 active 那条 doc-row 高亮
    0.11.0-alpha.7 follow-up · design.md HP 蓝 · 去灰底 · 只用 left border + 字加深 */
 body.split-mode .doc-list .doc-row.active {
@@ -4506,6 +4518,18 @@ body.split-mode #module-drawer .drawer-body {
     const vscodeBtn = vscodeUrl
       ? '<a class="code-anchor-vscode" href="' + escapeHtml(vscodeUrl) + '" title="Open in VS Code">↗ VS Code</a>'
       : '';
+    // 0.14.3 M14-f53acd · slice info badge · 让用户清楚知道这是 N 行 / 章节切片 · 不是全文
+    let sliceInfo = '';
+    if (hasContent && da.exists) {
+      const lineCount = (da.content.match(/\n/g) || []).length + 1;
+      if (da.lines) {
+        sliceInfo = '<span class="pv-slice-badge">📍 ' + escapeHtml('Showing lines ' + da.lines + ' of ' + (da.path || 'file') + ' · ' + lineCount + ' lines') + '</span>';
+      } else if (da.heading) {
+        sliceInfo = '<span class="pv-slice-badge">📍 ' + escapeHtml('Section ' + da.heading + ' of ' + (da.path || 'file') + ' · ' + lineCount + ' lines') + '</span>';
+      } else {
+        sliceInfo = '<span class="pv-slice-badge">📄 ' + escapeHtml('Full document · ' + lineCount + ' lines') + '</span>';
+      }
+    }
     let bodyHtml;
     if (!da.exists) {
       bodyHtml = '<div class="doc-preview-missing">' +
@@ -4528,6 +4552,7 @@ body.split-mode #module-drawer .drawer-body {
       '<div class="split-preview-head">' +
         '<div class="pv-title">Doc anchor · ' + escapeHtml(titleStr) + '</div>' +
         '<div class="pv-path">' + escapeHtml(anchorLabel) + (vscodeBtn ? ' ' : '') + vscodeBtn + '</div>' +
+        sliceInfo +
         (da.mtime ? '<div class="pv-mtime">' + escapeHtml(da.mtime) + '</div>' : '') +
       '</div>' +
       bodyHtml;

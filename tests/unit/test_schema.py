@@ -557,3 +557,91 @@ class TestStatusSubtasksConsistency:
         )
         warns = [i for i in issues if i.field == "status" and "subtasks" in i.message]
         assert len(warns) == 0
+
+
+# ─── 0.14.3 M12 · subtask section heading regex 放宽 ────────────────
+
+
+class TestSectionRegex_v0_14_3:
+    """0.14.3 M12 · _SUBTASK_SECTION_RE / _DOCS_SECTION_RE 接受 § / 三级 heading / tab."""
+
+    @pytest.mark.parametrize(
+        "section_heading",
+        [
+            "## 待办",
+            "## TODO",
+            "## Subtasks",
+            "## Tasks",
+            "## 任务",
+            "## 3 · 待办",
+            "## 3.待办",
+            "## 3-待办",
+            # 0.14.3 新增 · § 前缀
+            "## §4 · 待办",
+            "## §3.2 · 待办",
+            "## §4 待办",
+            # 0.14.3 新增 · 三级 heading
+            "### 待办",
+            "### §4 · 待办",
+            "#### 待办",
+            # 0.14.3 新增 · tab 空格
+            "##\t待办",
+            "##\t§4 · 待办",
+            # case insensitive
+            "## todo",
+            "## Subtask",
+        ],
+    )
+    def test_subtask_section_matches_various_headings(self, section_heading):
+        from docs_cockpit.schema import extract_subtasks_from_body
+
+        body = section_heading + "\n\n- [ ] foo\n- [x] bar\n"
+        subs = extract_subtasks_from_body(body)
+        assert len(subs) == 2, f"failed for heading: {section_heading!r}"
+        assert subs[0]["title"] == "foo"
+        assert subs[1]["title"] == "bar"
+
+    @pytest.mark.parametrize(
+        "bad_heading",
+        [
+            "# 待办",           # h1 · 不应匹配(只 2-6 级)
+            "##待办",            # 没空格分隔(必须 \s+)
+            "## description",   # 不是 keyword
+            "regular text",
+            "**待办**",
+        ],
+    )
+    def test_subtask_section_rejects_non_matching(self, bad_heading):
+        from docs_cockpit.schema import extract_subtasks_from_body
+
+        body = bad_heading + "\n\n- [ ] foo\n"
+        subs = extract_subtasks_from_body(body)
+        assert subs == [], f"should not match: {bad_heading!r}"
+
+    @pytest.mark.parametrize(
+        "docs_heading",
+        [
+            "## 关联文档",
+            "## 关联",
+            "## Related",
+            "## Related docs",
+            "## Docs",
+            "## See also",
+            "## 参考",
+            "## 链接",
+            "## Links",
+            # 0.14.3 新增 · § 前缀
+            "## §5 · 关联文档",
+            "## §5 关联",
+            # 三级
+            "### 关联文档",
+            "### Related",
+        ],
+    )
+    def test_docs_section_matches_various_headings(self, docs_heading):
+        from docs_cockpit.schema import extract_docs_from_body
+
+        body = docs_heading + "\n\n- [Title](path/to/doc.md)\n"
+        docs = extract_docs_from_body(body)
+        assert len(docs) == 1, f"failed for heading: {docs_heading!r}"
+        assert docs[0]["path"] == "path/to/doc.md"

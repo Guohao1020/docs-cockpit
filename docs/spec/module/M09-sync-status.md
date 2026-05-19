@@ -54,12 +54,12 @@ docs-cockpit sync-status --from-browser chrome --apply
 
 `manualProgress: true` 锁住的 module 不被 override 撼动 progress 字段(只动 subtask.status)。
 
-## 4 · 待办
+## §4 · 待办
 
 - [x] sync_status.py scaffold · `parse_overrides(json)` / `merge_to_md(overrides, md_path)` / `compute_conflicts()` @code:docs_cockpit/sync_status.py:60-110 @code:docs_cockpit/sync_status.py:113-167 @code:docs_cockpit/sync_status.py:170-204 @docs:docs/spec/module/M09-sync-status.md#§2
 - [x] dashboard 加「Export status overrides」按钮 · 下载 JSON @code:docs_cockpit/templates/index.html.tmpl:1697-1706 @code:docs_cockpit/templates/index.html.tmpl:3803-3829 @docs:references/sync_status_workflow.md
 - [x] `docs-cockpit sync-status --import <json> [--apply]` CLI · dry-run-first @code:docs_cockpit/sync_status.py:282-359 @code:docs_cockpit/cli.py:181-205 @docs:references/sync_status_workflow.md
-- [ ] `--from-browser <chrome|firefox|edge>` · 直读浏览器 profile dir 的 localStorage(Chrome `Local Storage/leveldb` · Firefox `webappsstore.sqlite`)· **v0.13 候选** · MVP stub 报错 @code:docs_cockpit/sync_status.py:289-298 @docs:references/sync_status_workflow.md
+- [x] `--from-browser <chrome|firefox|edge>` · 0.14.3 兑现 · Firefox 完整(stdlib sqlite3 读 webappsstore.sqlite)· Chrome/Edge stub 指向 Export workflow(plyvel Windows 难装 · v0.15 候选)· `--profile` 显式指定 @code:docs_cockpit/browser_storage.py @code:docs_cockpit/sync_status.py:289-330 @code:tests/unit/test_browser_storage.py @docs:references/sync_status_workflow.md
 - [x] 优先级规则 4 个 case 全 cover + 集成测试 @code:tests/unit/test_sync_status.py:1-220 @code:docs_cockpit/sync_status.py:170-204 @docs:docs/spec/module/M09-sync-status.md#§3
 - [x] `references/sync_status_workflow.md` · 跨机器 daily / weekly 工作流推荐 @code:references/sync_status_workflow.md @docs:references/sync_status_workflow.md
 - [x] `.bak` 备份 + 跟 apply-patch 复用 `safe_write_md()` 工具函数 @code:docs_cockpit/sync_status.py:243-268 @code:docs_cockpit/apply_patch.py:248-272

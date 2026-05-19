@@ -192,7 +192,20 @@ The validator emits a `hint` on string form and points to `docs-cockpit migrate-
 - [ ] worker pulls next state from queue @code:sourcery/worker/main.py:120-180 @docs:docs/RFC/RFC-004.md:128-180
 ```
 
-`## 待办` / `## TODO` / `## Subtasks` / `## 任务` / `## 3 · 待办` all match. The build's `extract_subtasks_from_body()` (in `schema.py`) does:
+**Accepted heading forms** (since 0.14.3 · parser regex was tightened up):
+
+| Form | Example | Notes |
+|---|---|---|
+| Plain | `## 待办` / `## TODO` / `## Subtasks` / `## 任务` | bare keyword |
+| Number-prefixed | `## 3 · 待办` / `## 4. TODO` / `## 3 - Tasks` | digit + optional `·` / `.` / `-` separator |
+| **§-prefixed** | `## §4 · 待办` / `## §3.2 · 任务` | for plan / RFC style heading numbering(0.14.3 加 · M08/M09/M10 dogfood 反馈) |
+| **3rd-level+** | `### 待办` / `#### TODO` | any heading `##` through `######` |
+| Tab-separated | `##\t待办` / `## §4\t待办` | tab works · `\s+` regex |
+| Case-insensitive | `## todo` / `## Subtask` | `re.IGNORECASE` |
+
+**Reject** the form `##待办` (no space between `##` and keyword) and `# 待办` (h1 too thin). Also reject random text like `regular text TODO` — must be a heading line.
+
+The build's `extract_subtasks_from_body()` (in `schema.py`) does:
 
 1. find a section matching one of the heading regexes
 2. for each `- [x]` / `- [ ]` line: extract checkbox state → `done` boolean
@@ -243,6 +256,21 @@ Path resolution is the **three-step fallback** (same as `docs:`): absolute → r
 
 The drawer surfaces a `vscode://file/<abs>:<line>` deep-link button on each anchor — clicking opens the file in VS Code at the right line.
 
+**Resolved `code_anchors[]` entry shape** (after build · the payload your template / downstream tooling sees):
+
+| Field | Type | Meaning | Use this when... |
+|---|---|---|---|
+| `path` | str | **raw user input** including any `:lines` suffix · e.g. `"worker/x.py:42-89"` | you want to display the user's literal anchor string (e.g. CLI output) |
+| `path_only` | str (0.14.3+) | **clean path** without `:lines` · e.g. `"worker/x.py"` | building file references in templates · merging with `lines` separately · cross-anchor dedup |
+| `lines` | str \| null | line range `"42-89"` / `"42"` / null | display "lines X-Y" badges · jump-to-line in editors |
+| `resolved` | str | absolute path · empty if file not found | open / read the file from disk |
+| `exists` | bool | file exists on disk | gate render(stale anchor warning) |
+| `preview` | str | code snippet (truncated to 800 chars) | drawer code-preview pane |
+| `vscode_url` | str | `vscode://file/<abs>:<line>` deep link | "Open in VS Code" button |
+| `warning` | str | "" if ok · else stale / out-of-range / binary message | render `⚠` badge |
+
+**Template rule of thumb**: use `{{ ca.path_only }}{% if ca.lines %}:{{ ca.lines }}{% endif %}` instead of `{{ ca.path }}:{{ ca.lines }}` — `path` already contains `:lines` if user wrote them, so double-appending produces `worker/x.py:42-89:42-89`. The 4 built-in `prompts/*.md.j2` and `suggest/bundle-recommendation.md.j2` templates do this since 0.14.3.
+
 ### §3.1.3 · docs anchor format (subtask level)
 
 The subtask-level `docs:` field is a **list of strings** (not `{title, path}` dicts like module-level `docs:`). Parsed by `paths.py::_resolve_subtask_doc_anchor` (added 0.11.0-alpha.8). Accepted shapes:
@@ -257,6 +285,24 @@ The subtask-level `docs:` field is a **list of strings** (not `{title, path}` di
 The build pre-slices the content into `subtask.doc_anchors[i].content` at build time · the dashboard's right pane just runs `marked.parse(content)`. This avoids the unreliable "render the whole doc and try to highlight line 88-100 in the resulting HTML" problem — slicing happens on the source markdown before rendering.
 
 100 KB hard cap per anchor (same as module-level docs).
+
+**Resolved `doc_anchors[]` entry shape** (after build):
+
+| Field | Type | Meaning |
+|---|---|---|
+| `raw` | str | **raw user input** including `:lines` / `#heading` · e.g. `"plan.md#§6.2"` |
+| `raw_with_anchor` | str (0.14.3+) | alias of `raw` · 命名跟 `code_anchors[].path` 对称(都是 raw 串)· future-proof for v0.X+ deprecation of `raw` |
+| `path` | str | **clean path** without anchor · e.g. `"plan.md"` |
+| `lines` | str \| null | `"88-100"` / `"88"` / null(只 path / heading 时) |
+| `heading` | str \| null | `"§6.2"` · null when lines-style or whole-file |
+| `title` | str | heading 匹配上时取找到的 heading 文本(`"§6.2 · W3 Prompt scaffolding"`) |
+| `resolved` | str | absolute path |
+| `exists` | bool | file exists |
+| `content` | str | sliced markdown text(100KB cap) |
+| `mtime` | str \| null | `"YYYY-MM-DD HH:MM"` |
+| `warning` | str | "" / `path not found` / `heading not found` |
+
+**Template rule of thumb**: 对称命名 · `doc_anchors[].raw` ≡ `code_anchors[].path`(都是 raw 串)· `doc_anchors[].path` ≡ `code_anchors[].path_only`(都是 clean 路径)。0.14.3+ 加了 `raw_with_anchor` alias 让命名对称 · 未来 minor 可 deprecate `raw` 单字段。
 
 ### §3.1.4 · One-shot v0.10 → v0.11 migration
 

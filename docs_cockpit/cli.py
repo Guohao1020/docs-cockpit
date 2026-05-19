@@ -234,7 +234,11 @@ def main(argv: list[str] | None = None) -> int:
     ss_p.add_argument(
         "--from-browser", dest="from_browser", default=None,
         choices=["chrome", "firefox", "edge"],
-        help="直读浏览器 profile localStorage(v0.13 候选 · MVP stub)",
+        help="直读浏览器 profile localStorage(0.14.3+ · Firefox 完整 · Chrome/Edge MVP stub)",
+    )
+    ss_p.add_argument(
+        "--profile", default=None,
+        help="显式 profile dir 名(`Default` / `Profile 1` for Chrome · `<hash>.default-release` for Firefox)· 不传走平台 default",
     )
     ss_p.add_argument(
         "--apply", action="store_true",

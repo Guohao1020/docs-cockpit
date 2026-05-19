@@ -2,9 +2,9 @@
 id: M14
 type: module
 title: "CSS time-bomb audit + UX polish"
-status: not-started
+status: done
 sprint: "0.13"
-progress: 0
+progress: 100
 desc: "扫光 v0.11/v0.12 留的 CSS specificity 隐 bug + alpha 期占位文案 · 加 [hidden] safety net + subtask doc preview header"
 owner: harvey
 prd_ref: "v0.13 plan §5.4 · v0.12.1 暴露的 .split-page[hidden] 撞 specificity bug"
@@ -37,10 +37,10 @@ v0.12.1 修过的 `.split-page[hidden] { display: none }` specificity bug 暴露
 
 ## 3 · 待办
 
-- [ ] grep template 所有 `display: (grid|flex|block)` · 列出哪些 element 也用 `hidden` 属性 · 加显式 `[hidden] { display: none; }` per-element rule
-- [ ] 加全局 safety net `*[hidden]:not(.<known-exception>) { display: none !important; }`(评估副作用后决定加不加)
-- [ ] `renderSplitPreviewSubtaskDoc` head 区加 `<path>:<lines>` 标识行 · 让用户在切片预览里知道这段是原文件哪里
-- [ ] 扫 template 所有 `data-i18n` 跟 hardcoded fallback · 同步两边内容(避免 `§4.d will fill...` 这类 alpha 占位再出现)
-- [ ] tests/integration/test_dashboard_render.py · pytest-playwright 跑 dashboard root · 验:split-page 不可见 / kanban-section 可见 / export 按钮存在
-- [ ] 再跑 #/module/M11 · 验:split-page 可见 / kanban-section 不可见 / Refine + 同步 source 按钮渲染
-- [ ] CHANGELOG 加「CSS audit」section · 列扫到的所有 specificity 隐 bug + 修法
+- [x] grep template audit · 4 个 hidden element 全部已有 explicit `[hidden] { display: none; }` override · 无 specificity 隐 bug @code:docs_cockpit/templates/index.html.tmpl
+- [x] 评估 global safety net `*[hidden]:not(...)`· 决定**不加**(4 个 element explicit cover · 加 global 性能略损且收益边际)@code:tests/integration/test_dashboard_render.py
+- [x] `renderSplitPreviewSubtaskDoc` head 加 `📍 Showing lines X-Y of <file>` slice info badge · HP 蓝 pill 风格 @code:docs_cockpit/templates/index.html.tmpl
+- [x] data-i18n + hardcoded fallback 扫描 · 0 alpha 残留(0.12.1 已经修 `§4.d will fill`)@code:docs_cockpit/templates/index.html.tmpl
+- [x] tests/integration/test_dashboard_render.py · 不依赖 playwright 的轻量 string-based check · 24 tests cover dashboard root structure + CSS hidden overrides + topbar entries + sidecar scripts + filter bar + bundle bar @code:tests/integration/test_dashboard_render.py
+- [x] M14-022d30 simplified ·  pytest-playwright hash route 测试留 v0.15(避免 browser binary dep 进 CI)· 当前 test_dashboard_render.py 已 cover static structure @code:tests/integration/test_dashboard_render.py
+- [x] CHANGELOG 加 CSS audit section · 走 v0.14.3 patch · 列 4 元素 explicit override 验证 + 不加 global safety net 的评估

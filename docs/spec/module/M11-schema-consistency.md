@@ -2,9 +2,9 @@
 id: M11
 type: module
 title: "Schema consistency cleanup"
-status: not-started
+status: done
 sprint: "0.13"
-progress: 0
+progress: 100
 desc: "code_anchors vs doc_anchors 字段命名统一 · 修 0.11.2 暴露的 :lines:lines 双拼 bug 的根 schema 不一致"
 owner: harvey
 prd_ref: "v0.13 plan §5.1"
@@ -45,10 +45,10 @@ blocks: []
 
 ## 3 · 待办
 
-- [ ] `_resolve_code_anchor` 输出加 `path_only` 字段(`raw.split(':', 1)[0]`)
-- [ ] `_resolve_subtask_doc_anchor` 输出加 `raw_with_anchor` alias(`= raw`)
-- [ ] generic/feature/fix/refactor 4 个 template 渲染端走新 clean 字段
-- [ ] author skill §3.1.2 加「code anchor 字段表」+ §3.1.3 加「doc anchor 字段表」
-- [ ] tests/unit/test_paths.py 覆盖新字段 + 现有字段不变
-- [ ] M10 suggest 4 template 也走 clean 字段
-- [ ] CHANGELOG 加 schema-additions section · 标 stability contract reaffirm
+- [x] `_resolve_code_anchor` 输出加 `path_only` 字段 @code:docs_cockpit/paths.py:422-456
+- [x] `_resolve_subtask_doc_anchor` 输出加 `raw_with_anchor` alias @code:docs_cockpit/paths.py:296-360
+- [x] generic/feature/fix/refactor 4 template 渲染端走 `path_only` @code:docs_cockpit/templates/prompts/generic.md.j2 @code:docs_cockpit/templates/prompts/feature.md.j2 @code:docs_cockpit/templates/prompts/fix.md.j2 @code:docs_cockpit/templates/prompts/refactor.md.j2
+- [x] author skill §3.1.2 加 code anchor 字段表 + §3.1.3 加 doc anchor 字段表 @code:skills/docs-cockpit-author/SKILL.md
+- [x] tests/unit/test_paths.py · TestSchemaConsistency_v0_14_3 · 5 测试 cover 新字段 + 老字段不变 @code:tests/unit/test_paths.py
+- [x] M10 suggest 4 template 也走 clean 字段(bundle-recommendation 用 path_only · 其它 3 template 不渲染 ca/da 字段) @code:docs_cockpit/templates/suggest/bundle-recommendation.md.j2
+- [x] CHANGELOG 加 schema-additions section(走 v0.14.3 patch · stability contract reaffirm)

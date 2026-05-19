@@ -6,6 +6,77 @@
 
 v0.13 主题 · DX polish · schema 一致性 · 边界场景。Plan: `docs/plans/P-v0.13-polish-and-edges.md`。M11-M14 模块骨架已 seed · 实施待启动。
 
+## [0.14.3] · 2026-05-19
+
+执行用户 21-subtask bundle prompt(cross M11/M12/M14/M09-b23cac/M03)· v0.13 polish sprint 主体一次性 ship + M09 `--from-browser` Firefox 完整支持。dogfood 反应 bundle prompt + caller-aware sync 跑通(driver-seat 闭环成立)。
+
+### Added · M11 · Schema consistency cleanup(7 subtasks done)
+
+- `code_anchors[].path_only` · clean 路径不含 `:lines`(`docs_cockpit/paths.py`)· 修 0.11.2 暴露的 `{{ ca.path }}:{{ ca.lines }}` 双拼 bug 根 schema 不一致
+- `doc_anchors[].raw_with_anchor` · alias of `raw` · 命名跟 `code_anchors[].path` 对称(都是 raw 串)· future-proof v0.X+ deprecation
+- 4 主 prompt templates(generic/feature/fix/refactor)+ bundle-recommendation suggest template 渲染端用 `path_only` · 跟 author skill §3.1 推荐对齐
+- author skill §3.1.2 加「code anchor 字段表」+ §3.1.3 加「doc anchor 字段表」· 列每字段 type / meaning / use case
+- tests/unit/test_paths.py · TestSchemaConsistency_v0_14_3 · 5 测试 cover path_only / raw_with_anchor / stale anchor edge case
+- Stability contract reaffirm:不删现有字段 · 只加 alias
+
+### Added · M12 · Parser robustness(5 subtasks done)
+
+- `_SUBTASK_SECTION_RE` 放宽:`^#{2,6}[\s\t]+(?:[§\d][§\d.]*\s*[·.\-]?[\s\t]*)?(?:待办|TODO|...)\b`
+  - **加** § 前缀(`## §4 · 待办` · `## §3.2 · 待办`)
+  - **加** 三级 heading(`### 待办` · `#### TODO`)
+  - **加** tab 空格(`##\t待办`)
+- `_DOCS_SECTION_RE` 对称放宽 · `## §5 · 关联文档` / `### Related` 都接
+- tests/unit/test_schema.py · TestSectionRegex_v0_14_3 · 22+ fixture(positive + negative 都覆盖)
+- dogfood 验证 · M08/M09/M10 改回 `## §N · 待办` 风格 · parser 仍 work(7/7/6 subtasks parsed)
+- author skill §3.1 Form C 加「接受的 heading 形式」表 · 列 plain / number-prefixed / **§-prefixed** / 三级 / tab / case-insensitive 6 种
+
+### Added · M14 · CSS audit + UX polish(7 subtasks done)
+
+- CSS specificity audit pass · 4 个 `[hidden]` 元素全部已 explicit override(`.back-btn / .split-page / .backlog-page / .bundle-bar`)· 无隐 bug · 0.12.1 暴露的 specificity class 后续不再踩
+- 评估 global safety net `*[hidden]:not(.<known-exception>)` · **决定不加**(explicit cover 已足 · global 性能略损 + 收益边际)
+- `renderSplitPreviewSubtaskDoc` head 加「📍 Showing lines X-Y of <file> · N lines」slice info badge · HP 蓝 pill 风格 · 让用户清楚知道是切片不是全文
+- data-i18n + hardcoded fallback 扫描 · 0 alpha 残留
+- tests/integration/test_dashboard_render.py · **不依赖 playwright** 的轻量 string-based check · 24 tests cover dashboard root structure + CSS hidden overrides + topbar entries + sidecar scripts + filter bar + bundle bar
+- pytest-playwright hash route 行为测试留 v0.15(避免 browser binary CI dep)
+
+### Added · M09-b23cac · `--from-browser` Firefox SQLite reader
+
+- `docs_cockpit/browser_storage.py` · 跨平台 profile dir 解析(`find_profile_dir(browser, profile?)`)
+- **Firefox** · 完整支持 · stdlib `sqlite3` 读 `webappsstore.sqlite` · 无外部 dep · macOS/Windows/Linux 一致
+- **Chrome / Edge** · MVP stub 报指向 Export workflow 的清晰错误(`plyvel` Windows 难装 · pure-stdlib LevelDB read 复杂 · 留 v0.15 + `[browser]` optional extra)
+- `docs-cockpit sync-status --from-browser <chrome|firefox|edge> [--profile <name>]` CLI · `--profile` 让用户显式选 profile dir
+- tests/unit/test_browser_storage.py · 11 tests cover find_profile_dir / Firefox SQLite read / Chrome stub error / top-level dispatch
+
+### Done · M03-5be741
+
+v0.12 候选「MCP server moved to M07」标记 done(M07 早在 0.12.0 ship · 这条只是 M03 body 上的备注 line)。
+
+### Sprint state · 16/17 done · overall 94.1%
+
+| Sprint | Modules | Done | % |
+|---|---|---|---|
+| 0.10 | M05+M06 | 2/2 | 100% |
+| 0.11 | M01-M04 | 4/4 | 100% |
+| 0.12 | M07-M10 | 4/4 | 100% |
+| 0.13 | M11-M14 | 4/4 | 100%(M13 = M09-b23cac scope dup · manual done) |
+| 0.14 | M15-M17 | 3/3 | 100% |
+
+v0.13 polish sprint **整 ship**(原本可能拖几个 release · 1 个 bundle prompt 一次干完)。
+
+### Verified
+
+- 293 tests pass · 0 回归(从 220 +73 · +M11=5 +M12=22 +M14=24 +M09=11 + sundry)
+- dogfood `docs-cockpit prompt --bundle <21 ids>` 出 bundle prompt 跑通
+- backlog UI · sprint sort 0.14 > 0.13 > 0.12 ... 正确
+- 跨 17 module · cross-sprint bundle 全 ship · 验证 caller-aware sync 闭环
+
+### 4 文件 version bump
+
+- docs_cockpit/__init__.py · 0.14.2 → 0.14.3
+- .claude-plugin/plugin.json · 同上
+- .claude-plugin/marketplace.json · 同上
+- CHANGELOG.md · ## [0.14.3] section
+
 ## [0.14.2] · 2026-05-19
 
 修两个 backlog Sprint filter dogfood bug · 用户截图反馈「版本选了没渲染已选择的版本」+「不是每项目都有版本号 · 需要增强检测和归类算法」。

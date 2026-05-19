@@ -8,8 +8,8 @@
 
 {% for sub in module.subtasks %}
 - `[{% if sub.done %}x{% else %} {% endif %}]` `{{ sub.id }}` · {{ sub.title }}
-  {%- if sub.code_anchors %} · code: {% for ca in sub.code_anchors %}`{{ ca.path }}`{% if not loop.last %}, {% endif %}{% endfor %}{% endif %}
-  {%- if sub.doc_anchors %} · docs: {% for da in sub.doc_anchors %}`{{ da.raw or da.path }}`{% if not loop.last %}, {% endif %}{% endfor %}{% endif %}
+  {%- if sub.code_anchors %} · code: {% for ca in sub.code_anchors %}`{{ ca.path_only or ca.path }}{% if ca.lines %}:{{ ca.lines }}{% endif %}`{% if not loop.last %}, {% endif %}{% endfor %}{% endif %}
+  {%- if sub.doc_anchors %} · docs: {% for da in sub.doc_anchors %}`{{ da.raw_with_anchor or da.raw or da.path }}`{% if not loop.last %}, {% endif %}{% endfor %}{% endif %}
 {% endfor %}
 
 ## 你的任务

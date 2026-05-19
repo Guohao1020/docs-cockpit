@@ -239,24 +239,37 @@ progress: 0
         assert any("M07-stale" in w for w in result["global_warnings"])
 
 
-# ─── CLI Path 2 stub ──────────────────────────────────────────────────
+# ─── CLI Path 2 · from-browser(0.14.3 M09-b23cac · Chrome stub · Firefox 完整)─
 
 
-class TestCmdFromBrowserStub:
-    def test_from_browser_returns_error(self, capsys):
+class TestCmdFromBrowser:
+    def test_from_browser_chrome_stub_returns_error(self, capsys, tmp_path: pathlib.Path):
+        """Chrome 是 MVP stub · 报指向 Export workflow 的错(M09-b23cac partial · v0.15 候选)."""
         from docs_cockpit.sync_status import cmd_sync_status
 
-        class A:
-            from_browser = "chrome"
-            import_path = None
-            apply = False
-            config = "docs-cockpit.yaml"
+        # 构造一个 fake chrome profile · 让 find_profile_dir 找得到 · 进入 read_chrome
+        # 报「not yet implemented」错(读不了 Chrome LevelDB · pure-stdlib limitation)
+        fake_profile = tmp_path / "Default"
+        ldb = fake_profile / "Local Storage" / "leveldb"
+        ldb.mkdir(parents=True)
+        # 模拟 Chrome LOCALAPPDATA 环境(Windows)· 让 find_profile_dir 找到上面这个
+        # macOS/Linux:home/Library or .config · 难 mock · 简化测试改成直接 patch
+        from docs_cockpit import browser_storage as bs
+        import unittest.mock as _mock
 
-        rc = cmd_sync_status(A())
-        assert rc == 2
-        captured = capsys.readouterr()
-        assert "not yet implemented" in captured.err.lower()
-        assert "Export status overrides" in captured.err
+        with _mock.patch.object(bs, "find_profile_dir", return_value=fake_profile):
+            class A:
+                from_browser = "chrome"
+                import_path = None
+                apply = False
+                config = "docs-cockpit.yaml"
+                profile = None
+
+            rc = cmd_sync_status(A())
+            assert rc == 2
+            captured = capsys.readouterr()
+            assert "not yet implemented" in captured.err.lower()
+            assert "Export" in captured.err
 
     def test_no_import_no_browser(self, capsys):
         from docs_cockpit.sync_status import cmd_sync_status

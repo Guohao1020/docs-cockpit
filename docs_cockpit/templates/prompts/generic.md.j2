@@ -12,7 +12,7 @@
 {% if subtask.code_anchors %}
 **代码 anchor**:
 {%- for ca in subtask.code_anchors %}
-- `{{ ca.path }}`{% if not ca.exists %} ⚠ {{ ca.warning }}{% endif %}
+- `{{ ca.path_only or ca.path }}{% if ca.lines %}:{{ ca.lines }}{% endif %}`{% if not ca.exists %} ⚠ {{ ca.warning }}{% endif %}
 {%- endfor %}
 {% endif %}
 {% if subtask.doc_anchors %}

@@ -2,9 +2,9 @@
 id: M12
 type: module
 title: "Parser robustness · subtask section heading"
-status: not-started
+status: done
 sprint: "0.13"
-progress: 0
+progress: 100
 desc: "subtask section heading regex 放宽 · 接受 § 前缀 / 三级 heading / tab 空格 · 修 M08/M09/M10 dogfood 实拍 bug"
 owner: harvey
 prd_ref: "v0.13 plan §5.2"
@@ -47,8 +47,8 @@ blocks: []
 
 ## 3 · 待办
 
-- [ ] `_SUBTASK_SECTION_RE` 改 `^#{2,6}[\s\t]+(?:[§\d]+[\s\t]*[·.\-]?[\s\t]*)?(?:待办|TODO|...)\b`
-- [ ] `_DOCS_SECTION_RE` 对称放宽 · 加 § 前缀 + 三级 heading 支持
-- [ ] tests/unit/test_schema.py 加 12+ fixture(positive + negative case 都覆盖)
-- [ ] dogfood 验证:M08/M09/M10 把 `## 4 · 待办` 改回 `## §4 · 待办` · build 还能 0 subtask → 解析对
-- [ ] author skill §3.1 Form C 区加「接受的 heading 形式」表 · 让用户知道边界
+- [x] `_SUBTASK_SECTION_RE` 放宽接受 § / 三级 heading / tab @code:docs_cockpit/schema.py:152-160
+- [x] `_DOCS_SECTION_RE` 对称放宽 @code:docs_cockpit/schema.py:161-168
+- [x] tests/unit/test_schema.py · TestSectionRegex_v0_14_3 · 22+ fixture 全 cover positive + negative @code:tests/unit/test_schema.py
+- [x] dogfood 验证 · M08/M09/M10 改回 `## §N · 待办` · parser 仍 work(7/7/6 subtasks parsed)@code:docs/spec/module/M08-apply-patch.md @code:docs/spec/module/M09-sync-status.md @code:docs/spec/module/M10-llm-doc-optimizer.md
+- [x] author skill §3.1 Form C 加「接受的 heading 形式」表 @code:skills/docs-cockpit-author/SKILL.md

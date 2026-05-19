@@ -503,6 +503,9 @@ def _resolve_subtask_doc_anchor(
     """
     out: dict[str, Any] = {
         "raw": raw or "",
+        # 0.14.3 · raw_with_anchor alias · 跟 code_anchors[].path 命名对称(都是 user raw 串)
+        # 让 template / downstream 用 `raw` 或 `raw_with_anchor` 都行 · 自由切
+        "raw_with_anchor": raw or "",
         "path": "",
         "lines": None,
         "heading": None,
@@ -602,6 +605,10 @@ def _resolve_code_anchor(
     """
     out = {
         "path": raw or "",
+        # 0.14.3 · path_only · clean 路径(不含 :lines)· 跟 `doc_anchors[].path` 语义对齐
+        # 解决 0.11.2 暴露的 `{{ ca.path }}:{{ ca.lines }}` 双拼 bug 的根 schema 不一致
+        # 推荐 template 渲染端用 path_only · 老 path 字段保留 raw 串 stability
+        "path_only": "",
         "lines": None,
         "resolved": "",
         "exists": False,
@@ -614,6 +621,7 @@ def _resolve_code_anchor(
         return out
 
     path_s, start, end = _parse_code_ref(raw)
+    out["path_only"] = path_s
     out["lines"] = f"{start}-{end}" if start and end and start != end else (str(start) if start else None)
 
     resolved = _resolve_doc_path(path_s, module_path, repo_root, vars_)

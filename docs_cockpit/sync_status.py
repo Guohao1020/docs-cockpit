@@ -276,17 +276,45 @@ def cmd_sync_status(args) -> int:
     Path 1(--import)· 主流程 · MVP 完整支持。
     Path 2(--from-browser)· stub · 报错指向 Path 1 + v0.13 ticket。
     """
-    # Path 2 stub
+    # 0.14.3 M13/M09-b23cac · Path 2 · 从浏览器 profile dir 直读 localStorage
     from_browser = getattr(args, "from_browser", None)
     if from_browser:
-        print(
-            f"[ERR] --from-browser '{from_browser}' not yet implemented (v0.13 candidate).\n"
-            f"[hint] Use the dashboard's footer 'Export status overrides' button "
-            f"to download JSON, then:\n"
-            f"       docs-cockpit sync-status --import overrides.json [--apply]",
-            file=sys.stderr,
+        from .browser_storage import (
+            BrowserStorageError,
+            read_localstorage_from_browser,
         )
-        return 2
+
+        profile = getattr(args, "profile", None)
+        try:
+            stored = read_localstorage_from_browser(from_browser, profile=profile)
+        except BrowserStorageError as e:
+            print(f"[ERR] {e}", file=sys.stderr)
+            return 2
+        if not stored:
+            print(
+                f"[sync-status] no overrides found in {from_browser} localStorage · "
+                f"open dashboard first OR check --profile <name>",
+                file=sys.stderr,
+            )
+            return 0
+        # 拿到 dict · 接着走跟 --import 一样的 sync_to_repo 路径
+        cfg_path = pathlib.Path(getattr(args, "config", None) or "docs-cockpit.yaml")
+        if not cfg_path.exists():
+            print(f"[ERR] config not found: {cfg_path}", file=sys.stderr)
+            return 2
+        try:
+            result = sync_to_repo(
+                json.dumps(stored, ensure_ascii=False),
+                cfg_path.resolve(),
+                apply=bool(getattr(args, "apply", False)),
+            )
+        except SyncStatusError as e:
+            print(f"[ERR] {e}", file=sys.stderr)
+            return 1
+        _print_sync_report(f"<{from_browser} profile>", cfg_path, result, args)
+        return 1 if (
+            any(r["conflicts"] for r in result["per_module"]) or result["global_warnings"]
+        ) else 0
 
     json_path = getattr(args, "import_path", None)
     if not json_path:
@@ -317,7 +345,13 @@ def cmd_sync_status(args) -> int:
         return 1
 
     # 报告
-    print(f"[sync-status] source: {json_p}")
+    _print_sync_report(str(json_p), cfg_path, result, args)
+    return 1 if (any(r["conflicts"] for r in result["per_module"]) or result["global_warnings"]) else 0
+
+
+def _print_sync_report(source_label: str, cfg_path: pathlib.Path, result: dict[str, Any], args) -> None:
+    """共享报告打印逻辑 · --import / --from-browser 都用."""
+    print(f"[sync-status] source: {source_label}")
     print(f"[sync-status] target repo: {cfg_path.parent.resolve()}")
     n_mod = len(result["per_module"])
     n_applied = sum(len(r["applied_ids"]) for r in result["per_module"])
@@ -327,15 +361,14 @@ def cmd_sync_status(args) -> int:
             continue
         print(f"\n  {r['module_id']} → {r['md_path']}")
         for sid in r["applied_ids"]:
-            print(f"    ✓ {sid}")
+            print(f"    [done] {sid}")
         for c in r["conflicts"]:
-            print(f"    ⚠ {c}", file=sys.stderr)
+            print(f"    [warn] {c}", file=sys.stderr)
     if result["global_warnings"]:
         print("\nGlobal warnings:", file=sys.stderr)
         for w in result["global_warnings"]:
-            print(f"  ⚠ {w}", file=sys.stderr)
+            print(f"  [warn] {w}", file=sys.stderr)
 
-    # diff
     for r in result["per_module"]:
         if r["diff"]:
             print()
@@ -356,5 +389,3 @@ def cmd_sync_status(args) -> int:
             "\n[sync-status] dry-run · pass --apply to write back + create .bak per MD",
             file=sys.stderr,
         )
-
-    return 1 if (any(r["conflicts"] for r in result["per_module"]) or result["global_warnings"]) else 0

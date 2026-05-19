@@ -55,7 +55,7 @@ subtasks:
 
 跟「整个 module 覆盖」不同 · patch 只列要改的 subtask · 不列的保留原状。
 
-## 4 · 待办
+## §4 · 待办
 
 - [x] patch 格式 spec(subtask id-based · frontmatter-only · 不动 body checklist) @code:docs_cockpit/apply_patch.py:31-37 @code:docs_cockpit/templates/prompts/refine.md.j2 @docs:docs/spec/module/M08-apply-patch.md#§3 @docs:docs/plans/P-v0.11-ai-augmented-precision-alpha7-2026-05-18.md:133-148
 - [x] `parse_patch(text) -> dict` · 走 PyYAML safe_load · 校验 schema(必须有 id / 字段在白名单 status/code/docs/desc) @code:docs_cockpit/apply_patch.py:50-94 @code:docs_cockpit/schema.py:421-475 @docs:docs/plans/P-v0.11-ai-augmented-precision-alpha7-2026-05-18.md:133-148

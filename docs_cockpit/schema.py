@@ -149,12 +149,17 @@ class Issue:
 #
 # 优先级:frontmatter 字段 > body 提取。用户想精控直接写 frontmatter 接管。
 
+# 0.14.3 M12 · regex 放宽接受 § 前缀 / 三级 heading / tab 空格
+# 旧:`^##\s+(?:\d+\s*[·.\-]?\s*)?(?:待办|TODO|...)\b` 只接 `## 3 · 待办` / `## 待办`
+# 新:`^#{2,6}[\s\t]+(?:[§\d]+[\s\t]*[·.\-]?[\s\t]*)?(?:待办|TODO|...)\b`
+#   ## §4 · 待办 / ### 待办 / ##\t待办 / ## §3.2 · 待办 都接受
+# M08/M09/M10 dogfood 实拍踩过 · 之前 work around 是手工去 § 前缀
 _SUBTASK_SECTION_RE = re.compile(
-    r"^##\s+(?:\d+\s*[·.\-]?\s*)?(?:待办|TODO|To[- ]?do|Subtasks?|Tasks?|任务)\b",
+    r"^#{2,6}[\s\t]+(?:[§\d][§\d.]*\s*[·.\-]?[\s\t]*)?(?:待办|TODO|To[- ]?do|Subtasks?|Tasks?|任务)\b",
     re.MULTILINE | re.IGNORECASE,
 )
 _DOCS_SECTION_RE = re.compile(
-    r"^##\s+(?:\d+\s*[·.\-]?\s*)?"
+    r"^#{2,6}[\s\t]+(?:[§\d][§\d.]*\s*[·.\-]?[\s\t]*)?"
     r"(?:关联(?:文档)?|Related(?:\s+(?:docs|documents))?|"
     r"Docs?|See\s+also|参考|链接|Links?)\b",
     re.MULTILINE | re.IGNORECASE,

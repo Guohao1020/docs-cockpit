@@ -266,3 +266,72 @@ class TestResolveCodeAnchor:
         assert out["exists"] is True
         assert len(out["preview"]) <= 1000  # ~800 cap + suffix
         assert "truncated" in out["preview"]
+
+
+# ─── 0.14.3 M11 · path_only + raw_with_anchor schema fields ──────────
+
+
+class TestSchemaConsistency_v0_14_3:
+    """0.14.3 M11 · code_anchors.path_only + doc_anchors.raw_with_anchor 加字段."""
+
+    def test_code_anchor_path_only_clean_path(self, tmp_path: pathlib.Path):
+        from docs_cockpit.paths import _resolve_code_anchor
+
+        f = tmp_path / "x.py"
+        f.write_text("a\nb\nc\nd\ne\nf\ng\nh\ni\nj\n")
+        module = tmp_path / "M01.md"
+        module.touch()
+        out = _resolve_code_anchor("x.py:3-5", module, tmp_path, {})
+        # 老字段 path 保留 raw(含 :lines)· stability contract
+        assert out["path"] == "x.py:3-5"
+        # 新字段 path_only · clean(不含 :lines)
+        assert out["path_only"] == "x.py"
+        # lines 字段不变
+        assert out["lines"] == "3-5"
+
+    def test_code_anchor_path_only_no_lines(self, tmp_path: pathlib.Path):
+        from docs_cockpit.paths import _resolve_code_anchor
+
+        f = tmp_path / "x.py"
+        f.write_text("a\nb\n")
+        module = tmp_path / "M01.md"
+        module.touch()
+        out = _resolve_code_anchor("x.py", module, tmp_path, {})
+        # path 跟 path_only 都是 "x.py"(无 :lines)
+        assert out["path"] == "x.py"
+        assert out["path_only"] == "x.py"
+        assert out["lines"] is None
+
+    def test_doc_anchor_raw_with_anchor_alias(self, tmp_path: pathlib.Path):
+        from docs_cockpit.paths import _resolve_subtask_doc_anchor
+
+        f = tmp_path / "plan.md"
+        f.write_text("# Plan\n## §6.2 · Section\nbody\n")
+        module = tmp_path / "M01.md"
+        module.touch()
+        out = _resolve_subtask_doc_anchor("plan.md#§6.2", module, tmp_path, {})
+        # 老字段 raw 保留(含 anchor)
+        assert out["raw"] == "plan.md#§6.2"
+        # 新字段 raw_with_anchor 是 raw 的 alias
+        assert out["raw_with_anchor"] == "plan.md#§6.2"
+        # 跟 doc_anchors.path 一起对比 · path 是 clean
+        assert out["path"] == "plan.md"
+
+    def test_doc_anchor_raw_with_anchor_empty_input(self, tmp_path: pathlib.Path):
+        from docs_cockpit.paths import _resolve_subtask_doc_anchor
+
+        out = _resolve_subtask_doc_anchor("", tmp_path / "M.md", tmp_path, {})
+        # empty input · raw / raw_with_anchor 都是 ""
+        assert out["raw"] == ""
+        assert out["raw_with_anchor"] == ""
+        assert out["warning"] == "empty doc anchor"
+
+    def test_path_only_field_present_even_for_missing_file(self, tmp_path: pathlib.Path):
+        """stale anchor 也要带 path_only · 不能因为 file 不存在就漏字段."""
+        from docs_cockpit.paths import _resolve_code_anchor
+
+        module = tmp_path / "M.md"
+        module.touch()
+        out = _resolve_code_anchor("future.py:1-10", module, tmp_path, {})
+        assert out["exists"] is False
+        assert out["path_only"] == "future.py"  # 即使 file 不存在 · 解析过的 path_only 在

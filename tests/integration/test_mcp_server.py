@@ -103,13 +103,13 @@ def test_list_resources_topology(server_ctx):
 def test_cockpit_prompt_auto_picks_first_not_done(server_ctx):
     """No subtask_id → returns first not-done subtask's prompt.
 
-    用 M09(sync-status · all not-started)避免依赖 dogfood 模块当前完成度。
+    用 M13(--from-browser future · 全 not-started)避免 dogfood 完成度 drift。
     """
     r = _run(
-        server_ctx._handle_cockpit_prompt({"module_id": "M09"})
+        server_ctx._handle_cockpit_prompt({"module_id": "M13"})
     )
     text = r[0].text
-    assert "M09" in text
+    assert "M13" in text
     assert "Error" not in text
     # 必然含 caller-aware sync 段(0.11.2+ vibe-agent template)
     assert "完成 + 同步驾驶舱" in text or "完成 / 同步" in text
