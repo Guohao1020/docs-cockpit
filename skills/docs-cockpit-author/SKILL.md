@@ -157,28 +157,122 @@ This is where people get confused. Two related but different concepts:
 
 If you're tempted to put a "see also" link in `subtasks:`, it's `docs:`. If you're tempted to put a checkbox in `docs:`, it's `subtasks:`.
 
-### §3.1 · subtasks format
+### §3.1 · subtasks format (v0.11 object schema · 向后兼容 v0.10)
 
-Two equivalent forms (pick one per doc, don't mix):
+v0.10 用 `list[str]` · v0.11 升到 object schema with `id / title / status / code / docs`. The string form keeps working — validator treats a bare string as `{title: <string>}` and generates the rest. Three equivalent forms:
 
-**Form A · frontmatter (precise control):**
+**Form A · frontmatter object array (v0.11 · 最高精度 · 支持 code/docs anchor):**
 ```yaml
 subtasks:
-  - { title: "wire FSM enum to Pydantic", done: true }
-  - { title: "worker pulls next state from queue", done: false }
+  - id: M09-S1                                       # optional · auto-derived from title if missing
+    title: "wire FSM enum to Pydantic"
+    status: done                                     # not-started | in-progress | done | blocked
+    code: sourcery/worker/fsm.py:42-89               # single anchor · or list for multi-file
+    docs:
+      - docs/spec/module/M09-browser-cluster.md#§2.1
+      - docs/RFC/RFC-004-fsm-redesign.md:128-180
+  - title: "worker pulls next state from queue"      # bare title also fine · id auto-derived
+    status: not-started
 ```
 
-**Form B · body section (more readable in raw MD):**
+**Form B · frontmatter v0.10 legacy (string list):**
+```yaml
+subtasks:
+  - "wire FSM enum to Pydantic"                      # treated as {title, done:false, id:auto}
+  - "worker pulls next state from queue"
+```
+
+The validator emits a `hint` on string form and points to `docs-cockpit migrate-subtasks` (one-shot upgrade · see end of this section).
+
+**Form C · body section with inline annotations (v0.11.0-alpha.2 · diff-friendly · what this repo uses for its own modules):**
 ```markdown
-## TODO
+## 3 · 待办
 
-- [x] wire FSM enum to Pydantic
-- [ ] worker pulls next state from queue
+- [x] wire FSM enum to Pydantic @code:sourcery/worker/fsm.py:42-89 @docs:docs/spec/module/M09.md#§2.1
+- [ ] worker pulls next state from queue @code:sourcery/worker/main.py:120-180 @docs:docs/RFC/RFC-004.md:128-180
 ```
 
-Or `## 待办` for Chinese projects. The build auto-extracts `- [ ]` / `- [x]` checkboxes from sections matching `## TODO` / `## 待办` / `## Subtasks` / `## 任务`.
+`## 待办` / `## TODO` / `## Subtasks` / `## 任务` / `## 3 · 待办` all match. The build's `extract_subtasks_from_body()` (in `schema.py`) does:
 
-**Frontmatter wins**: if both forms are present, frontmatter `subtasks:` overrides body extraction.
+1. find a section matching one of the heading regexes
+2. for each `- [x]` / `- [ ]` line: extract checkbox state → `done` boolean
+3. run two regex sweeps over the rest of the line:
+   - `@code:(\S+)` → all hits become `code` (single string if 1 hit, list if 2+)
+   - `@docs:(\S+)` → same for `docs`
+4. `title` = original line text minus all `@code:...` / `@docs:...` annotations, whitespace-collapsed
+
+So `@code:` and `@docs:` can stack any number of times on one line · don't put spaces inside the anchor (`\S+` ends at whitespace).
+
+**Frontmatter wins**: if both frontmatter `subtasks:` and body `## 待办` exist, frontmatter overrides — body is ignored. So pick one form per doc and stick to it.
+
+### §3.1.1 · id algorithm + the title-is-identity tradeoff
+
+When you write Form A or Form B without an explicit `id:`, the build auto-assigns:
+
+```
+id = <module-id> + "-" + sha1(title.strip())[:6]
+```
+
+Example · module M03, subtask title `"First-build bootstrap(uv tool / pipx / pip --user 优先级)"` → `M03-3bc28b`.
+
+This is deterministic and stable **across builds** as long as the title doesn't change. The dashboard, prompts.js sidecar, and localStorage all key off this id — so changing the title:
+
+- **breaks the localStorage override** (user's manual status flip on this subtask is lost)
+- **rotates the id in `state.json::issues[].field`** (validator/CI tooling sees this as a different subtask)
+- **invalidates any external reference** to the old id (e.g. a PR description that links to `#/module/M03?st=M03-3bc28b`)
+
+**Rule of thumb · title is identity**:
+- Small wording tweak ("ok" → "OK") · usually fine · id rotates · accept the storage loss
+- Substantive rewrite (`"补 BrowserVendor abstraction"` → `"Lane A · BrowserVendor abstraction + LocalPlaywrightVendor"`) · explicitly pin the original id with `id: M09-S1` so storage / tooling keeps pointing at the right subtask
+- Splitting one subtask into two · the new ones get new ids by design · don't try to preserve
+
+You can always upgrade later: leave id auto-derived for new subtasks, only pin `id:` when you know you'll be rewording.
+
+### §3.1.2 · code anchor format
+
+The `code:` field on a subtask is parsed by `paths.py::_resolve_code_anchor`. Accepted shapes:
+
+| Shape | Example | Meaning |
+|---|---|---|
+| `<path>` | `sourcery/worker/fsm.py` | whole file · preview = first ~40 lines |
+| `<path>:<line>` | `sourcery/worker/fsm.py:42` | single line · preview = ±20 lines around it |
+| `<path>:<start>-<end>` | `sourcery/worker/fsm.py:42-89` | line range · preview = exactly those lines |
+| `[<anchor1>, <anchor2>, ...]` | `["worker/a.py:10-30", "worker/b.py:100-150"]` | multi-anchor · drawer renders N chevron buttons |
+
+Path resolution is the **three-step fallback** (same as `docs:`): absolute → relative to source MD → relative to repo root. Stale anchors render with a `⚠ stale code anchor` warning in the preview pane (but don't fail the build · severity = warn).
+
+The drawer surfaces a `vscode://file/<abs>:<line>` deep-link button on each anchor — clicking opens the file in VS Code at the right line.
+
+### §3.1.3 · docs anchor format (subtask level)
+
+The subtask-level `docs:` field is a **list of strings** (not `{title, path}` dicts like module-level `docs:`). Parsed by `paths.py::_resolve_subtask_doc_anchor` (added 0.11.0-alpha.8). Accepted shapes:
+
+| Shape | Example | Behavior |
+|---|---|---|
+| `<path>` | `docs/spec/module/M09.md` | whole file rendered in right pane (frontmatter stripped) |
+| `<path>:<lines>` | `CLAUDE.md:88-100` | slice lines 88-100 (1-indexed · inclusive both ends · raw file lines · not stripping frontmatter) |
+| `<path>:<line>` | `docs/plans/p.md:367` | slice single line |
+| `<path>#<heading>` | `docs/plans/p.md#§6.2` | find first `## *<heading>*` line (substring match, case-insensitive) → slice from there to next same-or-higher heading |
+
+The build pre-slices the content into `subtask.doc_anchors[i].content` at build time · the dashboard's right pane just runs `marked.parse(content)`. This avoids the unreliable "render the whole doc and try to highlight line 88-100 in the resulting HTML" problem — slicing happens on the source markdown before rendering.
+
+100 KB hard cap per anchor (same as module-level docs).
+
+### §3.1.4 · One-shot v0.10 → v0.11 migration
+
+If your existing module MDs have `subtasks: list[str]`, run:
+
+```bash
+docs-cockpit migrate-subtasks docs/spec/module/M07-fsm.md            # dry-run · print diff · no file change
+docs-cockpit migrate-subtasks docs/spec/module/M07-fsm.md --apply    # write back · generate .bak
+```
+
+The migrator:
+- converts string → `{id, title, done, status}` (auto-derives id · maps `done: true` → `status: done`)
+- preserves any existing object-form entries unchanged
+- does NOT touch `code:` / `docs:` (that's net-new precision work you do per subtask — the `/docs-cockpit:refine` workflow does that)
+
+Always show the user the dry-run output first · then `--apply`.
 
 ### §3.2 · docs format
 
