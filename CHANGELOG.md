@@ -4,6 +4,73 @@
 
 ## [Unreleased]
 
+## [0.11.3] · 2026-05-19
+
+修 plan §1 缺口 3「状态控制不闭环」的最严重副作用 · subtask localStorage override 永远赢 · 反向覆盖 source MD 真值。这是 v0.11 dogfood 反复抱怨的「修改了驾驶舱没啥变化」根因 · M07-9db754 commit `[x]` 之后 dashboard 仍显 0/8 也是同一个 bug 的表现。Template/JS-only patch · 0 schema 改动。
+
+### Why · 用户原话「还是没同步」
+
+build 跑过 + state.json 写了 `M07-9db754.done = true` + body MD 有 `[x]` · 但浏览器仍显 `[ ]` · 0/8 完成。控制台扒 localStorage 看到老的 `M07__st__M07-9db754: false` override · merge 逻辑 `(k in overrides) ? !!overrides[k] : st.done` 让 override 永久赢。
+
+这是 plan §1 缺口 3 的真实表现:**localStorage 跟 source MD 漂移** · v0.10 起就埋下 · alpha.5 修 index→id 时没动 merge 语义 · 0.11.0 ship 没人 notice · dogfood 才暴露。
+
+### Changed · `loadOverrides` build-time-aware 失效
+
+`docs_cockpit/templates/index.html.tmpl` 1830 行附近的 `loadOverrides` 加新逻辑:
+
+```js
+const last_built = stored._built_at || '';
+if (BUILD_TIME && last_built && last_built !== BUILD_TIME) {
+  // build 刷过了 · subtask 级 override 全部失效 · source MD 真值接管
+  const fresh = { _built_at: BUILD_TIME };
+  for (const k of Object.keys(stored)) {
+    if (k === '_built_at') continue;
+    if (k.indexOf('__st__') !== -1) continue;  // subtask · 失效
+    fresh[k] = stored[k];                       // module 级 · 保留
+  }
+  ...
+}
+```
+
+行为变化:
+- **同一 build 内** · subtask toggle 仍持久(用户勾 checkbox · 刷页面还在)
+- **build 刷过** · subtask override 全部 invalidate · source MD 接管(用户编辑 MD + build · dashboard 立刻同步)
+- **module 级 override**(status select / progress slider)保留 · 这种是用户长期意图 · 不该被 build 弹回
+
+`saveOverrides` 同步加 `_built_at: BUILD_TIME`。
+
+### Added · 「同步 source」按钮(显式 escape hatch)
+
+split-mode module-drawer head 加 secondary outline 按钮:
+- Refine 按钮(filled HP 蓝)旁 · 风格次级(outline + tint hover)
+- click 清当前 module 的 subtask + module 级 override · reload
+- i18n:`'reset.btn_label': '同步 source' / 'Reset to source'` + tooltip + done toast
+
+用户在等下次 build 之前 · 主动同步。
+
+### 用户立刻 fix 老 dashboard 的 one-liner
+
+老 0.11.2 build 出来的 HTML 没有这个修复 · 用户在 dashboard 控制台跑:
+
+```javascript
+localStorage.removeItem('project-kanban-state-v1'); location.reload();
+```
+
+升到 0.11.3 build 之后 · 这一切都自动处理。
+
+### Not changed
+
+- Override storage shape 不变(`{[key]: bool, [moduleId]: {...}, _built_at: string}`)· 加 `_built_at` 字段是向后兼容(老 dashboard 看到陌生 key 忽略)
+- 不动 SKILL.md / 不动 schema / 不动 build pipeline · 走 patch 不走 minor
+- `docs-cockpit upgrade` 拿 0.11.3 不强制重启
+
+### Verified
+
+- 118 unit + 10 integration tests pass · 0 回归
+- `docs-cockpit build` 干净 · 10 modules / 6 done / 4 not-started / 60%
+- 新 `loadOverrides` 跨 BUILD_TIME 比较走通 · 模拟 stale localStorage + 新 build 验 wipe
+- 「同步 source」按钮渲染 + click 清 override + reload 流程跑通
+
 ## [0.11.2] · 2026-05-19
 
 vibe-agent 范式重写 4 个 subtask prompt template · 砍内联文本 · 改成路径+行号引用 · 信任 AI 自己 Read。Template-only patch · 不动 SKILL.md / 不动 schema / context vars 不变。

@@ -293,6 +293,31 @@ body.split-mode #module-drawer .drawer-head .refine-btn svg {
   width: 14px;
   height: 14px;
 }
+
+/* 0.11.3 · 「同步 source」按钮 · 主动清当前 module 的 subtask override
+   secondary tier · outline 而非 filled · 不抢 Refine 主行为 */
+body.split-mode #module-drawer .drawer-head .reset-overrides-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  font-family: var(--f-display);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--c-primary);
+  background: transparent;
+  border: 1px solid var(--c-primary);
+  border-radius: var(--r-md);
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+body.split-mode #module-drawer .drawer-head .reset-overrides-btn:hover {
+  background: var(--c-tint);
+}
+body.split-mode #module-drawer .drawer-head .reset-overrides-btn svg {
+  width: 14px;
+  height: 14px;
+}
 body.split-mode #module-drawer .drawer-head {
   display: flex;
   align-items: center;
@@ -1829,13 +1854,39 @@ body.split-mode #module-drawer .drawer-body {
   // ── 数据 + 持久化 ─────────────────────────────────────
   const RAW = JSON.parse(document.getElementById('project-data').textContent);
   const STORAGE_KEY = 'project-kanban-state-v1';
+  const BUILD_TIME = (RAW.project && RAW.project.lastBuild) || '';
 
+  // 0.11.3 · plan §1 缺口 3 修复:override 跟 source-of-truth 漂移
+  //
+  // 老语义:override 永远赢 → 用户某次点过的 subtask 状态硬覆盖后续 build 的 MD 真值。
+  // 新语义:每次 build 之后 · 自动失效**上一 build 的 subtask 级 override**
+  //         · let source MD 重新接管 · 在同一 build 内用户的 toggle 仍持久。
+  // 保留:module 级 override(status select / progress slider)· 这种是用户长期意图 ·
+  //         不该被 build 弹回。
   function loadOverrides() {
-    try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); }
-    catch (e) { return {}; }
+    try {
+      const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+      const last_built = stored._built_at || '';
+      if (BUILD_TIME && last_built && last_built !== BUILD_TIME) {
+        // build 刷过了 · subtask 级 override 全部失效 · 让 source MD 真值接管
+        const fresh = { _built_at: BUILD_TIME };
+        for (const k of Object.keys(stored)) {
+          if (k === '_built_at') continue;
+          if (k.indexOf('__st__') !== -1) continue;  // subtask 级 · 失效
+          fresh[k] = stored[k];                       // module 级 · 保留
+        }
+        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(fresh)); } catch (e) {}
+        return fresh;
+      }
+      if (!stored._built_at) stored._built_at = BUILD_TIME;
+      return stored;
+    } catch (e) { return {}; }
   }
   function saveOverrides(map) {
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(map)); } catch (e) {}
+    try {
+      map._built_at = BUILD_TIME;
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(map));
+    } catch (e) {}
   }
 
   const overrides = loadOverrides();
@@ -1907,6 +1958,9 @@ body.split-mode #module-drawer .drawer-body {
       'refine.btn_tooltip': 'Ask Claude / Codex to refine this module · review anchor precision · output YAML patch',
       'toast.refine_copied': 'Refine prompt copied · paste to Claude / Codex · expect a YAML patch back',
       'toast.refine_missing': 'Refine prompt not in cache · run docs-cockpit build to refresh prompts-refine.js',
+      'reset.btn_label': 'Reset to source',
+      'reset.btn_tooltip': 'Clear local subtask overrides for this module · reload from source MD',
+      'toast.reset_done': 'Overrides cleared · reloading from source MD…',
       'topbar.last_build': 'Last build',
       'topbar.sysdocs_btn': 'System Docs',
       'topbar.sysdocs_title': 'System Docs (D)',
@@ -2184,6 +2238,9 @@ body.split-mode #module-drawer .drawer-body {
       'refine.btn_tooltip': '让 Claude / Codex 检查这个 module 的 anchor 精度 · 输出 YAML patch',
       'toast.refine_copied': 'Refine prompt 已复制 · 粘到 Claude / Codex · 让它返回 YAML patch',
       'toast.refine_missing': 'Refine prompt 未在缓存 · 跑 docs-cockpit build 刷新 prompts-refine.js',
+      'reset.btn_label': '同步 source',
+      'reset.btn_tooltip': '清当前 module 的 subtask 本地 override · 重 load 让 source MD 接管',
+      'toast.reset_done': '已清 override · 从 source MD 重 load…',
       'topbar.last_build': '最后构建',
       'topbar.sysdocs_btn': '系统文档',
       'topbar.sysdocs_title': '系统文档 (D)',
@@ -3334,6 +3391,35 @@ body.split-mode #module-drawer .drawer-body {
     head.appendChild(btn);
   }
 
+  // 0.11.3 · 「同步 source」按钮 · 主动清当前 module 的 subtask override
+  // 跟 loadOverrides 的 build-time auto-invalidation 互补 · 用户不想等下次 build 时立刻同步
+  function _injectResetOverridesButton(moduleId) {
+    const drawer = document.getElementById('module-drawer');
+    if (!drawer) return;
+    const head = drawer.querySelector('.drawer-head');
+    if (!head) return;
+    const old = head.querySelector('.reset-overrides-btn');
+    if (old) old.remove();
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'reset-overrides-btn';
+    btn.title = t('reset.btn_tooltip') || 'Clear local subtask overrides for this module · reload from source MD';
+    btn.innerHTML = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8a6 6 0 1 0 1.5-3.97"/><polyline points="2 1.5 2 4.5 5 4.5"/></svg>' +
+      '<span>' + escapeHtml(t('reset.btn_label') || '同步 source') + '</span>';
+    btn.addEventListener('click', () => {
+      // 清 `<moduleId>__st__*` + `<moduleId>` 两类 key · 让 source MD 完全接管本 module
+      let dirty = false;
+      for (const k of Object.keys(overrides)) {
+        if (k === moduleId) { delete overrides[k]; dirty = true; continue; }
+        if (k.indexOf(moduleId + '__st__') === 0) { delete overrides[k]; dirty = true; }
+      }
+      if (dirty) saveOverrides(overrides);
+      toast(t('toast.reset_done') || ('Reset overrides for ' + moduleId + ' · reloading…'));
+      setTimeout(() => location.reload(), 400);
+    });
+    head.appendChild(btn);
+  }
+
   function copyModuleRefinePrompt(moduleId) {
     const prompt = (window.__REFINE_PROMPTS__ || {})[moduleId];
     if (!prompt) {
@@ -3403,6 +3489,8 @@ body.split-mode #module-drawer .drawer-body {
         try { openModuleDrawer(_currentRoute.id); } catch (e) { console.error(e); }
         // 0.11.0-alpha.7 §4.b · 加 Refine 按钮(模式 2)
         try { _injectRefineButton(_currentRoute.id); } catch (e) {}
+        // 0.11.3 · 加「同步 source」按钮 · 主动清 module subtask override
+        try { _injectResetOverridesButton(_currentRoute.id); } catch (e) {}
       } else if (_currentRoute.kind === 'sysdoc' && _currentRoute.id) {
         // sysdoc / concept · §4.d 接 · 暂时显占位
         _moveModuleDrawerBackToBody();
