@@ -53,6 +53,6 @@ commands/
 - [x] v0.10 · 8 commands 全部在线
 - [x] First-build bootstrap(uv tool / pipx / pip --user 优先级)
 - [x] docs-cockpit upgrade 原子升级(plugin cache 失效 + 重启提示)
-- [ ] v0.11 skill section · prompt scaffolding 触发条件 + CLI 用法
+- [x] v0.11 skill section · prompt scaffolding 触发条件 + CLI 用法
 - [ ] v0.11 plugin.json + marketplace.json + __init__.py + CHANGELOG 4 文件 version bump
 - [ ] v0.12 候选 · MCP server · 让 Claude 直连消费 cockpit prompt(替代 copy-paste)

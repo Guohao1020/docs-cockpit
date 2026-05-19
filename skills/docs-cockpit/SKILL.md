@@ -34,6 +34,93 @@ The main plan §0 locks in **driver-seat is the AI's co-pilot · not a precision
 
 Don't try to answer these in the main skill · the author skill has §11 / §12 instructions for actually producing precise output.
 
+## v0.11 driver-seat · prompt scaffolding + split-view UI
+
+v0.11 turns the dashboard from a read-only board into an **AI-collaboration cockpit**. Three operational changes the user can hit at this skill's seams:
+
+### 1) Subtask schema upgrade (v0.10 → v0.11)
+
+`subtasks:` used to be `list[str]` ("补 BrowserVendor abstraction"). v0.11 makes it a structured object — required so the dashboard can pin stable IDs / route prompts / track per-subtask code anchors:
+
+```yaml
+subtasks:
+  - id: M03-e6adea         # auto-generated · sha1(title)[:6] · stable across builds
+    title: v0.11 skill section · prompt scaffolding 触发条件 + CLI 用法
+    status: not-started    # not-started | in-progress | done
+    code:                  # optional · pin to source lines (alpha.6)
+      path: skills/docs-cockpit/SKILL.md
+      lines: "100-150"
+    docs:                  # optional · narrow doc anchors (alpha.6 inline @docs)
+      - { title: "v0.11 plan", path: "docs/plans/P-v0.11-driver-seat.md", anchor: "§3" }
+```
+
+**TRIGGER for this skill**: user says "升级 subtasks schema" / "把 M01 subtasks 从 list 升到 object" / "我看不到 subtask ID" / `docs-cockpit build` warns `subtask schema legacy`.
+
+**CLI**:
+
+```bash
+docs-cockpit migrate-subtasks docs/spec/module/M01-build-engine.md           # dry-run · prints diff
+docs-cockpit migrate-subtasks docs/spec/module/M01-build-engine.md --apply   # writes back · .bak generated
+```
+
+Always show the user the dry-run first, get explicit confirmation, THEN `--apply`. The migrator preserves any existing `done: true` flags and assigns deterministic `id` from `<module-id>-<sha1(title)[:6]>`. The id is what UI buttons + `docs-cockpit prompt` route on — once written it should not be hand-edited.
+
+### 2) `docs-cockpit prompt` · render executable subtask prompts
+
+When a user wants the "what do I actually do right now" prompt for a subtask (paste into Claude Code / Cursor / Codex), use the `prompt` CLI:
+
+```bash
+docs-cockpit prompt                       # --list · show built-in template names
+docs-cockpit prompt M03                   # list subtasks under M03 · pick one
+docs-cockpit prompt M03 M03-e6adea        # render the prompt for that subtask → stdout
+docs-cockpit prompt M03 M03-e6adea --copy # same · also copy to clipboard (needs pyperclip)
+docs-cockpit prompt M03 M03-e6adea -t feature  # force the `feature` template
+```
+
+Built-in templates (under `docs_cockpit/templates/prompts/`):
+- `generic` (default) · context + task + output format
+- `feature` · "add a new capability" framing
+- `fix` · bug-fix framing with repro / root cause / verification scaffolding
+- `refactor` · "preserve behavior" framing
+
+The rendered prompt embeds: module title/desc/status/deps, subtask title/status, **inlined content** of linked `docs:` (with anchor narrowing if specified), and the `code:` anchor preview (file lines via `lru_cache` reader). This is what `prompts.js` (build-time sidecar) and the dashboard's per-subtask "Copy prompt" button surface to the user.
+
+**Custom templates**: drop `<repo>/.docs-cockpit/prompts/<name>.md.j2` and reference via `-t <name>`. Rendering is sandboxed (Jinja2 `SandboxedEnvironment` · no filesystem / subprocess access from inside the template).
+
+### 3) Build emits three sidecar JS files (alpha.6+)
+
+`docs-cockpit build` now writes alongside `docs/index.html`:
+
+```
+docs/
+├── index.html
+├── state.json
+├── prompts.js          # window.__PROMPTS__ · per-subtask rendered prompts (Copy button)
+├── prompts-refine.js   # window.__REFINE_PROMPTS__ · per-module "Refine with AI" prompts (alpha.7)
+└── code_previews.js    # window.__CODE_PREVIEWS__ · resolved code:anchor file slices for drawer
+```
+
+Keep these in `.gitignore` if you do not commit the built artifacts; if you DO commit `docs/index.html`, commit all four together — the dashboard split-view + Copy prompt + Refine button reference these sidecars by relative URL.
+
+**Failure mode**: if the user opens the dashboard and the Copy prompt button is grey / inert, check that `prompts.js` exists next to `index.html`. The most common cause is committing `index.html` but `.gitignore` excluding `*.js` in `docs/`.
+
+### 4) Split-view UI + driver-seat routes (alpha.6+)
+
+Clicking a module card now navigates the URL hash to `#/module/<id>` (split-view route). Left = module drawer; right = preview of the currently-focused `docs:` entry rendered with marked.js, or the `code:` anchor preview block. `<system docs>` entries use `#/sysdoc/<id>` symmetrically.
+
+If the user reports "the drawer disappeared" or "the URL has `#/module/...` and won't go back" — that's the hash router behaving as designed. Tell them: **press the project brand in the topbar, or hit Esc** to `backToDashboard()`. The router state is intentional so the user can deep-link a teammate to a specific module's split-view.
+
+### 5) When the dashboard's "Refine with AI" button (alpha.7) fires
+
+Per-module purple — now HP-blue — **Refine with AI** button in the drawer copies a refinement prompt (from `prompts-refine.js`) that asks the AI to:
+- audit subtask titles against the module desc
+- check `docs:` / `code:` anchors against the actual files
+- propose a YAML patch (frontmatter only · no body rewrite)
+
+The user pastes that into Claude Code, gets a patch back, manually applies. This is **mode 2** of the AI-augmented precision plan (see `docs/plans/P-v0.11-ai-augmented-precision-alpha7-2026-05-18.md`). Mode 3 (write-time) lives in `docs-cockpit-author` §11/§12; mode 1 (build-time Claude API auto-augment) is deferred to v0.12.
+
+**TRIGGER for this skill**: user says "Refine 按钮没反应" / "prompts-refine.js 404" — re-run `docs-cockpit build` to regenerate the sidecar; alpha.6 builds don't emit it.
+
 ## Upgrading docs-cockpit itself (folded in from old `docs-cockpit-update` skill)
 
 When the user says "update docs-cockpit" / "升级 docs-cockpit" / "把 docs-cockpit 升到最新" / "I saw a 'new version available' banner":
