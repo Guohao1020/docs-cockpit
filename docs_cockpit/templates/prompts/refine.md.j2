@@ -1,6 +1,13 @@
 你正在 **refine** docs-cockpit module **{{ module.id }} · {{ module.title }}**(sprint {{ module.sprint or "(unscheduled)" }})。
 
-我已经写了这个 module 的 frontmatter + subtasks + linked docs · 现在需要你 **检查 anchor 精度** · 输出 YAML patch 让我复制回 MD frontmatter。
+我已经写了这个 module 的 frontmatter + subtasks + linked docs · 现在需要你 **检查 anchor 精度** · 给出 YAML patch。
+
+## 执行模式 · 二选一(先判断你是谁)
+
+- **A · 你有文件编辑工具**(Claude Code / Cursor / Codex CLI · 即能用 Edit / Write 直接改本地文件):**直接动手** · 不要只输出 patch。优先 (1) 改 module MD 的 `## 待办` / `## 3 · 待办` body checklist 行 · 给每个 subtask 补 inline `@code:path[:lines]` 和 `@docs:path[#§N.M | :start-end]` annotation(parser 支持多次堆叠 · 见 plan §6.1)· 这是 diff 友好的首选;或 (2) 把 `subtasks:` 写进 frontmatter object schema · 给每个 subtask 显式 `code:` / `docs:` 字段。改完跑 `docs-cockpit build` 验证 anchor 落到 `state.json` 即可。**不要让用户复制粘贴 · Claude Code 的副驾价值就在不让人重复打字。**
+- **B · 你没有文件编辑工具**(浏览器里的 ChatGPT / Claude.ai / 其它 web 端):输出 YAML patch · 用户会复制回 MD。
+
+判断标准:如果你能调用 `Edit` / `Write` / `MultiEdit` 之类工具,就是 A;只能在 chat 框输出文本就是 B。
 
 ## 不要改的字段(out of scope)
 
@@ -58,7 +65,9 @@ subtasks:
 2. **对每个 subtask** · 判断它在做什么 · 然后:
    - 找出 plan / RFC 里对应的具体 section(`#§N.M` heading slug 或 `:start-end` 行号)
    - 找出 repo 里对应的代码 file + 行号(如果 code 已经存在;新代码留 `code: <path>` 不带行号)
-3. **输出 YAML patch** · 只列要变的 subtask · 格式:
+3. **按上面「执行模式」分支落地**:
+   - **模式 A**:直接 Edit MD body checklist · 每行末尾追加 ` @code:path[:lines]` 和 ` @docs:path[#§N.M | :start-end]`(多个就堆叠空格分隔)· 完事跑 `docs-cockpit build` · 检查 `docs/state.json` 里对应 subtask 的 `code` / `docs` 字段。报告简短:每个 subtask 改了什么 + build 是否干净。
+   - **模式 B**:输出下面格式的 YAML patch 给用户复制:
 
 ```yaml
 subtasks:
@@ -67,6 +76,4 @@ subtasks:
     docs: ["<更精确的 docs anchor>", ...]
 ```
 
-只输出 patch · 不要 wrap 在解释 prose 里。我会复制粘贴回 module MD 然后跑 `docs-cockpit build` 看 dashboard refresh。
-
-如果某个 subtask 在 linked docs 里找不到对应 section · 输出 `# TODO: ...` 注释行 · 不要瞎猜 anchor(driver-seat 信任来自精度 · 错 anchor 比缺 anchor 伤害更大)。
+如果某个 subtask 在 linked docs 里找不到对应 section · 模式 A 留 `# TODO: ...` 注释行不写 anchor · 模式 B 在 patch 里输出 `# TODO: ...` 注释行 · **不要瞎猜 anchor**(driver-seat 信任来自精度 · 错 anchor 比缺 anchor 伤害更大)。

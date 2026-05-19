@@ -112,12 +112,16 @@ If the user reports "the drawer disappeared" or "the URL has `#/module/...` and 
 
 ### 5) When the dashboard's "Refine with AI" button (alpha.7) fires
 
-Per-module purple — now HP-blue — **Refine with AI** button in the drawer copies a refinement prompt (from `prompts-refine.js`) that asks the AI to:
+Per-module HP-blue **Refine with AI** button in the drawer copies a refinement prompt (from `prompts-refine.js`) that asks the AI to:
 - audit subtask titles against the module desc
 - check `docs:` / `code:` anchors against the actual files
-- propose a YAML patch (frontmatter only · no body rewrite)
+- either apply the fix directly (caller has Edit/Write) OR output a YAML patch (caller is browser-only LLM)
 
-The user pastes that into Claude Code, gets a patch back, manually applies. This is **mode 2** of the AI-augmented precision plan (see `docs/plans/P-v0.11-ai-augmented-precision-alpha7-2026-05-18.md`). Mode 3 (write-time) lives in `docs-cockpit-author` §11/§12; mode 1 (build-time Claude API auto-augment) is deferred to v0.12.
+**Caller-aware execution (template revised 2026-05-19)**: `refine.md.j2` now opens with an "执行模式 · 二选一" decision: if you're Claude Code (or Cursor / Codex CLI / any agent with file-edit tools), **just Edit the MD body checklist directly** — append ` @code:path[:lines]` / ` @docs:path[#§N.M | :start-end]` annotations on each `- [x]` / `- [ ]` line; the `extract_subtasks_from_body` parser (plan §6.1) picks them up at next build. Don't make the user copy-paste — Claude Code's whole value is not making humans retype things. Only browser-only LLMs (ChatGPT web, Claude.ai web) fall back to the YAML-patch-for-copy-paste path.
+
+This is **mode 2** of the AI-augmented precision plan (see `docs/plans/P-v0.11-ai-augmented-precision-alpha7-2026-05-18.md`). Mode 3 (write-time) lives in `docs-cockpit-author` §11/§12; mode 1 (build-time Claude API auto-augment) is deferred to v0.12.
+
+**TRIGGER for this skill**: user pasted a Refine prompt into Claude Code and you have Edit/Write tools available · jump to mode A · don't ask permission to apply, just do it then summarize.
 
 **TRIGGER for this skill**: user says "Refine 按钮没反应" / "prompts-refine.js 404" — re-run `docs-cockpit build` to regenerate the sidecar; alpha.6 builds don't emit it.
 
