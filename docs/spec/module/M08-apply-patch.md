@@ -55,12 +55,15 @@ subtasks:
 
 跟「整个 module 覆盖」不同 · patch 只列要改的 subtask · 不列的保留原状。
 
-## §4 · 待办
+## 4 · 待办
 
-- [ ] patch 格式 spec(subtask id-based · frontmatter-only · 不动 body checklist)
-- [ ] `parse_patch(text) -> dict` · 走 PyYAML safe_load · 校验 schema(必须有 id / 字段在白名单 status/code/docs/desc)
-- [ ] `apply_to_md(patch, md_path) -> (diff, conflicts)` · 读 frontmatter · 按 subtask.id 找 · merge · 写回
-- [ ] 冲突检测:patch 想改 M03-e6adea 但用户手改过 · 走「user wins · skip with warning」语义 · 或 `--force` 覆盖
-- [ ] `.bak` 备份 · 与 migrate-subtasks 一致
-- [ ] dry-run / --apply · diff 输出走 unified diff 格式 · 跟 git diff 一致
-- [ ] 集成测试:跑完 refine prompt 把 YAML 喂进 apply-patch · 验 anchor 落到 state.json
+- [ ] patch 格式 spec(subtask id-based · frontmatter-only · 不动 body checklist) @code:docs_cockpit/apply_patch.py @code:docs_cockpit/templates/prompts/refine.md.j2 @docs:docs/spec/module/M08-apply-patch.md#§3 @docs:docs/plans/P-v0.11-ai-augmented-precision-alpha7-2026-05-18.md:133-148
+- [ ] `parse_patch(text) -> dict` · 走 PyYAML safe_load · 校验 schema(必须有 id / 字段在白名单 status/code/docs/desc) @code:docs_cockpit/apply_patch.py @code:docs_cockpit/schema.py:421-475 @docs:docs/plans/P-v0.11-ai-augmented-precision-alpha7-2026-05-18.md:133-148
+- [ ] `apply_to_md(patch, md_path) -> (diff, conflicts)` · 读 frontmatter · 按 subtask.id 找 · merge · 写回 @code:docs_cockpit/apply_patch.py @code:docs_cockpit/build.py:712-779 @docs:docs/plans/P-v0.11-ai-augmented-precision-alpha7-2026-05-18.md:133-148
+- [ ] 冲突检测:patch 想改 M03-e6adea 但用户手改过 · 走「user wins · skip with warning」语义 · 或 `--force` 覆盖 @code:docs_cockpit/apply_patch.py
+  <!-- TODO docs anchor: 冲突检测语义 (user-wins / --force) sub-plan / 主 plan 都没专门讲 · 实施时在 §3.3 或 M08 §4 落地后回填 -->
+- [ ] `.bak` 备份 · 与 migrate-subtasks 一致 @code:docs_cockpit/apply_patch.py @code:docs_cockpit/build.py:712-779
+  <!-- TODO docs anchor: .bak 写法是 migrate-subtasks 隐式约定 · 没专门 doc section · 实施时把约定写进 author skill 后回填 -->
+- [ ] dry-run / --apply · diff 输出走 unified diff 格式 · 跟 git diff 一致 @code:docs_cockpit/apply_patch.py @code:docs_cockpit/cli.py
+  <!-- TODO docs anchor: dry-run-first 约定散落在 migrate / migrate-subtasks 实现里 · 没专门 doc · 实施时补回填 -->
+- [ ] 集成测试:跑完 refine prompt 把 YAML 喂进 apply-patch · 验 anchor 落到 state.json @code:tests/integration/test_apply_patch_e2e.py @code:docs_cockpit/templates/prompts/refine.md.j2 @docs:docs/plans/P-v0.11-ai-augmented-precision-alpha7-2026-05-18.md:156-161 @docs:docs/plans/P-v0.11-ai-augmented-precision-alpha7-2026-05-18.md:133-148

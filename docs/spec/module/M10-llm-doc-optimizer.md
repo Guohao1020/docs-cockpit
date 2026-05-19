@@ -44,7 +44,7 @@ docs-cockpit suggest --all --strict       # 全部 module + 错误超 N 个 exit
 | `docs_cockpit/cli.py::cmd_suggest` | argparse 入口 |
 | `skills/docs-cockpit-author/SKILL.md` §13 | 新增「How to consume suggest output」一节 · 跟 §11 / §12 自检对齐 |
 
-## §3 · 待办
+## 3 · 待办
 
 - [ ] suggest.py scaffold · 复用 prompt.py SandboxedEnvironment + ChoiceLoader(template 寻找顺序:repo `docs/suggest/` → 内置)
 - [ ] 4 个内置 suggest template:

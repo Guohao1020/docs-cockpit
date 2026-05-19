@@ -53,7 +53,7 @@ docs-cockpit sync-status --from-browser chrome --apply
 
 `manualProgress: true` 锁住的 module 不被 override 撼动 progress 字段(只动 subtask.status)。
 
-## §4 · 待办
+## 4 · 待办
 
 - [ ] sync_status.py scaffold · `parse_overrides(json)` / `merge_to_md(overrides, md_path)` / `compute_conflicts()`
 - [ ] dashboard 加「Export status overrides」按钮 · 下载 JSON
