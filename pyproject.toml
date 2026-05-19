@@ -53,6 +53,13 @@ dev = [
   "pytest-cov>=4",
   # playwright 留给 Step 2 UI split-view 引入 · 当前 Step 1 单元 + 集成测试只用 pytest
 ]
+# 0.12 sprint · M07 MCP Server · driver-seat mode 1
+# Optional · 仅在用户跑 `docs-cockpit mcp-serve` 时需要 · 装法:`pip install -e .[mcp]`
+# Plugin SemVer constraint:核心 CLI 不强依 mcp 包(它 pull 一堆 asyncio / pydantic) ·
+# 走 optional 让 v0.10 / v0.11 老用户的安装 footprint 不变
+mcp = [
+  "mcp>=1.0",
+]
 
 [project.scripts]
 docs-cockpit = "docs_cockpit.build:main"

@@ -36,7 +36,7 @@ blocks: []
 
 ## 3 · 待办
 
-- [ ] mcp_server.py scaffold · stdio transport · MCP Python SDK 选型(`mcp` 官方 SDK) @code:docs_cockpit/mcp_server.py @docs:docs/plans/P-v0.11-driver-seat.md:40 @docs:docs/plans/P-v0.11-driver-seat.md:81 @docs:docs/plans/P-v0.11-ai-augmented-precision-alpha7-2026-05-18.md:20-32
+- [x] mcp_server.py scaffold · stdio transport · MCP Python SDK 选型(`mcp` 官方 SDK) @code:docs_cockpit/mcp_server.py:1-243 @code:pyproject.toml:60-66 @docs:docs/plans/P-v0.11-driver-seat.md:40 @docs:docs/plans/P-v0.11-driver-seat.md:81 @docs:docs/plans/P-v0.11-ai-augmented-precision-alpha7-2026-05-18.md:20-32
 - [ ] `cockpit_prompt(module_id, subtask_id, template?)` tool · 复用 `prompt.py::render_prompt` · 返回 rendered text @code:docs_cockpit/mcp_server.py @code:docs_cockpit/prompt.py:130-191 @docs:docs/plans/P-v0.11-driver-seat.md#§6.2 @docs:skills/docs-cockpit-author/SKILL.md:437-481
 - [ ] `cockpit_state()` resource · MIME type `application/json` · 返回 state.json 内容 @code:docs_cockpit/mcp_server.py @code:docs_cockpit/build.py:486-498 @docs:CLAUDE.md:146
 - [ ] `cockpit_apply_patch(yaml_patch)` tool · 调用 M08 apply-patch · 返回 diff summary @code:docs_cockpit/mcp_server.py @code:docs_cockpit/apply_patch.py @docs:docs/spec/module/M08-apply-patch.md @docs:docs/plans/P-v0.11-ai-augmented-precision-alpha7-2026-05-18.md:133-148
