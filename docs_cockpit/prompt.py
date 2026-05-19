@@ -45,11 +45,19 @@ def _builtin_templates_dir() -> pathlib.Path:
 
 
 def list_builtin_templates() -> list[str]:
-    """列内置 template 名(不含 .md.j2 后缀)· 给 `--list` 用."""
+    """列内置 template 名(不含 .md.j2 后缀)· 给 `--list` 用.
+
+    跳过 `_*.md.j2` 命名的 partial(0.11.1 引入 _caller_aware_sync.md.j2 复用
+    snippet · 不应在 --list 出现 / 不能被 --template 直接选)。
+    """
     d = _builtin_templates_dir()
     if not d.exists():
         return list(BUILTIN_TEMPLATES)
-    return sorted([p.stem.replace(".md", "") for p in d.glob("*.md.j2")])
+    return sorted(
+        p.stem.replace(".md", "")
+        for p in d.glob("*.md.j2")
+        if not p.name.startswith("_")
+    )
 
 
 def _get_current_branch(repo_root: pathlib.Path) -> str | None:

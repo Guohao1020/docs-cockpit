@@ -4,6 +4,58 @@
 
 ## [Unreleased]
 
+## [0.11.1] · 2026-05-19
+
+修一个 dogfood 暴露的 prompt friction · Copy prompt 跑完之后驾驶舱不自动同步 · 用户必须自己回去手动勾 checkbox + 重 build · 跟 v0.11 alpha.7 修过的 Refine prompt 是同一个 caller-aware mode 缺口。Template-only patch · 不动 SKILL.md / 不动 schema / 不动 build pipeline · 老用户 footprint 0 变。
+
+### Why
+
+用户截图 dogfood 反馈:「完成后没有实时同步过来 · 让他实时更新吧」。M07-9db754 在 Claude Code 里跑完 Copy prompt 之后 · scaffold 写好了但驾驶舱仍显示 `0/8 完成` · M07-9db754 那条 checkbox 仍然空。
+
+根因跟 alpha.7 修过的 Refine prompt 完全一样:`generic.md.j2` / `feature.md.j2` / `fix.md.j2` / `refactor.md.j2` 收尾全部是「**完成后输出 frontmatter patch 让我复制回 MD**」· 这套文字默认假设 caller 是浏览器 LLM。Claude Code 当 caller 时本该直接动手 · 但 prompt 没告诉 AI 这件事 · AI 默认照 prompt 字面行事 · 输出 patch 就停。
+
+副驾价值核心是「让 AI 直接闭环 · 不让人工搬运」· 不告诉 AI 这件事就实现不了。
+
+### Added · `_caller_aware_sync.md.j2` partial(共享 snippet)
+
+新建 `docs_cockpit/templates/prompts/_caller_aware_sync.md.j2` · 4 个主 template 通过 `{% include "_caller_aware_sync.md.j2" %}` 复用。下划线开头 = Jinja 约定的 partial · `list_builtin_templates()` 加过滤跳过 `_*.md.j2` · 不污染 `--list` 输出 · 不能被 `--template _caller_aware_sync` 误选。
+
+内容覆盖:
+
+- **模式 A · 有文件编辑工具(Claude Code / Cursor / Codex CLI)**:6 步 sync flow
+  1. 编辑 module MD body checklist · 把本 subtask 的 `[ ]` 改 `[x]`
+  2. 写/改了代码 → 行尾追加 `@code:path[:start-end]` annotation(parser 支持多次堆叠 · 空格分隔)
+  3. 引用了新文档 → 追加 `@docs:path[#§N.M | :start-end]`
+  4. 跑 `docs-cockpit build -c docs-cockpit.yaml` · 验证 state.json 里本 subtask done=true + anchor 落到 code_anchors[] / doc_anchors[]
+  5. 简短报告:做了什么 + 改了哪些文件 + build 是否干净。用户 Ctrl+Shift+R 看驾驶舱 0/N → 1/N
+  6. (可选)module 最后一个 subtask → 帮翻 module frontmatter status/progress
+
+- **模式 B · 浏览器 LLM 无 fs**:输出 YAML patch · 用户自己复制回 MD + 跑 build
+
+- 判断标准:能调 `Edit`/`Write`/`MultiEdit` = A · 只能 chat 输出文本 = B · **默认走 A**
+
+### Changed · 4 主 template 收尾
+
+`generic.md.j2` / `feature.md.j2` / `fix.md.j2` / `refactor.md.j2` 末尾的「输出 patch」+ 内嵌 yaml block 都换成 `{% include "_caller_aware_sync.md.j2" %}` · 渲染后行为统一。
+
+具体哪个 template 保留各自前置 wording 不变(feature 强调 diff / fix 强调 root cause + regression / refactor 强调 behavior preserving + Beck)· 只统一了收尾这一段。
+
+### Changed · `list_builtin_templates()` 过滤 partial
+
+`docs_cockpit/prompt.py::list_builtin_templates` 加 `if not p.name.startswith("_")` 过滤 · 0.11.1 引入的 `_caller_aware_sync.md.j2` 不出现在 `docs-cockpit prompt --list` · `--template _caller_aware_sync` 也命中不了(因为 BUILTIN_TEMPLATES enum 没加它)。
+
+### Verified
+
+- 4 template 全部 render 含「完成后 · 必须把驾驶舱同步好(`<subtask.id>`)」sentinel · subtask.id 替换准确
+- 118 unit + 10 integration tests pass · 0 回归
+- `docs-cockpit build` 干净 · prompts.js sidecar 重建带新 sync section · 10 modules / 6 done / 4 not-started / 60%
+- `docs-cockpit prompt --list` 仅显 `feature / fix / generic / refactor / refine` · 不出 partial
+- 老用户 footprint:核心 deps 不变 · 不动 SKILL.md(走 patch 不走 minor)· `docs-cockpit upgrade` 拿 0.11.1 时 plugin cache 不强制重启
+
+### Known limitation
+
+- 用户的 module MD body 不一定都用 `## 待办` / `## 3 · 待办` 风格的 section heading · 如果用 `## §4 · 待办` 这种带 § 的 · parser 不匹配 · AI 改 checkbox 时跳过(M08/M09/M10 上次 refine 时遇到的 parser bug)。建议保持 `## N · 待办` 形式 · v0.13 候选放宽 regex 接受 § 前缀。
+
 ## [0.11.0] · 2026-05-19
 
 driver-seat · v0.10 的「项目状态展示器」升级到 v0.11 的「AI 协作驾驶舱」。docs-cockpit 自 0.7.0 以来最大的一次升级 · 跨 8 个 alpha 迭代 · 4 个核心叙事。下方按主题聚合 · alpha.1-8 各自的 section 在下面作为 audit trail 保留。

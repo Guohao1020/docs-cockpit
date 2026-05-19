@@ -1,0 +1,29 @@
+## 完成后 · 必须把驾驶舱同步好(`{{ subtask.id }}`)
+
+跟 Refine prompt 同款 caller-aware 模式 · 你先判断自己是谁:
+
+- **A · 你有文件编辑工具**(Claude Code / Cursor / Codex CLI):**直接动手把驾驶舱同步好** · 不要让用户复制粘贴 patch。完成 subtask 实施之后:
+  1. 编辑 `{{ module._source_path or 'docs/spec/module/' + module.id + '.md' }}` 的 `## 待办` / `## 3 · 待办` body checklist · 把本 subtask **`{{ subtask.id }}`** 那一行的 `[ ]` 改成 `[x]`
+  2. 如果你写/改了代码 · 在 checklist 行尾追加 ` @code:path[:start-end]` annotation(parser 支持多次堆叠 · 空格分隔)· 行号要真实命中你的代码 · 不是整目录
+  3. 如果引用了新文档 / RFC / spec section · 追加 ` @docs:path[#§N.M | :start-end]`
+  4. 跑 `docs-cockpit build -c docs-cockpit.yaml` · 验证 `docs/state.json` 里 **`{{ subtask.id }}`** 的 `done` 是 `true` + `code_anchors[]` / `doc_anchors[]` 落到位
+  5. 给用户简短报告:本 subtask 做了什么 + 改了哪些文件 + build 是否干净。用户硬刷新(Ctrl+Shift+R)就能看到驾驶舱里 checkbox 自动勾上 · 0/N → 1/N
+  6. (可选)如果是 module 最后一个 subtask · 帮用户把 module frontmatter 的 `status` / `progress` 一起翻到 `done` / `100`
+
+- **B · 你只能输出文本**(浏览器里的 ChatGPT / Claude.ai · 没文件编辑工具):
+  输出下面格式的 YAML patch · 用户会复制回 MD 然后自己跑 build:
+
+  ```yaml
+  # patch for {{ module._source_path or module.id }}
+  subtasks:
+    - id: {{ subtask.id }}
+      status: done
+      # 如果你写了新代码 · 列 code anchor:
+      # code: ["docs_cockpit/<file>.py:<start>-<end>"]
+      # 如果引用了新 doc:
+      # docs: ["docs/plans/<file>.md#§N.M"]
+  ```
+
+**判断标准** · 能调 `Edit` / `Write` / `MultiEdit` 之类工具 = 模式 A · 只能在 chat 框输出文本 = 模式 B。
+
+驾驶舱的核心叙事是「prompt 闭环」· 模式 A 让闭环不需要人工搬运 · 这是 driver-seat 副驾的价值核心。**默认走 A** · 除非你真的没文件编辑工具。

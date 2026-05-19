@@ -43,10 +43,5 @@ Refactor:**{{ subtask.title }}**
 3. 完成后:
    - 跑全部测试 · 应全过
    - 加 1-2 个新测试 cover refactor 后的内部 API(如果合理)
-   - 输出 frontmatter patch
 
-```yaml
-subtasks:
-  - id: {{ subtask.id }}
-    status: done
-```
+{% include "_caller_aware_sync.md.j2" %}

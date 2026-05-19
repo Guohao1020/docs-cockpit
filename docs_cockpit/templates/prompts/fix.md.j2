@@ -41,10 +41,5 @@
 1. 复现 bug · 给 minimal repro
 2. 找 root cause · **不要只修 demo path · 修整个失败模式**
 3. 加 regression test · 防同一 bug 再回来
-4. 完成后输出 frontmatter patch
 
-```yaml
-subtasks:
-  - id: {{ subtask.id }}
-    status: done
-```
+{% include "_caller_aware_sync.md.j2" %}

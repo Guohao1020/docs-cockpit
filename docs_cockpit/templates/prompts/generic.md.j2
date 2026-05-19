@@ -46,11 +46,4 @@
 
 请完成 `{{ subtask.id }}`:**{{ subtask.title }}**。
 
-完成后,请输出 frontmatter patch(只输出变更字段),格式如下,供用户复制回 MD:
-
-```yaml
-# patch for {{ module._source_path or module.id }}
-subtasks:
-  - id: {{ subtask.id }}
-    status: done   # 改这里
-```
+{% include "_caller_aware_sync.md.j2" %}
