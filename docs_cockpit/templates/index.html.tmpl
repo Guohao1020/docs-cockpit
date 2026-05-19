@@ -2276,6 +2276,7 @@ body.split-mode #module-drawer .drawer-body {
       'backlog.filter.time.30d': '30 days',
       'backlog.filter.sprint': 'Sprint',
       'backlog.filter.sprint.all': 'All',
+      'backlog.filter.sprint.unscheduled': '(unscheduled)',
       'backlog.filter.status': 'Status',
       'backlog.filter.status.all': 'All',
       'backlog.filter.search.placeholder': '🔍 search title / id…',
@@ -2583,6 +2584,7 @@ body.split-mode #module-drawer .drawer-body {
       'backlog.filter.time.30d': '30 天',
       'backlog.filter.sprint': '版本',
       'backlog.filter.sprint.all': '全部',
+      'backlog.filter.sprint.unscheduled': '(未排期)',
       'backlog.filter.status': '状态',
       'backlog.filter.status.all': '全部',
       'backlog.filter.search.placeholder': '🔍 搜索 title / id…',
@@ -3829,7 +3831,13 @@ body.split-mode #module-drawer .drawer-body {
       if (item.status !== filters.status) return false;
     }
     if (filters.sprint !== 'all') {
-      if ((item._module.sprint || '') !== filters.sprint) return false;
+      // 0.14.2 · `__unscheduled__` 匹配空 sprint · 其它走精确字符串
+      const mSprint = (item._module.sprint || '').toString().trim();
+      if (filters.sprint === '__unscheduled__') {
+        if (mSprint) return false;
+      } else {
+        if (mSprint !== filters.sprint) return false;
+      }
     }
     if (filters.time !== 'all') {
       // module.mtime 是 "YYYY-MM-DD HH:MM" · 解析对比
@@ -3865,24 +3873,54 @@ body.split-mode #module-drawer .drawer-body {
     _backlogFilters.sprint = query.sprint || 'all';
     _backlogFilters.status = query.status || 'all';
     _backlogFilters.q = query.q || '';
-    // sync DOM controls
+    // sync DOM controls(sprint 不在这里 sync · renderBacklog 里 _populateSprintFilter 之后再 sync)
     const setEl = (id, v) => { const e = document.getElementById(id); if (e) e.value = v; };
     setEl('backlog-filter-time', _backlogFilters.time);
     setEl('backlog-filter-status', _backlogFilters.status);
     setEl('backlog-filter-search', _backlogFilters.q);
-    // sprint dropdown 是动态生成 · 在 _populateSprintFilter 之后再 set
-    setTimeout(() => setEl('backlog-filter-sprint', _backlogFilters.sprint), 0);
+  }
+
+  // 0.14.2 · natural version sort · "0.14" > "0.13" > "0.9" 而不是字典序 "0.9" > "0.14"
+  // 也支持 M1.2 / 2026-Q1 / epic 名等混合 · fallback locale compare
+  function _sprintNaturalSort(a, b) {
+    // 按 '/' '.' '-' 切段 · 数字段比数字 · 字符串段比字符串
+    const reSeg = /(\d+|\D+)/g;
+    const aSegs = (a.match(reSeg) || []);
+    const bSegs = (b.match(reSeg) || []);
+    for (let i = 0; i < Math.max(aSegs.length, bSegs.length); i++) {
+      const ax = aSegs[i] || '';
+      const bx = bSegs[i] || '';
+      const an = parseInt(ax, 10);
+      const bn = parseInt(bx, 10);
+      if (!isNaN(an) && !isNaN(bn)) {
+        if (an !== bn) return bn - an;  // desc(新版本在前)
+      } else {
+        const c = bx.localeCompare(ax);
+        if (c !== 0) return c;
+      }
+    }
+    return 0;
   }
 
   function _populateSprintFilter() {
     const sel = document.getElementById('backlog-filter-sprint');
     if (!sel) return;
-    // 收 module 里所有 unique sprint
+    const group = sel.closest('.backlog-filter-group');
+    // 收 module 里所有 unique sprint + 检测 unscheduled
     const sprints = new Set();
+    let hasUnscheduled = false;
     for (const m of (RAW.modules || [])) {
-      if (m.sprint) sprints.add(m.sprint);
+      const s = (m.sprint || '').toString().trim();
+      if (s) sprints.add(s);
+      else hasUnscheduled = true;
     }
-    const sorted = Array.from(sprints).sort().reverse();
+    // 0.14.2 · 项目没 sprint 概念 → 隐藏整个 Sprint 过滤器(plan §1 「不是每项目都有版本号」)
+    if (sprints.size === 0 && !hasUnscheduled) {
+      if (group) group.style.display = 'none';
+      return;
+    }
+    if (group) group.style.display = '';
+    const sorted = Array.from(sprints).sort(_sprintNaturalSort);
     // 保留第一个 "All" option · 清掉旧的 sprint options
     while (sel.options.length > 1) sel.remove(1);
     for (const s of sorted) {
@@ -3891,6 +3929,18 @@ body.split-mode #module-drawer .drawer-body {
       opt.textContent = s;
       sel.appendChild(opt);
     }
+    if (hasUnscheduled) {
+      const opt = document.createElement('option');
+      opt.value = '__unscheduled__';
+      opt.textContent = t('backlog.filter.sprint.unscheduled') || '(unscheduled)';
+      sel.appendChild(opt);
+    }
+    // 0.14.2 fix · populate 之后立刻 sync 当前 filter 值到 DOM · 不再走 setTimeout
+    // 安全 fallback · 如果存储的 sprint 在新 options 里不存在 · 退到 'all'
+    const desired = _backlogFilters.sprint || 'all';
+    const exists = Array.from(sel.options).some(o => o.value === desired);
+    sel.value = exists ? desired : 'all';
+    if (!exists) _backlogFilters.sprint = 'all';
   }
 
   function _renderBundleVerdict() {
@@ -4088,13 +4138,14 @@ body.split-mode #module-drawer .drawer-body {
       const sel = _bundleSelection.has(stKey);
       const doneClass = s.done ? ' done' : '';
       const statusBadgeClass = s.done ? 's-done' : (s.status === 'blocked' ? 's-blocked' : (s.status === 'in-progress' ? 's-in-progress' : ''));
+      const sprintLabel = (s._module.sprint || '').toString().trim() || (t('backlog.filter.sprint.unscheduled') || '—');
       return '<div class="backlog-row' + doneClass + (sel ? ' selected' : '') + '" data-st-key="' + escapeHtml(stKey) + '">' +
         '<input type="checkbox"' + (sel ? ' checked' : '') + ' aria-label="Select subtask for bundle">' +
         '<span class="br-id">' + escapeHtml(stKey) + '</span>' +
         '<span class="br-title">' + escapeHtml(s.title || '') + '</span>' +
         '<span class="br-meta">' +
           '<span class="br-badge">' + escapeHtml(s._module.id) + '</span>' +
-          '<span class="br-badge">' + escapeHtml(s._module.sprint || '') + '</span>' +
+          '<span class="br-badge">' + escapeHtml(sprintLabel) + '</span>' +
           '<span class="br-badge ' + statusBadgeClass + '">' + escapeHtml(s.status || '') + '</span>' +
         '</span>' +
         '<button class="br-prompt-btn" type="button" data-action="copy-prompt" title="Copy single subtask prompt">' +

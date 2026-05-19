@@ -6,6 +6,54 @@
 
 v0.13 主题 · DX polish · schema 一致性 · 边界场景。Plan: `docs/plans/P-v0.13-polish-and-edges.md`。M11-M14 模块骨架已 seed · 实施待启动。
 
+## [0.14.2] · 2026-05-19
+
+修两个 backlog Sprint filter dogfood bug · 用户截图反馈「版本选了没渲染已选择的版本」+「不是每项目都有版本号 · 需要增强检测和归类算法」。
+
+### Fixed · Sprint dropdown 不同步当前 filter 值
+
+老逻辑用 `setTimeout(0)` 把 dropdown value 推后到 `_populateSprintFilter` 之后 · race condition · 实际跑序不稳。例:URL hash 带 `?sprint=0.12` 进 backlog · filter 状态 = 0.12(列表只 1 行)· 但 dropdown 显「全部」(不一致)。
+
+修法:`_populateSprintFilter()` 自己负责 sync · 重 populate options 之后立刻 `sel.value = _backlogFilters.sprint`。安全 fallback · 如果存储 sprint 在新 options 里不存在(可能 sprint 被删了 / 改名了)· 退到 `'all'` 同步 `_backlogFilters.sprint`。
+
+### Fixed · 字典序排序 → 自然版本号排序
+
+老逻辑 `Array.from(sprints).sort().reverse()` 是字典序:`"0.9" > "0.14"`(字符 '9' > '1')。版本号超过 0.9 之后顺序就乱。
+
+修法:`_sprintNaturalSort(a, b)` · 分段切数字 / 非数字 · 数字段按数值比 · 字符段按 locale。
+
+- 输入 `["0.14", "0.13", "0.9", "0.10", "M1.2"]`
+- 老排:`["0.9", "0.13", "0.14", "0.10", "M1.2"]`(字典序 · 错)
+- 新排:`["0.14", "0.13", "0.10", "0.9", "M1.2"]`(版本号 desc · 正确)
+
+也支持 `M1.2` / `2026-Q1` / epic name 等混合(分段 fallback locale)。
+
+### Added · `(unscheduled)` 归类 + 无 sprint 项目隐藏 filter
+
+老逻辑只看 `module.sprint` 非空 · 没分类「项目没 sprint 概念 vs 有概念但某 module 漏填」两种 case。
+
+新逻辑:
+- 遍历 modules · 统计 `unique sprints` + `hasUnscheduled` flag
+- 如果 `sprints.size === 0 && !hasUnscheduled` → **隐藏整个 Sprint filter group**(项目不用 sprint · 不打扰用户)
+- 如果 `hasUnscheduled` → dropdown 末尾加 `(unscheduled)` 选项 · 用户可专门筛漏填的 module
+- `_passesFilter` 接受 `__unscheduled__` 特殊值 · 匹配空 sprint module
+- 行 sprint 徽章 fallback 显 `(unscheduled)` / `(未排期)` 而不是空白方块
+
+### i18n · `backlog.filter.sprint.unscheduled`
+
+EN `(unscheduled)` · 中 `(未排期)`。
+
+### Verified
+
+- 220 tests pass · 0 回归
+- dogfood build · 17 modules / 5 sprints(0.10/0.11/0.12/0.13/0.14)· 排序正确(0.14 在第一)· 没有 unscheduled 行 · `(unscheduled)` option 不出现(正确)
+- 模拟 module 删 sprint frontmatter · dropdown 末尾自动加 `(unscheduled)` 选项
+
+### Not changed
+
+- 走 patch · template-only · 不动 schema / CLI / SKILL.md
+- 跨 build localStorage selection 跟 v0.14.0/v0.14.1 兼容
+
 ## [0.14.1] · 2026-05-19
 
 Backlog 多选体验增强 · 用户截图反馈「增加多选功能」(19 行手点 19 次太烦)。
