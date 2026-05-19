@@ -1,0 +1,61 @@
+你正在跑 docs-cockpit module **`{{ module.id }} · {{ module.title }}`** 的 cross-doc consistency self-check。
+
+照 `docs-cockpit-author` §12 4 个 check 全部过一遍。
+
+## 4 个 check
+
+### §12.1 · Doc backref check
+
+同一 plan / RFC 被多 module 引用 · 各 module 的 anchor 应该 **互不重复**(`M01 §6.1 / M02 §6.2` 而不是 `M01 §6.1 / M02 §6.1`)。
+
+**操作**:
+1. Read 关联文档(下方 list)· 看每个 doc 被 module {{ module.id }} 的哪些 subtask 引用
+2. Read sibling modules 的 frontmatter / body checklist · 看它们 anchor 到该 doc 的哪些段
+3. 如果重叠 · 提建议 split / 不同 anchor 收敛
+
+### §12.2 · Module 依赖闭环
+
+**module 依赖应该双向一致**:`M01.blocks=[M02]` 必须对应 `M02.depends_on=[M01]` · 反之亦然。
+
+当前 module {{ module.id }} 的依赖声明:
+- `depends_on`: {{ module.depends_on | tojson if module.depends_on else "[]" }}
+- `blocks`: {{ module.blocks | tojson if module.blocks else "[]" }}
+
+**操作**:Read 上下游 module MD · 验证反向声明对得上。
+
+### §12.3 · subtask status × module status 一致
+
+- module.status = `done` → 所有 subtask 都应 done
+- module.status = `not-started` → 不应有 subtask 是 done
+- module.status = `in-progress` → 应该至少一条 subtask 是 done · 一条不 done
+
+当前 module {{ module.id }} 状态:
+- status: **{{ module.status }}**
+- progress: {{ module.progress }}%
+- subtasks: {{ module.subtasks | length }} · done {{ module.subtasks | selectattr("done") | list | length }}
+
+**操作**:如果有不一致 · 翻 frontmatter status 或勾 subtask checkbox 让它们对齐。
+
+### §12.4 · Sprint alignment
+
+`sprint: "{{ module.sprint or '(unscheduled)' }}"` 应该在 plan 的 §11 Next Steps 里有对应 sprint 章节。Sprint 0.11 跟 plan §11 Step 1-5 对应 · sprint 0.12 跟 plan §11 v0.12 候选 list 对应。
+
+**操作**:Read 主 plan §11 · 看 module 的 sprint 是否真的在该 sprint 范围内。
+
+## Module 上下文(用 Read 工具按需拉)
+
+{% if linked_docs %}**关联文档**:
+{%- for doc in linked_docs %}
+- `{{ doc.path }}`{% if doc.title %} · {{ doc.title }}{% endif %}
+{%- endfor %}
+{% endif %}
+
+## 输出
+
+跑完 4 个 check · 给我一个简短报告:
+- §12.1 · 重复 anchor 列表(如果有)+ 建议
+- §12.2 · 双向依赖不一致列表(如果有)
+- §12.3 · status × subtasks 不一致(如果有)
+- §12.4 · sprint mismatch(如果有)
+
+每个 check 0 issue 就只输出 "§12.X · clean"。有 issue 同时给出修复建议(直接 edit 或 patch YAML)。

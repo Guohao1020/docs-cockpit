@@ -2,9 +2,10 @@
 id: M09
 type: module
 title: "Sync Status CLI"
-status: not-started
+status: done
 sprint: "0.12"
-progress: 0
+progress: 100
+manualProgress: true   # M09-1be62a (`--from-browser`) 是 v0.13 候选 · 不计入 0.12 sprint 分母
 desc: "docs-cockpit sync-status · localStorage 用户勾选状态合并回 MD frontmatter · 闭环 v0.11 plan §1 缺口 3"
 owner: harvey
 prd_ref: "v0.11 driver-seat plan §1 缺口 3(状态控制不闭环)· §11 v0.12 候选"
@@ -55,10 +56,10 @@ docs-cockpit sync-status --from-browser chrome --apply
 
 ## 4 · 待办
 
-- [ ] sync_status.py scaffold · `parse_overrides(json)` / `merge_to_md(overrides, md_path)` / `compute_conflicts()`
-- [ ] dashboard 加「Export status overrides」按钮 · 下载 JSON
-- [ ] `docs-cockpit sync-status --import <json> [--apply]` CLI · dry-run-first
-- [ ] `--from-browser <chrome|firefox|edge>` · 直读浏览器 profile dir 的 localStorage(Chrome `Local Storage/leveldb` · Firefox `webappsstore.sqlite`)
-- [ ] 优先级规则 4 个 case 全 cover + 集成测试
-- [ ] `references/sync_status_workflow.md` · 跨机器 daily / weekly 工作流推荐
-- [ ] `.bak` 备份 + 跟 apply-patch 复用 `safe_write_md()` 工具函数
+- [x] sync_status.py scaffold · `parse_overrides(json)` / `merge_to_md(overrides, md_path)` / `compute_conflicts()` @code:docs_cockpit/sync_status.py:60-110 @code:docs_cockpit/sync_status.py:113-167 @code:docs_cockpit/sync_status.py:170-204 @docs:docs/spec/module/M09-sync-status.md#§2
+- [x] dashboard 加「Export status overrides」按钮 · 下载 JSON @code:docs_cockpit/templates/index.html.tmpl:1697-1706 @code:docs_cockpit/templates/index.html.tmpl:3803-3829 @docs:references/sync_status_workflow.md
+- [x] `docs-cockpit sync-status --import <json> [--apply]` CLI · dry-run-first @code:docs_cockpit/sync_status.py:282-359 @code:docs_cockpit/cli.py:181-205 @docs:references/sync_status_workflow.md
+- [ ] `--from-browser <chrome|firefox|edge>` · 直读浏览器 profile dir 的 localStorage(Chrome `Local Storage/leveldb` · Firefox `webappsstore.sqlite`)· **v0.13 候选** · MVP stub 报错 @code:docs_cockpit/sync_status.py:289-298 @docs:references/sync_status_workflow.md
+- [x] 优先级规则 4 个 case 全 cover + 集成测试 @code:tests/unit/test_sync_status.py:1-220 @code:docs_cockpit/sync_status.py:170-204 @docs:docs/spec/module/M09-sync-status.md#§3
+- [x] `references/sync_status_workflow.md` · 跨机器 daily / weekly 工作流推荐 @code:references/sync_status_workflow.md @docs:references/sync_status_workflow.md
+- [x] `.bak` 备份 + 跟 apply-patch 复用 `safe_write_md()` 工具函数 @code:docs_cockpit/sync_status.py:243-268 @code:docs_cockpit/apply_patch.py:248-272

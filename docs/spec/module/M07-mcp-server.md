@@ -2,9 +2,9 @@
 id: M07
 type: module
 title: "MCP Server · driver-seat mode 1"
-status: not-started
+status: done
 sprint: "0.12"
-progress: 0
+progress: 100
 desc: "MCP server · 让 Claude / Cursor / Codex 直连消费 cockpit prompt · 替代 copy-paste · driver-seat 模式 1"
 owner: harvey
 prd_ref: "v0.11 driver-seat plan §0 implications · v0.12 候选"
@@ -37,15 +37,11 @@ blocks: []
 ## 3 · 待办
 
 - [x] mcp_server.py scaffold · stdio transport · MCP Python SDK 选型(`mcp` 官方 SDK) @code:docs_cockpit/mcp_server.py:1-243 @code:pyproject.toml:60-66 @docs:docs/plans/P-v0.11-driver-seat.md:40 @docs:docs/plans/P-v0.11-driver-seat.md:81 @docs:docs/plans/P-v0.11-ai-augmented-precision-alpha7-2026-05-18.md:20-32
-- [ ] `cockpit_prompt(module_id, subtask_id, template?)` tool · 复用 `prompt.py::render_prompt` · 返回 rendered text @code:docs_cockpit/mcp_server.py @code:docs_cockpit/prompt.py:130-191 @docs:docs/plans/P-v0.11-driver-seat.md#§6.2 @docs:skills/docs-cockpit-author/SKILL.md:437-481
-- [ ] `cockpit_state()` resource · MIME type `application/json` · 返回 state.json 内容 @code:docs_cockpit/mcp_server.py @code:docs_cockpit/build.py:486-498 @docs:CLAUDE.md:146
-- [ ] `cockpit_apply_patch(yaml_patch)` tool · 调用 M08 apply-patch · 返回 diff summary @code:docs_cockpit/mcp_server.py @code:docs_cockpit/apply_patch.py @docs:docs/spec/module/M08-apply-patch.md @docs:docs/plans/P-v0.11-ai-augmented-precision-alpha7-2026-05-18.md:133-148
-- [ ] `docs-cockpit mcp-serve` CLI 子命令 · 加 cli.py main() dispatcher @code:docs_cockpit/cli.py
-  <!-- TODO docs anchor: 暂无专门 doc section 讲 mcp-serve CLI 子命令 · 实施时补 references/mcp_clients.md 或 docs-cockpit/SKILL.md 新章节后回填 -->
-- [ ] Claude Code mcp_servers.json 自动注入 · plugin install 即开箱可用 @code:.claude-plugin/plugin.json @code:.claude-plugin/mcp_servers.json
-  <!-- TODO docs anchor: plugin.json schema 没专门 doc · 实施时补到 docs-cockpit/SKILL.md 后回填 -->
-- [ ] `references/mcp_clients.md` · Cursor / Codex CLI / Continue 接线步骤 @code:references/mcp_clients.md
-  <!-- TODO docs anchor: 本 subtask 就是写 doc 自身 · 没上游 doc 可指 · 留空 -->
-- [ ] 集成测试:本地起 server + mcp client 跑一遍三个 tool / resource · 验证 round-trip @code:tests/integration/test_mcp_server.py
-  <!-- TODO docs anchor: alpha.7 sub-plan / 主 plan 都没专门讲集成测试设计 · 留空 -->
+- [x] `cockpit_prompt(module_id, subtask_id, template?)` tool · 复用 `prompt.py::render_prompt` · 返回 rendered text @code:docs_cockpit/mcp_server.py:152-218 @code:docs_cockpit/prompt.py:130-191 @docs:docs/plans/P-v0.11-driver-seat.md#§6.2 @docs:skills/docs-cockpit-author/SKILL.md:437-481
+- [x] `cockpit_state()` resource · MIME type `application/json` · 返回 state.json 内容 @code:docs_cockpit/mcp_server.py:289-309 @code:docs_cockpit/build.py:486-498 @docs:CLAUDE.md:146
+- [x] `cockpit_apply_patch(yaml_patch)` tool · 调用 M08 apply-patch · 返回 diff summary @code:docs_cockpit/mcp_server.py:222-286 @code:docs_cockpit/apply_patch.py:248-273 @docs:docs/spec/module/M08-apply-patch.md @docs:docs/plans/P-v0.11-ai-augmented-precision-alpha7-2026-05-18.md:133-148
+- [x] `docs-cockpit mcp-serve` CLI 子命令 · 加 cli.py main() dispatcher @code:docs_cockpit/cli.py:200-215 @code:docs_cockpit/mcp_server.py:336-352 @docs:docs/spec/module/M07-mcp-server.md#§1
+- [x] Claude Code mcp_servers.json 自动注入 · plugin install 即开箱可用 @code:.claude-plugin/plugin.json:26-33 @docs:references/mcp_clients.md
+- [x] `references/mcp_clients.md` · Cursor / Codex CLI / Continue 接线步骤 @code:references/mcp_clients.md @docs:references/mcp_clients.md
+- [x] 集成测试:本地起 server + mcp client 跑一遍三个 tool / resource · 验证 round-trip @code:tests/integration/test_mcp_server.py @docs:references/mcp_clients.md
 

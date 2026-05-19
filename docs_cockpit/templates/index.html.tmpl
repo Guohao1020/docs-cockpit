@@ -1694,6 +1694,15 @@ body.split-mode #module-drawer .drawer-body {
       <span data-i18n="topbar.sysdocs_btn">System Docs</span>
       <span class="docs-count" id="docs-count">0</span>
     </button>
+    <!-- 0.12 M09 · Export status overrides 按钮 · 下载 localStorage JSON · 给 docs-cockpit sync-status --import 用 -->
+    <button class="docs-btn" id="export-overrides" type="button" data-i18n-title="topbar.export_title" title="Export status overrides (download JSON for docs-cockpit sync-status --import)">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="width:14px;height:14px">
+        <path d="M8 2v8"/>
+        <polyline points="5 7 8 10 11 7"/>
+        <path d="M3 12.5v1A.5.5 0 0 0 3.5 14h9a.5.5 0 0 0 .5-.5v-1"/>
+      </svg>
+      <span data-i18n="topbar.export_btn">Export</span>
+    </button>
     <div class="lang-toggle" role="group" aria-label="Language">
       <button data-lang="en" class="active">EN</button>
       <button data-lang="zh">中</button>
@@ -1964,6 +1973,9 @@ body.split-mode #module-drawer .drawer-body {
       'topbar.last_build': 'Last build',
       'topbar.sysdocs_btn': 'System Docs',
       'topbar.sysdocs_title': 'System Docs (D)',
+      'topbar.export_btn': 'Export',
+      'topbar.export_title': 'Export status overrides (download JSON · feed into docs-cockpit sync-status --import)',
+      'toast.export_done': 'Overrides exported · run: docs-cockpit sync-status --import <file>',
       'hero.eyebrow': 'PROJECT DASHBOARD · MODULE PROGRESS',
       'hero.title': 'Project progress overview',
       'hero.tagline': 'Module status · sprint progress · core concepts · one-stop visualization with fine-grained progress control.',
@@ -2243,6 +2255,9 @@ body.split-mode #module-drawer .drawer-body {
       'toast.reset_done': '已清 override · 从 source MD 重 load…',
       'topbar.last_build': '最后构建',
       'topbar.sysdocs_btn': '系统文档',
+      'topbar.export_btn': '导出 override',
+      'topbar.export_title': '导出 subtask 勾选状态(下载 JSON · 喂给 docs-cockpit sync-status --import)',
+      'toast.export_done': 'Override 已导出 · 跑:docs-cockpit sync-status --import <file>',
       'topbar.sysdocs_title': '系统文档 (D)',
       'hero.eyebrow': '通用项目看板 · 模块进度',
       'hero.title': '项目进度概览',
@@ -3788,6 +3803,31 @@ body.split-mode #module-drawer .drawer-body {
     });
 
     document.getElementById('open-docs').addEventListener('click', () => openDrawer('docs-drawer'));
+
+    // 0.12 M09 · Export overrides button · download localStorage JSON · 给 docs-cockpit sync-status --import 用
+    const _exportBtn = document.getElementById('export-overrides');
+    if (_exportBtn) {
+      _exportBtn.addEventListener('click', () => {
+        const stored = (() => {
+          try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); }
+          catch (e) { return {}; }
+        })();
+        // 加 _exported_at 元数据 · 让 sync-status 知道 export 时间
+        stored._exported_at = new Date().toISOString();
+        const blob = new Blob([JSON.stringify(stored, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        const projectName = (RAW.project && RAW.project.name) || 'docs-cockpit';
+        const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+        a.href = url;
+        a.download = `${projectName}-overrides-${stamp}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        toast(t('toast.export_done') || 'Overrides exported · run: docs-cockpit sync-status --import <file>');
+      });
+    }
     document.getElementById('md-close').addEventListener('click', closeDrawer);
     document.getElementById('dd-close').addEventListener('click', closeDrawer);
     document.getElementById('scrim').addEventListener('click', closeDrawer);

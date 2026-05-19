@@ -155,6 +155,102 @@ def main(argv: list[str] | None = None) -> int:
     from . import portfolio as _portfolio_mod
     _portfolio_mod.add_portfolio_parser(sub)
 
+    # 0.12 M08 · apply-patch CLI · refine 流程模式 B 收口 · YAML patch → MD merge
+    ap_p = sub.add_parser(
+        "apply-patch",
+        help="把 LLM 输出的 YAML patch 落回 module MD(dry-run 默认 + .bak 备份)",
+    )
+    ap_p.add_argument(
+        "md_path",
+        help="目标 module MD 文件路径(例如 docs/spec/module/M07-mcp-server.md)",
+    )
+    ap_p.add_argument(
+        "patch_file", nargs="?", default=None,
+        help="patch YAML 文件 · 省略则从 stdin 读",
+    )
+    ap_p.add_argument(
+        "--apply", action="store_true",
+        help="真写回 MD(默认 dry-run · 只 print diff 不动文件)· 写前生成 .bak 备份",
+    )
+    from . import apply_patch as _apply_patch_mod
+    ap_p.set_defaults(func=_apply_patch_mod.cmd_apply_patch)
+
+    # 0.12 M10 · suggest · LLM-augmented soft document optimization · plan §5 Approach W2
+    sg_p = sub.add_parser(
+        "suggest",
+        help="跑 LLM suggest prompt 检查 module 文档质量(desc / subtask 拆解 / anchor 完整性 / cross-doc consistency)",
+    )
+    sg_p.add_argument(
+        "module_id", nargs="?", default=None,
+        help="目标 module id · 不传 + --all 跑全部",
+    )
+    sg_p.add_argument(
+        "--all", dest="all_modules", action="store_true",
+        help="跑所有 module · 通常配 --strict 用 in CI",
+    )
+    sg_p.add_argument(
+        "--template", "-t", default=None,
+        help="显式 template 名(desc-rewrite / subtask-recompose / anchor-completeness / cross-doc-consistency)· 不传 = 跑所有 triggered",
+    )
+    sg_p.add_argument(
+        "--strict", action="store_true",
+        help="任何 suggest triggered → exit 1 · CI 用",
+    )
+    sg_p.add_argument(
+        "--copy", action="store_true",
+        help="复制全部 prompts 到剪贴板(需要 pyperclip)",
+    )
+    sg_p.add_argument(
+        "--list-templates", dest="list_templates", action="store_true",
+        help="列内置 suggest template 名 · 不渲染",
+    )
+    sg_p.add_argument(
+        "--config", "-c", default="docs-cockpit.yaml",
+        help="项目 docs-cockpit.yaml 路径 · 默认 CWD",
+    )
+    from . import suggest as _suggest_mod
+    sg_p.set_defaults(func=_suggest_mod.cmd_suggest)
+
+    # 0.12 M09 · sync-status · dashboard localStorage override → MD 反向同步
+    ss_p = sub.add_parser(
+        "sync-status",
+        help="把 dashboard 勾选的 subtask 状态写回 MD(plan §1 缺口 3 收口)",
+    )
+    ss_p.add_argument(
+        "--import", dest="import_path", default=None,
+        help="dashboard 导出的 overrides JSON 路径",
+    )
+    ss_p.add_argument(
+        "--from-browser", dest="from_browser", default=None,
+        choices=["chrome", "firefox", "edge"],
+        help="直读浏览器 profile localStorage(v0.13 候选 · MVP stub)",
+    )
+    ss_p.add_argument(
+        "--apply", action="store_true",
+        help="真写回 MD(默认 dry-run · 只 print diff)· 写前每个 MD 生成 .bak",
+    )
+    ss_p.add_argument(
+        "--config", "-c", default="docs-cockpit.yaml",
+        help="项目 docs-cockpit.yaml 路径 · 默认 CWD",
+    )
+    from . import sync_status as _sync_mod
+    ss_p.set_defaults(func=_sync_mod.cmd_sync_status)
+
+    # 0.12 M07 · mcp-serve · 起 MCP stdio server · let Claude/Cursor/Codex 直连
+    mcp_p = sub.add_parser(
+        "mcp-serve",
+        help="启 MCP stdio server · let Claude / Cursor / Codex 直连消费 cockpit prompt / state / apply-patch",
+    )
+    mcp_p.add_argument(
+        "--config", "-c", default="docs-cockpit.yaml",
+        help="项目 docs-cockpit.yaml 路径 · MCP server 启动时 load 一次 · 默认 CWD",
+    )
+    def _cmd_mcp_serve(args):
+        # lazy import · mcp 是 optional dep · 不让 build/lint 受牵连
+        from . import mcp_server as _mcp
+        return _mcp.cmd_mcp_serve(args)
+    mcp_p.set_defaults(func=_cmd_mcp_serve)
+
     up_p = sub.add_parser(
         "upgrade",
         help="一条命令升级 CLI + plugin (auto-detect backend · 智能判断要不要重启)",

@@ -4,6 +4,114 @@
 
 ## [Unreleased]
 
+## [0.12.0] · 2026-05-19
+
+v0.11 driver-seat 的「展示 → 驱动」叙事彻底闭环。v0.11 让用户在 dashboard 看到 + 复制 prompt;v0.12 让 AI 直接消费 prompt / 反向同步状态 / 软优化 MD 质量 · **不再需要人工搬运**。整体跨 4 个 module(M07-M10)· 4 个新 CLI 子命令 · 1 个 MCP server · 6 个新 prompt template · 105 新测试。
+
+### Why · plan §11 v0.12 候选 list 全部 ship
+
+v0.11.0 release 时 plan §11 留了 4 条 v0.12 候选 · 标「本 plan 不做 · 留窗口」。0.12 把这 4 条全部落地:
+
+1. **MCP server**(M07)· 让 Claude / Cursor / Codex 直连消费 cockpit prompt · 替代 v0.11 copy-paste(driver-seat 模式 1)
+2. **`docs-cockpit apply-patch`**(M08)· 把 LLM 输出 YAML patch 自动落回 MD · 收口模式 B 的最后一公里
+3. **`docs-cockpit sync-status`**(M09)· localStorage 用户勾选反向写回 MD · 闭环 plan §1 缺口 3
+4. **`docs-cockpit suggest`**(M10)· LLM 软优化文档质量 · plan §5 Approach W2
+
+Sprint state:`10 modules · 10 done · overall 100% · 0 issues`。dogfood 自身验证全程跑过。
+
+### Added · M07 · MCP Server(driver-seat 模式 1)
+
+`docs_cockpit/mcp_server.py` · Anthropic 官方 `mcp` SDK · stdio transport · 暴露 3 endpoint:
+
+| Endpoint | Type | Backend |
+|---|---|---|
+| `cockpit_prompt(module_id, subtask_id?, template?)` | tool | `prompt.py::render_prompt` |
+| `cockpit_apply_patch(yaml_patch, module_id, apply?)` | tool | `apply_patch.py` (M08) |
+| `cockpit://state` | resource | `docs/state.json` |
+
+CLI:`docs-cockpit mcp-serve [-c docs-cockpit.yaml]`。
+Plugin 自动注入:`.claude-plugin/plugin.json::mcpServers` · `/plugin install docs-cockpit@docs-cockpit` 后 Claude Code 重启即开箱可用。
+Cursor / Codex / Continue 接线步骤:`references/mcp_clients.md`。
+
+Optional dep · `pip install 'docs-cockpit[mcp]'` · 核心 CLI 不强依 · v0.10/v0.11 老用户 footprint 不变。
+
+13 integration tests · all pass。
+
+### Added · M08 · Apply Patch CLI
+
+`docs_cockpit/apply_patch.py` · 收口 refine 流程模式 B:
+
+```bash
+docs-cockpit apply-patch path/to/M07.md < patch.yaml             # dry-run
+docs-cockpit apply-patch path/to/M07.md --apply < patch.yaml     # 写回 + .bak
+```
+
+支持 2 种 MD subtask 表达(跟 author skill §3.1 对齐):
+- **Path 1 · frontmatter Form A** · merge by subtask id · YAML 序列化写回
+- **Path 2 · body checklist Form C** · 反查 id · 改 `[x]` · 追 inline `@code:` / `@docs:` annotation · 去重不复加
+
+白名单字段 · `status / code / docs / desc`(LLM 想改 title / id / sprint 一律 silently drop · 防越权)。冲突检测 · stale subtask ref / patch parse error 全部 graceful。
+
+被 M07 `cockpit_apply_patch` tool 复用 · 模式 1 (MCP) 走同一 backend。
+
+24 unit tests · all pass。
+
+### Added · M09 · Sync Status CLI
+
+`docs_cockpit/sync_status.py` · 闭环 plan §1 缺口 3「任务清单状态控制不闭环」· dashboard ticks → MD frontmatter 反向同步。
+
+Dashboard 顶栏加 **Export** 按钮 · 下载 localStorage JSON。CLI 路径:
+
+```bash
+docs-cockpit sync-status --import overrides.json              # dry-run
+docs-cockpit sync-status --import overrides.json --apply      # 写回 + .bak per MD
+docs-cockpit sync-status --from-browser chrome                # v0.13 候选 · MVP stub
+```
+
+优先级规则 promotion-only · `localStorage=true / MD=false` → MD 接管为 true。`localStorage=false / MD=true` → 信 MD(避免反向同步过激)。
+
+跨机器 workflow doc:`references/sync_status_workflow.md`。
+
+17 unit tests · all pass。
+
+### Added · M10 · LLM Doc Optimizer (`docs-cockpit suggest`)
+
+`docs_cockpit/suggest.py` · plan §5 Approach W2 · 跟 `lint` 互补:
+- `lint` 死规则报错 · `suggest` LLM 软建议
+
+4 内置 template(`docs_cockpit/templates/suggest/`):
+- `desc-rewrite` · desc 短 / 空 / 过泛 → 改写 prompt
+- `subtask-recompose` · >15 或 <3 subtask → merge / split 建议
+- `anchor-completeness` · 缺 `@code:` / `@docs:` → 补完 prompt
+- `cross-doc-consistency` · 走 author skill §12 self-check 4 个 check
+
+CLI:`docs-cockpit suggest [module] [--all] [--template T] [--strict] [--copy]`。
+`--strict` 任意 trigger 退 1 · CI 用。
+
+Author skill §13 「How to consume suggest output」· 5 步流程跟 §11 对齐。
+
+24 unit tests · all pass。
+
+### Changed · `docs_cockpit/cli.py` · 4 新子命令注册
+
+dispatcher 加 `apply-patch` / `mcp-serve` / `sync-status` / `suggest`。pyproject `[project.scripts]` entry point 不动 · `docs-cockpit <subcommand>` 自动 dispatch。
+
+### Schema · state.json 不变 · 向后兼容
+
+state.json shape 完全不动 · v0.11 的 standup / portfolio skill 老逻辑全 work。新 module 字段(`apply_patch` / `sync_status` / `suggest` / `mcp_server`)纯加 module-level · 不动 schema 边界。
+
+### Migration
+
+无需手工迁移:
+- `docs-cockpit upgrade` 拿 0.12.0 + 自动 plugin cache 失效 + 重启提示
+- MCP server 需要 optional `[mcp]` extra · `pip install 'docs-cockpit[mcp]'` 或 `uv tool install --with mcp docs-cockpit`
+- 老 `docs-cockpit.yaml` / 老 MD 一字不动 · 继续 work
+- 4 个新 CLI 子命令是纯加 · 不破坏现有 build / lint / migrate / portfolio / browse / upgrade
+
+### Acknowledgements
+
+dogfood 自身仍然是核心 forcing function。M07-M10 全程在本 repo 上跑通 · 198 tests cover 关键路径。`docs-cockpit upgrade` 路径回归 · 下游 Sourcery + bastion 可一键拉 0.12.0。
+
 ## [0.11.3] · 2026-05-19
 
 修 plan §1 缺口 3「状态控制不闭环」的最严重副作用 · subtask localStorage override 永远赢 · 反向覆盖 source MD 真值。这是 v0.11 dogfood 反复抱怨的「修改了驾驶舱没啥变化」根因 · M07-9db754 commit `[x]` 之后 dashboard 仍显 0/8 也是同一个 bug 的表现。Template/JS-only patch · 0 schema 改动。

@@ -574,3 +574,43 @@ If you mark `status: done` on a module · all subtasks should also be `done` (or
 ### §12.4 · Sprint alignment
 
 All subtasks should belong to the same sprint as the module · or be explicitly deferred. Mixed-sprint subtasks usually means the module needs splitting.
+
+## §13 · How to consume `docs-cockpit suggest` output (0.12.0+ · M10)
+
+`docs-cockpit suggest [module_id]` outputs **soft-recommendation prompts** for AI to act on — different from `docs-cockpit lint` which outputs **hard validation errors**. The 4 built-in templates (`desc-rewrite` / `subtask-recompose` / `anchor-completeness` / `cross-doc-consistency`) all emit prompts following the same caller-aware pattern as Refine and Copy prompt.
+
+### §13.1 · The 5-step flow (matches §11)
+
+When you receive a `docs-cockpit suggest` output (one or more concatenated prompts):
+
+1. **Read each prompt's `## 问题诊断` / `## 诊断` section** — understand what the heuristic flagged
+2. **Read the linked docs the prompt references** — use the `Read` tool · don't ask the user to paste
+3. **Decide which suggestions to take** — not all triggered suggestions are worth acting on (e.g. `subtask-recompose` for a stable module that just happens to have 16 subtasks)
+4. **Apply changes directly** (if you have `Edit` / `Write` tools) — edit the source MD · don't output patches for the user to copy
+5. **Re-build** — run `docs-cockpit build` to verify · re-run `docs-cockpit suggest <module>` to confirm the trigger no longer fires
+
+### §13.2 · Per-template guidance
+
+- **`desc-rewrite`** · output a 1-line concrete `desc:` (<100 chars) · edit frontmatter directly · prefer specifics over abstractions
+- **`subtask-recompose`** · if >15 subtasks · propose merging adjacent ones OR splitting the module into sibling modules (M0X-a / M0X-b) · if <3 · split each into 2-3 finer subtasks aligned to plan sections
+- **`anchor-completeness`** · for each subtask missing `@code:` / `@docs:` · Read the relevant plan section + repo · pin to `path:start-end` / `path#§N.M` · don't guess line numbers
+- **`cross-doc-consistency`** · run all 4 §12 checks · report `clean` per check OR specific fixes per issue · never silently skip a check
+
+### §13.3 · `--strict` mode (CI integration)
+
+```bash
+docs-cockpit suggest --all --strict
+```
+
+Exits 1 if any module triggers any suggestion. Useful as a CI quality gate — alongside `docs-cockpit lint --strict` which catches hard schema errors. Together they form the "no MD ships without both passing" workflow.
+
+### §13.4 · Custom suggest templates
+
+Drop `docs/suggest/<name>.md.j2` in the user repo · the `ChoiceLoader` picks them up before the built-in `templates/suggest/*.md.j2`. Same `SandboxedEnvironment` rules as `prompt` / `refine` templates (no `os` / no `import` · only Jinja built-ins).
+
+Context vars available to suggest templates:
+- `module` · the full module dict from state.json
+- `linked_docs` · list[{title, path, summary}] · summary capped at 2000 chars
+- `repo_root` · str
+- `thresholds` · dict with `desc_min_chars` / `subtasks_max` / `subtasks_min`
+

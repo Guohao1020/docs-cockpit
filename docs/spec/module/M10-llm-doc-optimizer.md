@@ -2,9 +2,9 @@
 id: M10
 type: module
 title: "LLM Doc Optimizer · docs-cockpit suggest (W2)"
-status: not-started
+status: done
 sprint: "0.12"
-progress: 0
+progress: 100
 desc: "docs-cockpit suggest · LLM 改写 prompt 生成器 · 检查 module MD 质量 + 提议改进 · plan §5 Approach W2 落地"
 owner: harvey
 prd_ref: "v0.11 driver-seat plan §5 Approach W2 · v0.11 内未做 · 留 v0.12"
@@ -46,13 +46,9 @@ docs-cockpit suggest --all --strict       # 全部 module + 错误超 N 个 exit
 
 ## 3 · 待办
 
-- [ ] suggest.py scaffold · 复用 prompt.py SandboxedEnvironment + ChoiceLoader(template 寻找顺序:repo `docs/suggest/` → 内置)
-- [ ] 4 个内置 suggest template:
-  - `desc-rewrite.md.j2` · desc 太短 / 过空泛 → 生成补完 prompt
-  - `subtask-recompose.md.j2` · subtask 过细(>15)或过粗(<3)→ 合并/拆分建议
-  - `anchor-completeness.md.j2` · 哪些 subtask 没 code/docs anchor + 建议怎么补
-  - `cross-doc-consistency.md.j2` · 走 §12 self-check · 4 个 check 全跑 + 输出 prompt
-- [ ] `docs-cockpit suggest [module] [--copy] [--all] [--strict]` CLI · `--strict` 把建议视作 issue · CI 用
-- [ ] caller-aware mode(沿用 refine 的 A/B 模式)· Claude Code 直接动手 · 浏览器 LLM 输出 prompt
-- [ ] author skill §13 「How to consume suggest output」· 5 步流程跟 §11 对齐
-- [ ] 集成测试:对 M03 跑 suggest · 验输出 prompt 含 module 全 frontmatter + linked docs summary + 4 template 都能渲染
+- [x] suggest.py scaffold · 复用 prompt.py SandboxedEnvironment + ChoiceLoader(template 寻找顺序:repo `docs/suggest/` → 内置) @code:docs_cockpit/suggest.py:42-79 @code:docs_cockpit/prompt.py:85-106 @docs:skills/docs-cockpit-author/SKILL.md#§13
+- [x] 4 个内置 suggest template @code:docs_cockpit/templates/suggest/desc-rewrite.md.j2 @code:docs_cockpit/templates/suggest/subtask-recompose.md.j2 @code:docs_cockpit/templates/suggest/anchor-completeness.md.j2 @code:docs_cockpit/templates/suggest/cross-doc-consistency.md.j2 @docs:skills/docs-cockpit-author/SKILL.md#§13.2
+- [x] `docs-cockpit suggest [module] [--copy] [--all] [--strict]` CLI · `--strict` 把建议视作 issue · CI 用 @code:docs_cockpit/suggest.py:202-282 @code:docs_cockpit/cli.py:165-201 @docs:skills/docs-cockpit-author/SKILL.md#§13.3
+- [x] caller-aware mode(沿用 refine 的 A/B 模式)· Claude Code 直接动手 · 浏览器 LLM 输出 prompt @code:docs_cockpit/templates/suggest/anchor-completeness.md.j2 @docs:skills/docs-cockpit-author/SKILL.md#§13.1
+- [x] author skill §13 「How to consume suggest output」· 5 步流程跟 §11 对齐 @code:skills/docs-cockpit-author/SKILL.md @docs:skills/docs-cockpit-author/SKILL.md#§13
+- [x] 集成测试:对 M03 跑 suggest · 验输出 prompt 含 module 全 frontmatter + linked docs summary + 4 template 都能渲染 @code:tests/unit/test_suggest.py @docs:skills/docs-cockpit-author/SKILL.md#§13
