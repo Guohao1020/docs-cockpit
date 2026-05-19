@@ -1,49 +1,31 @@
-你正在 docs-cockpit 驱动的 sprint **{{ module.sprint or "(unscheduled)" }}** 中执行子任务 `{{ subtask.id }}`。
+你在 docs-cockpit sprint **{{ module.sprint or "(unscheduled)" }}** 执行子任务 `{{ subtask.id }}`(module {{ module.id }} · {{ module.title }})。
 
-## 上下文 · Module {{ module.id }}
+## 目标
 
-- **Title**:{{ module.title }}
-- **Status**:{{ module.status }} · Progress: {{ module.progress }}%
-- **Desc**:{{ module.desc or "(empty)" }}
-{% if module.depends_on %}
-- **Depends on**:{{ module.depends_on | join(", ") }}
-{% endif %}
-{% if module.blocks %}
-- **Blocks**:{{ module.blocks | join(", ") }}
-{% endif %}
+**{{ subtask.title }}**
 
-## 上下文 · 子任务 {{ subtask.id }}
+{{ module.desc or "" }}
+{% if module.depends_on %}依赖:{{ module.depends_on | join(" · ") }}{% endif %}
 
-- **Title**:{{ subtask.title }}
-- **Status**:{{ subtask.status }}
+## 参考(用 Read 工具按需拉 · 别让我把全文复制给你)
+
 {% if subtask.code_anchors %}
-- **代码定位**:
-{% for ca in subtask.code_anchors %}
-  - `{{ ca.path }}`{% if ca.exists %} · ({{ ca.resolved }}){% else %} · ⚠ {{ ca.warning }}{% endif %}
-{% if ca.preview %}
-
-```
-{{ ca.preview }}
-```
+**代码 anchor**:
+{%- for ca in subtask.code_anchors %}
+- `{{ ca.path }}`{% if not ca.exists %} ⚠ {{ ca.warning }}{% endif %}
+{%- endfor %}
 {% endif %}
-{% endfor %}
+{% if subtask.doc_anchors %}
+**Doc anchor**(subtask 自己挂的):
+{%- for da in subtask.doc_anchors %}
+- `{{ da.raw }}`{% if not da.exists %} ⚠ {{ da.warning }}{% endif %}
+{%- endfor %}
 {% endif %}
-
 {% if linked_docs %}
-## 上下文 · 关联文档
-
-{% for doc in linked_docs %}
-### {{ doc.title or doc.path }}
-
-`{{ doc.path }}`
-
-{{ doc.summary or "(no content embedded)" }}
-
-{% endfor %}
+**Module 关联文档**(更宽的设计上下文 · 看 subtask 需要再 Read):
+{%- for doc in linked_docs %}
+- `{{ doc.path }}`{% if doc.title %} · {{ doc.title }}{% endif %}
+{%- endfor %}
 {% endif %}
-
-## 任务
-
-请完成 `{{ subtask.id }}`:**{{ subtask.title }}**。
 
 {% include "_caller_aware_sync.md.j2" %}

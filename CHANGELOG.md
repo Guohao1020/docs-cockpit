@@ -4,6 +4,66 @@
 
 ## [Unreleased]
 
+## [0.11.2] · 2026-05-19
+
+vibe-agent 范式重写 4 个 subtask prompt template · 砍内联文本 · 改成路径+行号引用 · 信任 AI 自己 Read。Template-only patch · 不动 SKILL.md / 不动 schema / context vars 不变。
+
+### Why
+
+用户 dogfood 反馈:「prompt 都有一个共性问题就是太啰嗦和限制太多 · 如果有文档引用应该改为文件路径和行数参考标记即可 · 而不是直接复制到提示词中 · 按照 vibe agent 开发范式 · 结合 superpower spec/plan 的规范要求它按照这种方式实现即可」。
+
+老 prompt 的问题:
+1. **2000 字 linked_docs summary 内联** · 把 plan / RFC body 摘要直接塞进 prompt · 复制成本高 · 大部分 subtask 用不上 · 浪费 token
+2. **code_anchor preview block 内联** · Python 源代码直接贴进 prompt · 现代 AI 工具(Claude Code / Cursor)有 Read 工具 · 给路径让它自己拉更合理
+3. **6 步 caller-aware sync 流程** · 啰嗦 · 用户原话「限制太多」 · vibe-agent 范式应该信任模型 · 不写流程图
+4. **重复定义 spec/plan 范式** · 跟 `docs-cockpit-author` §11 内容重复 · stale 风险
+
+结果:M07-f75501 prompt 3845 chars · 大部分是 driver-seat plan §6.2 全文 + alpha.7 sub-plan 全文 + author skill §10 节录 · 全是给浏览器 LLM 准备的 fallback context。
+
+### Changed · 4 主 template 重写为 vibe-agent 范式
+
+`generic.md.j2` / `feature.md.j2` / `fix.md.j2` / `refactor.md.j2`:
+
+**砍掉**:
+- linked_docs 的 `{{ doc.summary }}` 内联(留路径 list)
+- code_anchor 的 `ca.preview` 内联(留 `path[:lines]`)
+- 6 步 sync flow(留 2 行 partial)
+- 重复定义 spec/plan 规范(改成引用 `docs-cockpit-author` §11)
+
+**保留**:
+- subtask.id / title / desc(基本信息)
+- code_anchors / doc_anchors / linked_docs 的路径列表(让 AI 自己 Read · 不预灌)
+- feature / fix / refactor 各自的范式差异(单测 + diff / root cause + regression / behavior preserving + Beck)· 一句话
+- caller-aware 模式 A vs B(简化到 3 句话)
+
+Template 体积:
+- generic: 3845 → 918 chars(4.2x 压缩)
+- feature: 3762 → 1006 chars(3.7x)
+- fix: 3769 → 1041 chars(3.6x)
+- refactor: 3902 → 1077 chars(3.6x)
+
+### Changed · `_caller_aware_sync.md.j2` partial 简化
+
+从 25 行流程图 → 6 行:
+- 1 句话讲范式:按 `docs-cockpit-author` §11 实施
+- 2 步动作:改 body checklist + `docs-cockpit build`
+- 1 句 fallback:没 fs 工具就输出 YAML patch
+
+### Not changed · 兼容性
+
+- Context vars 一字不动(plan-eng-review 2A stability contract):`module` / `subtask` / `linked_docs` / `repo_root` / `current_branch` 全保留 · `doc.summary` / `ca.preview` 字段也保留(只是 built-in template 不再渲染)· 用户自定义 template 引用这些字段不破
+- `refine.md.j2` (module-level Refine with AI prompt) 不动 · 那是另一个使用场景 · 浏览器 LLM 用户分析全 module 需要深度 doc 内联
+- 不动 SKILL.md / 不动 schema.py / 不动 build pipeline · 走 patch
+- 老用户 `docs-cockpit upgrade` 拿 0.11.2 不强制重启
+
+### Verified
+
+- 4 template 全部 render 含 caller-aware sync section · subtask.id 替换准确
+- M07-f75501 prompts.js sidecar 重生成 · 1134 chars(原 ~5000)
+- 路径+行号 anchor 渲染干净 · 无 `:lines:lines` 重复 bug(发现 `ca.path` 本来就含 raw `:lines` · 修了模板里多余的拼接)
+- 118 unit + 10 integration tests pass · 0 回归
+- `docs-cockpit prompt --list` 仅显 `feature / fix / generic / refactor / refine` · 不出 partial
+
 ## [0.11.1] · 2026-05-19
 
 修一个 dogfood 暴露的 prompt friction · Copy prompt 跑完之后驾驶舱不自动同步 · 用户必须自己回去手动勾 checkbox + 重 build · 跟 v0.11 alpha.7 修过的 Refine prompt 是同一个 caller-aware mode 缺口。Template-only patch · 不动 SKILL.md / 不动 schema / 不动 build pipeline · 老用户 footprint 0 变。

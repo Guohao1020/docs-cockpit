@@ -1,47 +1,34 @@
-你正在 refactor 一段代码 · docs-cockpit module **{{ module.id }} · {{ module.title }}** 的一个子任务。
+你在 docs-cockpit sprint **{{ module.sprint or "(unscheduled)" }}** refactor 一段代码 · 子任务 `{{ subtask.id }}`(module {{ module.id }} · {{ module.title }})。
 
-## 上下文 · Module
-
-- **Sprint**:{{ module.sprint or "(unscheduled)" }} · Status: {{ module.status }}
-- **Desc**:{{ module.desc or "(empty)" }}
-
-## 上下文 · Refactor 子任务 `{{ subtask.id }}`
+## 目标
 
 **{{ subtask.title }}**
 
+{{ module.desc or "" }}
+
+## 参考(用 Read 工具按需拉)
+
 {% if subtask.code_anchors %}
 **Refactor 涉及代码**:
-{% for ca in subtask.code_anchors %}
-- `{{ ca.path }}`{% if ca.lines %}:{{ ca.lines }}{% endif %}
-{% if ca.preview %}
-
-```
-{{ ca.preview }}
-```
+{%- for ca in subtask.code_anchors %}
+- `{{ ca.path }}`{% if not ca.exists %} ⚠ {{ ca.warning }}{% endif %}
+{%- endfor %}
 {% endif %}
-{% endfor %}
+{% if subtask.doc_anchors %}
+**设计依据**:
+{%- for da in subtask.doc_anchors %}
+- `{{ da.raw }}`{% if not da.exists %} ⚠ {{ da.warning }}{% endif %}
+{%- endfor %}
 {% endif %}
-
 {% if linked_docs %}
-## 上下文 · 设计依据
-
-{% for doc in linked_docs %}
-### {{ doc.title or doc.path }}
-
-{{ doc.summary or "(no content)" }}
-
-{% endfor %}
+**关联设计**:
+{%- for doc in linked_docs %}
+- `{{ doc.path }}`{% if doc.title %} · {{ doc.title }}{% endif %}
+{%- endfor %}
 {% endif %}
 
-## 任务
+## 范式
 
-Refactor:**{{ subtask.title }}**
-
-注意:
-1. **Behavior preserving** · refactor 不改外部行为 · 所有现有测试应该仍过
-2. 先「make the change easy · then make the easy change」(Beck)· 不要 refactor + behavior change 一起做
-3. 完成后:
-   - 跑全部测试 · 应全过
-   - 加 1-2 个新测试 cover refactor 后的内部 API(如果合理)
+按 `docs-cockpit-author` §11 实施。`refactor` 子任务的特定要求 · **Behavior preserving** · 现有测试必须全过 · Beck 「make the change easy, then make the easy change」· 不要 refactor + behavior change 一起做。
 
 {% include "_caller_aware_sync.md.j2" %}
