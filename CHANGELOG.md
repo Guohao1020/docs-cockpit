@@ -4,6 +4,104 @@
 
 ## [Unreleased]
 
+## [0.11.0] · 2026-05-19
+
+driver-seat · v0.10 的「项目状态展示器」升级到 v0.11 的「AI 协作驾驶舱」。docs-cockpit 自 0.7.0 以来最大的一次升级 · 跨 8 个 alpha 迭代 · 4 个核心叙事。下方按主题聚合 · alpha.1-8 各自的 section 在下面作为 audit trail 保留。
+
+### Why · plan §0 driver-seat 角色重新框架
+
+主 plan §0 lock 的方向:**docs-cockpit 不是精度引擎 · 是 AI 副驾**。
+- 旧:cockpit 用 python regex / 反向 index 算 subtask 跟 doc 哪段相关 · 一直做不准
+- 新:cockpit 做上下文供给(context)+ UI 展示 + 工作流编排 · 语义精度由 Claude Code / Codex / Cursor 通过 prompt 完成
+
+driver-seat 体验闭环:
+1. 用户打开 dashboard · 点 in-progress module · split-view 左栏看 subtask checklist · 右栏看 code/doc anchor 切片预览
+2. 点「Copy prompt」拼好的 prompt 进剪贴板 · 包含 module/subtask/linked docs/code anchor 全部上下文
+3. 粘到 Claude 跑 · Claude 知道要做什么 / 在哪改 / 验收标准
+4. 跑完输出 frontmatter patch · 用户审阅后落回 MD · 状态闭环
+5. 或者点「Refine with AI」让 AI 检查/精化现有 module(模式 2)
+
+### Added · W1 数据层 · subtask 一等公民
+
+- `docs_cockpit/schema.py` · `normalize_subtasks(raw, module_id)` · `list[str]` 自动 normalize 到 `list[dict]` · 4 种 status enum
+- `docs_cockpit/schema.py` · `_subtask_id_for(module_id, title)` · `<module-id>-<sha1(title)[:6]>` 跨 build 稳定
+- `docs_cockpit/schema.py` · `extract_subtasks_from_body()` · 支持 body checklist + 内联 `@code:path:lines` / `@docs:ref` annotation(多次堆叠)
+- `docs_cockpit/schema.py` · `validate_subtask_schema()` · id / status / status × subtasks 一致性 · 输出 Issue
+- `docs_cockpit/paths.py` · `_resolve_code_anchor()` · `path:start-end` → 绝对路径 + line range + preview + vscode:// 深链 · defensive IO + lru_cache
+- `docs_cockpit/paths.py` · `_resolve_subtask_doc_anchor()` (alpha.8) · `path[:lines][#heading]` → 切片 markdown content
+- `docs-cockpit migrate-subtasks <file> [--apply]` · 一键 v0.10 → v0.11 升级 · dry-run-first + .bak 备份
+
+### Added · Split-view UI(plan §6.6 + §6.7)
+
+- `templates/index.html.tmpl` · hash router · `#/module/<id>` / `#/sysdoc/<id>` 触发二级页面 · Esc / 点 brand 回 dashboard · `?ui=modal` URL query 走 v0.10 兼容
+- Split layout · grid `minmax(360px, 38%) 1fr` · 左 navigator 复用 drawer 内容 · 右 preview marked.js inline 渲染 + 切换 active 高亮
+- subtask 多 anchor 按钮(alpha.8) · `code_anchors[]` forEach 多 chevron · `doc_anchors[]` forEach 多 doc 图标 · 2+ 时右上角小数字标 · click 切右栏聚焦渲染那一条
+- subtask doc anchor 右栏 marked 切片预览(alpha.8) · backend 已切好 `path:lines` / `path#§heading` / 整 file 三种 spec · 100KB 截断护栏
+- systemDocs payload 嵌内容(50KB cap)· split-view 沿用相同渲染逻辑
+- HP 蓝 design.md token 统一 sweep · 干掉散落的 `#4f46e5` 靛蓝 / `#f5f7ff` 雾蓝 / 紫渐变
+
+### Added · W3 prompt scaffolding(plan §6.2)
+
+- `docs_cockpit/prompt.py` · `render_prompt(module, subtask, repo_root)` · Jinja2 `SandboxedEnvironment` + `ChoiceLoader` 白名单(repo `docs/prompts/` + 内置 `templates/prompts/`)
+- 4 内置 template · `generic` / `feature` / `fix` / `refactor`
+- 5 context vars stability contract · `module` / `subtask` / `linked_docs` / `repo_root` / `current_branch` · backward-compat 规则(no-remove / no-rename / new-vars-guarded · 见 `docs-cockpit-author` §10.2)
+- `docs-cockpit prompt [module] [subtask] [--copy] [--list] [-t <template>]` CLI
+- build 输出 `prompts.js` sidecar(`window.__PROMPTS__`)· dashboard subtask 行加「Copy prompt」按钮 · navigator.clipboard + execCommand fallback(file:// 兼容)
+
+### Added · AI-augmented precision(模式 2 + 模式 3)
+
+**模式 3 · write-time** · `skills/docs-cockpit-author/SKILL.md` 加四章:
+- §3.1 重写(alpha.8) · cover v0.11 subtask object schema + id 算法 + title-is-identity tradeoff + 3 种 form
+- §10 / §10.1 / §10.2 · prompt template + ChoiceLoader 寻找顺序 + context vars stability contract
+- §11 · Writing module MD with AI assistance · 5 步标准流程(读 plan body · 拆 subtask · 填精准 code/docs anchor · self-check)
+- §12 · Cross-module / cross-doc consistency self-check
+
+**模式 2 · on-demand** · split-view 顶部「Refine with AI」按钮:
+- `docs_cockpit/templates/prompts/refine.md.j2` · module 完整 frontmatter + ALL subtasks + ALL linked docs(summary cap 5000 chars · 比 single subtask 2000 更宽)+ 检查 anchor 精度指令
+- **caller-aware execution mode** · refine prompt 顶部「执行模式 · 二选一」· A=Claude Code 直接 Edit · B=浏览器 LLM 输出 YAML patch · 副驾不让用户复制粘贴
+- 走 `prompts-refine.js` sidecar · click 复制 module 级 refine prompt
+
+### Added · 测试基础 + CI matrix(plan-eng-review 4A)
+
+- `pyproject.toml` 加 `[project.optional-dependencies] dev = ["pytest>=7", "pytest-cov>=4"]`
+- `tests/unit/test_schema.py` + `tests/unit/test_paths.py` + `tests/unit/test_prompt.py` + `tests/integration/test_cli_v011.py` · 118 unit + 10 integration tests
+- `.github/workflows/test.yml` · 3 Python (3.10/3.11/3.12) × 3 OS (Ubuntu/macOS/Windows) = 9 cells · 测 Windows backslash + macOS fs case sensitivity + Linux utf-8
+
+### Changed · 模块化 refactor(plan-eng-review 1A · Step 1)
+
+- `docs_cockpit/build.py` 从 1201 行 → 575 行(-52%)· 拆 `schema.py` / `paths.py` / `cli.py` 三个模块
+- `build.py` 仍 re-export 全部老 API · 外部 `from docs_cockpit.build import validate_meta` 这类老 import 全部 work · `pyproject.toml entry-point` 不动
+
+### Schema · state.json 新字段(向后兼容)
+
+- `modules[].subtasks[].id` · sha1 衍生稳定 id
+- `modules[].subtasks[].status` · not-started / in-progress / done / blocked
+- `modules[].subtasks[].code_anchors[]` · 完整 anchor entry(path / lines / resolved / preview / vscode_url / warning)
+- `modules[].subtasks[].doc_anchors[]` (alpha.8) · `{raw, path, lines, heading, title, resolved, content, mtime, warning}`
+- `modules[].systemDocs[*]` · content / mtime / exists 字段(alpha.6 split-view 用)
+
+老 state.json 没新字段不影响读 · downstream `docs-cockpit-standup` / `docs-cockpit-portfolio` 老逻辑全部 work。
+
+### Migration
+
+无需手工迁移:
+- `docs-cockpit upgrade` 拿 0.11.0 + 自动 plugin cache 失效 + 重启提示
+- 老 `docs-cockpit.yaml` / `subtasks: list[str]` 全部继续 work
+- 一键升级 subtasks schema:`docs-cockpit migrate-subtasks <file> --apply`
+- localStorage 旧 subtask key(`M02__st0` 等 index-based · alpha.5 自动迁移)
+
+### Known limitations / v0.12 候选
+
+- **W2 LLM 文档优化器**(`docs-cockpit suggest`) · 自动改写用户 MD 的 prompt 生成 · 延后
+- **MCP server**(模式 1) · 让 Claude 直接消费 cockpit prompt(替代 copy-paste) · 延后
+- **`docs-cockpit apply-patch`** · 把 Claude 输出的 frontmatter patch 自动落回 MD · 延后
+- **`docs-cockpit sync-status`** · localStorage state.json 合并回 MD · 延后
+- subtask docs anchor 行号高亮(`path:88-100` 切 13 行 · 没有「整 doc 渲染 + 高亮 88-100」模式 · 因为 line→DOM 映射 unreliable) · 不计划做
+
+### Acknowledgements
+
+dogfood 验证全程跑在 docs-cockpit 自己 repo 上:6 module 自身切分 + 8 个 alpha 每个 build 验证(M01 build engine / M02 CLI / M03 plugin / M04 author skill / M05 portfolio / M06 browse reader)。alpha.5 的 frontend stable-id 修复完全是用户截图「没变化啊」启发 · alpha.7 的 caller-aware refine 模板源于用户「为什么修改了驾驶舱没啥变化」 · alpha.8 的 subtask doc_anchors UI 同样源于「数据全在 UI 不渲染」。dogfood 是 driver-seat 的核心 forcing function。
+
 ## [0.11.0-alpha.8] · 2026-05-19
 
 补 v0.11 driver-seat 的最后一个 UI 缺口 · subtask 级 `code:` / `docs:` anchor 终于在 dashboard 里能看见、能点、能跳。alpha.6 split-view 接通了数据 · alpha.7 接通了 AI · 但 anchor 字段一直只 surface 第一条 code · subtask 级 docs 完全 invisible · 导致用户 refine 完看不到反馈。

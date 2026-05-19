@@ -4,7 +4,7 @@
 
 [![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](pyproject.toml)
-[![CHANGELOG](https://img.shields.io/badge/CHANGELOG-0.10.0-green.svg)](CHANGELOG.md)
+[![CHANGELOG](https://img.shields.io/badge/CHANGELOG-0.11.0-green.svg)](CHANGELOG.md)
 [![PRs welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](#contributing)
 
 > **Open-source MIT-licensed project. Issues + PRs welcome.**
@@ -12,6 +12,8 @@
 A project dashboard for your AI coding agent. Turn any folder of project markdown files (modules, concepts, plans, RFCs, specs) into a single-HTML **Kanban dashboard** + **tree-sidebar reader** you open with `file://`. Frontmatter-driven, schema-validated, AI-agent-native.
 
 > Your AI agent stops asking "what frontmatter should I use?" — docs-cockpit ships the canonical spec as a skill, the validator that enforces it, and a copy-prompt CTA that hands AI the right context to write the next plan / RFC / spec for you. Multi-project users get a portfolio registry + weekly snapshot diff so one command produces a cross-project weekly report.
+
+> **What's new in 0.11.0 · driver-seat** · v0.11 upgrades docs-cockpit from a **project status visualizer** to an **AI co-pilot cockpit**. Subtask becomes a first-class entity with stable sha1-derived id + per-subtask `code:` / `docs:` anchors. The dashboard opens a **split-view** for each module — left navigator shows subtask checklist with multi-anchor buttons (chevron per code anchor + doc icon per doc anchor), right pane renders marked.js slice of the targeted file/heading/lines. Click **Copy prompt** on any subtask to get a Jinja2-rendered prompt with module / subtask / linked docs / code anchor preview baked in — paste into Claude Code / Cursor / Codex to execute that subtask. Click **Refine with AI** on the module to have your agent audit anchor precision and either apply a YAML patch directly (Claude Code · Cursor · Codex CLI · caller-aware mode A) or output the patch for copy-paste (browser-only LLM · mode B). Plus a `docs-cockpit migrate-subtasks` CLI for v0.10 → v0.11 schema upgrade, 118 unit tests + 9-cell CI matrix (3 Python × 3 OS), and HP-blue design token sweep. Full details in [CHANGELOG `[0.11.0]`](CHANGELOG.md#0110--2026-05-19).
 
 ## Quickstart
 

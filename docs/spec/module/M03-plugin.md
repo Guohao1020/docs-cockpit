@@ -2,9 +2,9 @@
 id: M03
 type: module
 title: "Claude Code Plugin"
-status: in-progress
+status: done
 sprint: "0.11"
-progress: 85
+progress: 100
 desc: "Claude Code plugin · 4 skills + 8 commands · marketplace 分发 · bootstrap CLI"
 owner: harvey
 prd_ref: "v0.11 driver-seat plan §11 Step 3"
@@ -13,6 +13,7 @@ docs:
   - { title: "v0.11 driver-seat plan", path: "docs/plans/P-v0.11-driver-seat.md" }
 depends_on: [M02, M04]
 blocks: []
+manualProgress: true   # 0.11 sprint 工作全 done · v0.12 候选项不计入分母
 ---
 
 # M03 · Claude Code Plugin
@@ -54,5 +55,5 @@ commands/
 - [x] First-build bootstrap(uv tool / pipx / pip --user 优先级) @code:skills/docs-cockpit/SKILL.md:149-179 @docs:CLAUDE.md:109-114
 - [x] docs-cockpit upgrade 原子升级(plugin cache 失效 + 重启提示) @code:docs_cockpit/upgrade.py:211-350 @code:docs_cockpit/upgrade.py:193-209 @code:docs_cockpit/upgrade.py:120-133 @docs:skills/docs-cockpit/SKILL.md:124-147 @docs:CLAUDE.md:148
 - [x] v0.11 skill section · prompt scaffolding 触发条件 + CLI 用法 @code:skills/docs-cockpit/SKILL.md:37-122 @docs:docs/plans/P-v0.11-driver-seat.md#§6.2 @docs:docs/plans/P-v0.11-driver-seat.md:566-577 @docs:docs/plans/P-v0.11-driver-seat.md:367
-- [ ] v0.11 plugin.json + marketplace.json + __init__.py + CHANGELOG 4 文件 version bump @code:.claude-plugin/plugin.json @code:.claude-plugin/marketplace.json @code:docs_cockpit/__init__.py:7 @code:CHANGELOG.md @docs:CLAUDE.md:42-54 @docs:docs/plans/P-v0.11-driver-seat.md:579-584
-- [ ] v0.12 候选 · MCP server · 让 Claude 直连消费 cockpit prompt(替代 copy-paste) @docs:docs/plans/P-v0.11-driver-seat.md:586-590 @docs:docs/plans/P-v0.11-driver-seat.md:40 @docs:docs/plans/P-v0.11-driver-seat.md:81
+- [x] v0.11 plugin.json + marketplace.json + __init__.py + CHANGELOG 4 文件 version bump @code:.claude-plugin/plugin.json @code:.claude-plugin/marketplace.json @code:docs_cockpit/__init__.py:7 @code:CHANGELOG.md @docs:CLAUDE.md:42-54 @docs:docs/plans/P-v0.11-driver-seat.md:579-584
+- [ ] v0.12 候选 · MCP server · 让 Claude 直连消费 cockpit prompt(替代 copy-paste · **deferred to v0.12** · 不计入 0.11 sprint) @docs:docs/plans/P-v0.11-driver-seat.md:586-590 @docs:docs/plans/P-v0.11-driver-seat.md:40 @docs:docs/plans/P-v0.11-driver-seat.md:81
