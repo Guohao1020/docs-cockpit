@@ -4,6 +4,43 @@
 
 ## [Unreleased] · v0.13 sprint kickoff
 
+## [0.12.2] · 2026-05-19
+
+修 dashboard hero eyebrow 不会随 release 更新的 dogfood 老 bug · 加 `{version}` / `{build_time}` 模板替换。
+
+### Why · 用户截图反馈「版本号没有实时更新」
+
+dashboard 顶头 `eyebrow` 字段是 yaml 写死的字符串 · v0.10 时候用户写「DOGFOOD · v0.11 PREP」· 之后 v0.11 → v0.12 → v0.13 跨 6 个 release 都没人手动更新它 · 一直显「v0.11 PREP」误导观感。
+
+### Added · build-time placeholder · `{version}` + `{build_time}`
+
+`docs_cockpit/build.py::build_payload` 加 `_expand_project_str` helper · 对 `project.eyebrow` / `project.tagline` 做替换:
+
+| Placeholder | 替换值 |
+|---|---|
+| `{version}` | CLI `docs_cockpit.__version__` |
+| `{build_time}` | 本次 build 的 `YYYY-MM-DD HH:MM` |
+
+不破坏现有 yaml(没 placeholder 的字符串原样过 · 走 short-circuit `if "{" not in s: return s`)。
+
+### Changed · `docs-cockpit.yaml` 走 placeholder
+
+dogfood yaml 改成 `eyebrow: "DOGFOOD · v{version}"` · 升 0.13 / 0.14 / 1.0 都不用手改。
+
+### Not changed
+
+- 不动 schema / 不动 SKILL.md / 不动 CLI 接口 → 走 patch 不走 minor
+- 不动 system_docs path expansion(那走另一条 `_expand` · vars dict)· 新 helper 只跑 project 字段子集
+- 老 yaml 没有 `{...}` placeholder 一字不动地继续 work
+
+### Verified
+
+- dogfood build · eyebrow 从「DOGFOOD · v0.11 PREP」→「DOGFOOD · v0.12.2」
+- 老 yaml 没 placeholder 的 case · 跑完 eyebrow 一字不动(短路返回)
+- 198 tests 全过 · 0 回归
+
+
+
 v0.13 主题:**DX polish · schema 一致性 · 边界场景**。不引大功能 · 清光 v0.11/v0.12 dogfood 累积的 4 类 maintenance debt。Plan: `docs/plans/P-v0.13-polish-and-edges.md`。
 
 ### Sprint backlog seeded(模块 stub · 待实施)

@@ -302,11 +302,23 @@ def build_payload(
     ranges = {k: tuple(v) for k, v in ranges_cfg.items()}
 
     # Project meta(含 build_time → lastBuild)
+    # 0.12.2 · `{version}` / `{build_time}` placeholder · eyebrow / tagline
+    # 编译时替换 · 让 yaml 写 "DOGFOOD · v{version}" 等模板字符串 ·
+    # 升 version 之后 dashboard 自动跟着走 · 不用每个 release 手动改 yaml
+    from . import __version__ as _cli_version
+
+    def _expand_project_str(s: str) -> str:
+        if not isinstance(s, str) or "{" not in s:
+            return s
+        return s.replace("{version}", _cli_version).replace(
+            "{build_time}", build_time
+        )
+
     project = config.get("project", {}) or {}
     payload_project = {
         "name": project.get("name") or "MyProject",
-        "tagline": project.get("tagline") or "",
-        "eyebrow": project.get("eyebrow") or "",
+        "tagline": _expand_project_str(project.get("tagline") or ""),
+        "eyebrow": _expand_project_str(project.get("eyebrow") or ""),
         "mark": (project.get("mark") or project.get("glyph") or "·"),
         "lastBuild": build_time,
     }

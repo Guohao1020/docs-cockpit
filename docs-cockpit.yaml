@@ -14,7 +14,8 @@ project:
   name: docs-cockpit
   mark: D
   tagline: "YAML-frontmatter 驱动的项目 Kanban · CLI + Claude Code plugin 双形态"
-  eyebrow: "DOGFOOD · v0.11 PREP"
+  # 0.12.2 · {version} placeholder · build 时替换为 CLI __version__ · 跟着 release 自动走
+  eyebrow: "DOGFOOD · v{version}"
   output: docs/index.html
 
 paths:
