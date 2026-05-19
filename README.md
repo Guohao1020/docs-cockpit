@@ -4,16 +4,26 @@
 
 [![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](pyproject.toml)
-[![CHANGELOG](https://img.shields.io/badge/CHANGELOG-0.11.0-green.svg)](CHANGELOG.md)
+[![CHANGELOG](https://img.shields.io/badge/CHANGELOG-0.14.3-green.svg)](CHANGELOG.md)
 [![PRs welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](#contributing)
 
 > **Open-source MIT-licensed project. Issues + PRs welcome.**
+> **Landing page:** <https://guohao1020.github.io/docs-cockpit/>
 
-A project dashboard for your AI coding agent. Turn any folder of project markdown files (modules, concepts, plans, RFCs, specs) into a single-HTML **Kanban dashboard** + **tree-sidebar reader** you open with `file://`. Frontmatter-driven, schema-validated, AI-agent-native.
+A project cockpit for AI-coding agents. Turn any folder of project markdown files (modules, concepts, plans, RFCs, specs) into a single-HTML **Kanban dashboard** + **Backlog view** + **tree-sidebar reader** you open with `file://`. Frontmatter-driven, schema-validated, AI-agent-native. **Claude Code · Cursor · Codex CLI · Continue** all connect via the MCP server.
 
-> Your AI agent stops asking "what frontmatter should I use?" — docs-cockpit ships the canonical spec as a skill, the validator that enforces it, and a copy-prompt CTA that hands AI the right context to write the next plan / RFC / spec for you. Multi-project users get a portfolio registry + weekly snapshot diff so one command produces a cross-project weekly report.
+> Your AI agent stops asking "what frontmatter should I use?" — docs-cockpit ships the canonical spec as a skill, the validator that enforces it, and a copy-prompt CTA that hands AI the right context to write the next plan / RFC / spec / module subtask for you. Multi-project users get a portfolio registry + weekly snapshot diff so one command produces a cross-project weekly report.
 
-> **What's new in 0.11.0 · driver-seat** · v0.11 upgrades docs-cockpit from a **project status visualizer** to an **AI co-pilot cockpit**. Subtask becomes a first-class entity with stable sha1-derived id + per-subtask `code:` / `docs:` anchors. The dashboard opens a **split-view** for each module — left navigator shows subtask checklist with multi-anchor buttons (chevron per code anchor + doc icon per doc anchor), right pane renders marked.js slice of the targeted file/heading/lines. Click **Copy prompt** on any subtask to get a Jinja2-rendered prompt with module / subtask / linked docs / code anchor preview baked in — paste into Claude Code / Cursor / Codex to execute that subtask. Click **Refine with AI** on the module to have your agent audit anchor precision and either apply a YAML patch directly (Claude Code · Cursor · Codex CLI · caller-aware mode A) or output the patch for copy-paste (browser-only LLM · mode B). Plus a `docs-cockpit migrate-subtasks` CLI for v0.10 → v0.11 schema upgrade, 118 unit tests + 9-cell CI matrix (3 Python × 3 OS), and HP-blue design token sweep. Full details in [CHANGELOG `[0.11.0]`](CHANGELOG.md#0110--2026-05-19).
+### What's new — v0.11 → v0.14 (driver-seat narrative)
+
+| Version | Theme | Headline |
+|---|---|---|
+| **0.11** | driver-seat | Subtask first-class · split-view UI · Copy-prompt button · author skill §11/§12 |
+| **0.12** | mode 1 wired | **MCP server** (Claude / Cursor / Codex direct) · `apply-patch` · `sync-status` · `suggest` CLIs |
+| **0.13** | polish | `code_anchors.path_only` clean fields · parser accepts `## §N · 待办` / `### TODO` · `--from-browser` Firefox · CSS specificity audit |
+| **0.14** | batch driver | `#/backlog` flat subtask view + time/sprint/status/search filters · multi-select + shift-click range · **`prompt --bundle`** cohesion-scored aggregate prompt |
+
+Current: **`0.14.3` · 17/17 modules / 100% done (dogfood)**. Full timeline in [CHANGELOG.md](CHANGELOG.md).
 
 ## Quickstart
 
@@ -48,16 +58,40 @@ For multi-project users, a **user-level registry** (`~/.docs-cockpit/projects.ya
 
 That's the whole install. The plugin will check for the `docs-cockpit` Python runtime on first build and bootstrap it transparently (via `uv` / `pipx` / `pip` — whichever is on your machine) before doing anything else. Python 3.10+ is the only thing you need on PATH; everything else is handled.
 
+For the MCP server (Claude Code / Cursor / Codex CLI direct integration · v0.12+), install the optional `[mcp]` extra:
+
+```bash
+pip install 'docs-cockpit[mcp]'                       # or
+uv tool install --with mcp docs-cockpit
+```
+
+The plugin's `plugin.json` auto-registers the MCP server with Claude Code — restart and the three endpoints (`cockpit_prompt` / `cockpit_apply_patch` tools + `cockpit://state` resource) surface in the MCP tools list. For Cursor / Codex / Continue wiring, see [`references/mcp_clients.md`](references/mcp_clients.md).
+
 Once installed, the plugin gives you:
 
 ```
-/docs-cockpit:build       # generate dashboard
+/docs-cockpit:build       # generate dashboard + Backlog view + sidecars
 /docs-cockpit:browse      # generate tree-sidebar MD reader
 /docs-cockpit:migrate     # legacy-layout migration
 /docs-cockpit:status      # standup-style status report (single project)
 /docs-cockpit:weekly      # multi-project weekly report (cross-project diff)
 /docs-cockpit:lint        # validate frontmatter against the author spec
 /docs-cockpit:update      # upgrade docs-cockpit itself
+```
+
+And these CLI subcommands (run from terminal):
+
+```
+docs-cockpit build                              # → docs/index.html (+ state.json, prompts.js, bundle-meta.js)
+docs-cockpit prompt M07 M07-f75501              # single-subtask prompt → clipboard
+docs-cockpit prompt --bundle M07-A,M07-B,M11-X  # bundle prompt (v0.14+) · cohesion-scored aggregate
+docs-cockpit apply-patch <md> < patch.yaml      # LLM YAML patch → MD merge (v0.12+) · dry-run-first
+docs-cockpit sync-status --import overrides.json   # dashboard ticks → MD (v0.12+) · --from-browser firefox
+docs-cockpit suggest M07 --strict               # LLM soft-recommendation prompts (v0.12+) · CI-friendly
+docs-cockpit mcp-serve                          # stdio MCP server (v0.12+) · for Cursor / Codex / Continue
+docs-cockpit migrate-subtasks <md> --apply      # v0.10 → v0.11 subtask schema upgrade
+docs-cockpit portfolio add / list / snapshot    # multi-project registry + weekly diff (v0.10+)
+docs-cockpit upgrade                            # atomic version bump + plugin cache clear
 ```
 
 Plus 4 auto-triggered skills (you don't invoke these — your agent decides when to use them):
@@ -103,16 +137,38 @@ If you're packaging docs-cockpit for one of these, open an issue or PR.
 
 ### Dashboard features
 
-- **Module Kanban** — 5 status columns · click a card → drawer with desc / status select / progress slider / subtask checklist / linked docs · localStorage-persisted overrides
+- **Module Kanban** — 5 status columns · click a card → split-view drawer with desc / status select / progress slider / subtask checklist (with per-subtask multi-anchor buttons + Copy prompt) / linked docs · localStorage-persisted overrides with build-time-aware invalidation
 - **Sprint Timeline** — modules grouped by sprint with avg %
+- **Backlog view (v0.14+)** — `#/backlog` hash route · flat cross-module subtask list · 4-axis filter (time / sprint / status / search) · URL state codec for shareable links
+- **Multi-select bundle (v0.14+)** — checkboxes per subtask · shift-click range · "Select all visible" · quick-add by status · floating bar with cohesion verdict → Copy bundle prompt (CLI command) → terminal runs `docs-cockpit prompt --bundle <ids>`
+- **Refine with AI button (v0.11+)** — per module · copies refinement prompt that asks the AI to audit anchor precision · caller-aware mode (Claude Code edits directly · browser-only LLM outputs YAML patch)
 - **Concept Grid** + **System Docs Drawer** — curated entries (CLAUDE.md / PRD / DESIGN / RFC / memory / roadmap) one click away
-- **Auto body extraction** — `## 待办` / `## TODO` → subtasks · `## Related` / `## 关联` → `docs:`
-- **Inline MD preview in drawer** — click a linked doc · marked.js + highlight.js render inside the drawer · "Back to module" returns to the card view
+- **Auto body extraction** — `## 待办` / `## TODO` / `## §N · 待办` (v0.13+) → subtasks · `## Related` / `## 关联` → `docs:`
+- **Inline MD preview** — click a linked doc / code anchor / doc anchor · marked.js + highlight.js render in right pane · slice info badge shows `📍 Showing lines X-Y of <file>`
 - **Empty-docs Copy-Prompt CTA** — `Plan` / `RFC` / `Spec` tabs · inline prompt preview · one Copy button · paste into your AI agent
 - **needs-docs kanban chip** — active modules without docs are flagged on the card
 - **Frontmatter validator** — `error` / `warn` / `hint` issues with fix suggestions, every one references a section of `docs-cockpit-author`
-- **Bilingual UI** — `[EN] [中]` toggle in topbar · default EN · localStorage persists
+- **Bilingual UI** — `[EN] [中]` toggle in topbar · localStorage persists
 - **Tree-sidebar MD browser** (via `browse`) — sidebar mirrors directory layout · search + collapse + last-viewed memory · marked.js + highlight.js render
+
+### MCP server (v0.12+) · `docs-cockpit mcp-serve`
+
+Anthropic official `mcp` SDK · stdio transport. Three endpoints any MCP-aware client (Claude Code · Cursor · Codex CLI · Continue) can use:
+
+| Endpoint | Type | What it does |
+|---|---|---|
+| `cockpit_prompt(module_id, subtask_id?, template?)` | tool | Render single-subtask prompt (same as `docs-cockpit prompt` CLI) |
+| `cockpit_apply_patch(yaml_patch, module_id, apply?)` | tool | Merge LLM YAML patch back to MD · dry-run-first · `.bak` backup |
+| `cockpit://state` | resource | Full `state.json` payload (modules + subtasks + concepts + issues) |
+
+Wiring per client: [`references/mcp_clients.md`](references/mcp_clients.md).
+
+### Schema closure (v0.12+) · backed by 4 CLIs
+
+- `prompt --bundle` (v0.14) renders aggregate prompt for N subtasks · `docs/bundle-meta.js` sidecar precomputes pairwise cohesion / conflict
+- `apply-patch` (v0.12 · M08) parses LLM YAML output · merges into MD frontmatter OR body checklist · whitelist fields (`status` / `code` / `docs` / `desc`) drop everything else
+- `sync-status` (v0.12 · M09) reverses dashboard ticks → MD source · Firefox SQLite reader (`--from-browser firefox`) · Chrome stub points to Export workflow
+- `suggest` (v0.12 · M10) LLM soft-recommendation prompts · 4 templates (`desc-rewrite` / `subtask-recompose` / `anchor-completeness` / `cross-doc-consistency`) · `--strict` for CI
 
 ### Cross-project portfolio (0.10.0+)
 
@@ -224,6 +280,10 @@ MIT — see [LICENSE](LICENSE).
 
 ## Community
 
-- Issues: <https://github.com/Guohao1020/docs-cockpit/issues>
-- Release notes: [CHANGELOG.md](CHANGELOG.md)
-- Architecture overview for contributors: [CLAUDE.md](CLAUDE.md)
+- **Landing page:** <https://guohao1020.github.io/docs-cockpit/>
+- **Issues:** <https://github.com/Guohao1020/docs-cockpit/issues>
+- **Release notes:** [CHANGELOG.md](CHANGELOG.md)
+- **Architecture overview for contributors:** [CLAUDE.md](CLAUDE.md)
+- **MCP client wiring:** [`references/mcp_clients.md`](references/mcp_clients.md)
+- **Sync workflow:** [`references/sync_status_workflow.md`](references/sync_status_workflow.md)
+- **Author skill (frontmatter SSOT):** [`skills/docs-cockpit-author/SKILL.md`](skills/docs-cockpit-author/SKILL.md)

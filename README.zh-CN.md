@@ -4,14 +4,26 @@
 
 [![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](pyproject.toml)
-[![CHANGELOG](https://img.shields.io/badge/CHANGELOG-0.10.0-green.svg)](CHANGELOG.md)
+[![CHANGELOG](https://img.shields.io/badge/CHANGELOG-0.14.3-green.svg)](CHANGELOG.md)
 [![PRs welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](#贡献)
 
 > **MIT 协议开源项目 · 欢迎提 Issues + PR。**
+> **落地页:** <https://guohao1020.github.io/docs-cockpit/>
 
-给你的 AI 编程助手装一个项目看板。把任意文件夹里的项目 markdown(模块 / 概念 / 计划 / RFC / 接口规范)聚合成单文件 HTML 的 **Kanban 看板** + **树形侧边栏阅读器**,浏览器 `file://` 直接打开。Frontmatter 驱动 · 内置 schema 校验 · 原生 AI 协作。
+给你的 AI 编程助手装一个项目驾驶舱。把任意文件夹里的项目 markdown(模块 / 概念 / 计划 / RFC / 接口规范)聚合成单文件 HTML 的 **Kanban 看板** + **Backlog 跨模块视图** + **树形侧边栏阅读器**,浏览器 `file://` 直接打开。Frontmatter 驱动 · 内置 schema 校验 · 原生 AI 协作。**Claude Code · Cursor · Codex CLI · Continue** 通过 MCP server 直连。
 
-> AI 不再每次问"该用什么 frontmatter" —— docs-cockpit 把规范以 skill 形式打包发布,把校验器内置到 build,把"复制提示词"做成抽屉里的 CTA,让 AI 拿着完整上下文替你写下一份 plan / RFC / spec。多项目用户还能用 portfolio 注册表 + 周快照机制,一条命令出跨项目周报。
+> AI 不再每次问"该用什么 frontmatter" —— docs-cockpit 把规范以 skill 形式打包发布,把校验器内置到 build,把"复制提示词"做成抽屉里的 CTA,让 AI 拿着完整上下文替你写下一份 plan / RFC / spec / module 子任务。多项目用户还能用 portfolio 注册表 + 周快照机制,一条命令出跨项目周报。
+
+### v0.11 → v0.14 时间线(driver-seat 叙事)
+
+| 版本 | 主题 | 一句话 |
+|---|---|---|
+| **0.11** | driver-seat | Subtask 一等公民 · split-view 二级页面 · Copy prompt 按钮 · author skill §11/§12 |
+| **0.12** | 模式 1 接通 | **MCP server**(Claude / Cursor / Codex 直连)· `apply-patch` / `sync-status` / `suggest` 3 个 CLI |
+| **0.13** | polish 收尾 | `code_anchors.path_only` clean 字段 · parser 接受 `## §N · 待办` / `### TODO` · `--from-browser` Firefox · CSS specificity audit |
+| **0.14** | 批量驾驶舱 | `#/backlog` 跨模块扁平视图 + 时间/版本/状态/搜索 4 维筛选 · 多选 + shift-click 范围 · **`prompt --bundle`** cohesion 评分聚合 prompt |
+
+当前:**`0.14.3` · 17/17 模块 · overall 100%(dogfood)**。完整时间线见 [CHANGELOG.md](CHANGELOG.md)。
 
 ## Quickstart
 
@@ -46,16 +58,40 @@
 
 这就是全部安装。插件在第一次 build 时会自动检测你机器上是否有 `docs-cockpit` Python runtime · 没有就用 `uv` / `pipx` / `pip`(看你机器上有谁)透明地 bootstrap 一份 —— 你 PATH 上只需要有 Python 3.10+,其他都由插件自己安排。
 
+要用 MCP server(Claude Code / Cursor / Codex CLI 直连 · v0.12+)· 装可选 `[mcp]` extra:
+
+```bash
+pip install 'docs-cockpit[mcp]'                       # 或
+uv tool install --with mcp docs-cockpit
+```
+
+插件 `plugin.json` 自动给 Claude Code 注册 MCP server —— 重启即可在 MCP 工具列表看到三个 endpoint(`cockpit_prompt` / `cockpit_apply_patch` tool + `cockpit://state` resource)。Cursor / Codex / Continue 接线说明见 [`references/mcp_clients.md`](references/mcp_clients.md)。
+
 装完后,你就得到了:
 
 ```
-/docs-cockpit:build       生成看板
+/docs-cockpit:build       生成看板 + Backlog + sidecar
 /docs-cockpit:browse      生成树形侧边栏 MD 阅读器
 /docs-cockpit:migrate     老项目布局迁移
 /docs-cockpit:status      standup 风格状态报告(单项目)
 /docs-cockpit:weekly      多项目周报(含跨项目周差异)
 /docs-cockpit:lint        按 author 规范校验 frontmatter
 /docs-cockpit:update      升级 docs-cockpit 自身
+```
+
+外加 CLI 子命令(终端跑):
+
+```
+docs-cockpit build                              → docs/index.html (+ state.json, prompts.js, bundle-meta.js)
+docs-cockpit prompt M07 M07-f75501              单 subtask prompt → 剪贴板
+docs-cockpit prompt --bundle M07-A,M07-B,M11-X  bundle prompt(v0.14+)· cohesion 评分聚合
+docs-cockpit apply-patch <md> < patch.yaml      LLM YAML patch 落回 MD(v0.12+)· dry-run-first + .bak
+docs-cockpit sync-status --import overrides.json   dashboard 勾选反向同步到 MD(v0.12+)· 支持 --from-browser firefox
+docs-cockpit suggest M07 --strict               LLM 软建议 prompt(v0.12+)· CI 用
+docs-cockpit mcp-serve                          stdio MCP server(v0.12+)· 给 Cursor/Codex/Continue 接
+docs-cockpit migrate-subtasks <md> --apply      v0.10 → v0.11 subtask schema 升级
+docs-cockpit portfolio add / list / snapshot    多项目注册表 + 周快照(v0.10+)
+docs-cockpit upgrade                            原子升级 + plugin cache 清空
 ```
 
 外加 4 个自动触发的 skill(你不需要主动调,AI 自己判断什么时候用):
@@ -101,16 +137,38 @@ Codex CLI · Codex App · Factory Droid · Gemini CLI · OpenCode · Cursor · G
 
 ### 看板功能
 
-- **模块 Kanban** —— 5 列状态 · 点卡片 → 抽屉显示 desc / status 选择器 / progress 滑块 / 子任务清单 / 关联文档 · localStorage 持久化覆盖
+- **模块 Kanban** —— 5 列状态 · 点卡片 → split-view 抽屉显示 desc / status 选择器 / progress 滑块 / 子任务清单(每条 subtask 多 anchor 按钮 + Copy prompt)/ 关联文档 · localStorage 持久化 + build-time-aware 自动失效
 - **Sprint Timeline** —— 模块按 sprint 分组 + 平均进度
+- **Backlog 视图(v0.14+)** —— `#/backlog` hash route · 跨模块扁平 subtask 清单 · 4 维筛选(时间 / 版本 / 状态 / 搜索)· URL state codec · 可分享链接
+- **多选 bundle(v0.14+)** —— 每 subtask 一个 checkbox · shift-click 范围选 · "全选当前" · 按状态快速加 · 底部 floating bar 显 cohesion verdict → Copy bundle prompt(CLI 命令)→ 终端跑 `docs-cockpit prompt --bundle <ids>`
+- **Refine with AI 按钮(v0.11+)** —— 每 module · 复制 refinement prompt 让 AI 审计 anchor 精度 · caller-aware mode(Claude Code 直接 Edit · 浏览器 LLM 输出 YAML patch)
 - **Concept Grid** + **System Docs 抽屉** —— 精挑的系统级文档(CLAUDE.md / PRD / DESIGN / RFC / memory / roadmap)一键直达
-- **Body 自动抽取** —— `## 待办` / `## TODO` → subtasks · `## 关联` / `## Related` → `docs:`
-- **抽屉内联 MD 预览** —— 点关联文档 · marked.js + highlight.js 在抽屉里直接渲染 · "返回模块" 一键回卡片
+- **Body 自动抽取** —— `## 待办` / `## TODO` / `## §N · 待办`(v0.13+)→ subtasks · `## 关联` / `## Related` → `docs:`
+- **抽屉内联 MD 预览** —— 点关联文档 / code anchor / doc anchor · marked.js + highlight.js 在右栏渲染 · slice 信息徽章显「📍 Showing lines X-Y of <file>」
 - **空 docs · 复制提示词 CTA** —— `Plan` / `RFC` / `Spec` 三个 tab · 提示词原文展示 · 单 Copy 按钮 · 粘贴到你的 AI 助手
-- **needs-docs kanban chip** —— active 状态但无 docs 的模块卡片右上挂 amber chip · 一眼看出谁要补
+- **needs-docs kanban chip** —— active 状态但无 docs 的模块卡片右上挂 amber chip
 - **Frontmatter 校验器** —— 结构化 `error` / `warn` / `hint` · 含修法建议 + 规范引用 · 每条都指向 `docs-cockpit-author` 的具体段落
-- **双语 UI** —— 顶栏 `[EN] [中]` 切换 · 默认 EN · localStorage 持久化
+- **双语 UI** —— 顶栏 `[EN] [中]` 切换 · localStorage 持久化
 - **树形浏览器**(`browse`) —— 侧边栏镜像目录结构 · 搜索 + 折叠 + 上次查看记忆 · marked.js + highlight.js 渲染
+
+### MCP server(v0.12+)· `docs-cockpit mcp-serve`
+
+Anthropic 官方 `mcp` SDK · stdio transport。三个 endpoint · 任何 MCP-aware 客户端(Claude Code · Cursor · Codex CLI · Continue)都能用:
+
+| Endpoint | 类型 | 干什么 |
+|---|---|---|
+| `cockpit_prompt(module_id, subtask_id?, template?)` | tool | 渲染单 subtask prompt(等同 `docs-cockpit prompt` CLI) |
+| `cockpit_apply_patch(yaml_patch, module_id, apply?)` | tool | LLM YAML patch merge 回 MD · dry-run-first · `.bak` 备份 |
+| `cockpit://state` | resource | 完整 `state.json` payload(modules + subtasks + concepts + issues) |
+
+各客户端接线步骤:[`references/mcp_clients.md`](references/mcp_clients.md)。
+
+### Schema 闭环(v0.12+)· 4 个 CLI 配合
+
+- `prompt --bundle`(v0.14)· N subtask 聚合 prompt · `docs/bundle-meta.js` sidecar 预算 pairwise cohesion / conflict
+- `apply-patch`(v0.12 · M08)· 解析 LLM YAML 输出 · merge 到 MD frontmatter 或 body checklist · 白名单字段(`status` / `code` / `docs` / `desc`)其它一律 drop
+- `sync-status`(v0.12 · M09)· dashboard 勾选反向同步到 MD · Firefox SQLite reader(`--from-browser firefox`)· Chrome stub 指向 Export workflow
+- `suggest`(v0.12 · M10)· LLM 软建议 prompt · 4 template(`desc-rewrite` / `subtask-recompose` / `anchor-completeness` / `cross-doc-consistency`)· `--strict` CI 用
 
 ### 跨项目 portfolio(0.10.0+)
 
@@ -222,6 +280,10 @@ MIT · 见 [LICENSE](LICENSE)。
 
 ## 社区
 
-- Issues: <https://github.com/Guohao1020/docs-cockpit/issues>
-- Release notes: [CHANGELOG.md](CHANGELOG.md)
-- 贡献者架构文档: [CLAUDE.md](CLAUDE.md)
+- **落地页:** <https://guohao1020.github.io/docs-cockpit/>
+- **Issues:** <https://github.com/Guohao1020/docs-cockpit/issues>
+- **Release notes:** [CHANGELOG.md](CHANGELOG.md)
+- **贡献者架构文档:** [CLAUDE.md](CLAUDE.md)
+- **MCP 客户端接线:** [`references/mcp_clients.md`](references/mcp_clients.md)
+- **Sync workflow:** [`references/sync_status_workflow.md`](references/sync_status_workflow.md)
+- **Author skill (frontmatter SSOT):** [`skills/docs-cockpit-author/SKILL.md`](skills/docs-cockpit-author/SKILL.md)
