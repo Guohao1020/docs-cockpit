@@ -49,10 +49,10 @@ commands/
 
 ## 3 · 待办
 
-- [x] v0.10 · 4 skills 全部在线 @code:skills/ @docs:CLAUDE.md:88-100 @docs:skills/docs-cockpit/SKILL.md:15-35
-- [x] v0.10 · 8 commands 全部在线 @code:commands/ @docs:CLAUDE.md:151-163
+- [x] v0.10 · 4 skills 全部在线 @code:skills/docs-cockpit/SKILL.md @code:skills/docs-cockpit-author/SKILL.md @code:skills/docs-cockpit-standup/SKILL.md @code:skills/docs-cockpit-portfolio/SKILL.md @docs:CLAUDE.md:88-100 @docs:skills/docs-cockpit/SKILL.md:15-35
+- [x] v0.10 · 8 commands 全部在线 @code:commands/build.md @code:commands/lint.md @code:commands/status.md @code:commands/migrate.md @code:commands/browse.md @code:commands/update.md @code:commands/weekly.md @docs:CLAUDE.md:158
 - [x] First-build bootstrap(uv tool / pipx / pip --user 优先级) @code:skills/docs-cockpit/SKILL.md:149-179 @docs:CLAUDE.md:109-114
 - [x] docs-cockpit upgrade 原子升级(plugin cache 失效 + 重启提示) @code:docs_cockpit/upgrade.py:211-350 @code:docs_cockpit/upgrade.py:193-209 @code:docs_cockpit/upgrade.py:120-133 @docs:skills/docs-cockpit/SKILL.md:124-147 @docs:CLAUDE.md:148
-- [x] v0.11 skill section · prompt scaffolding 触发条件 + CLI 用法 @code:skills/docs-cockpit/SKILL.md:37-122 @docs:docs/plans/P-v0.11-driver-seat.md#§6.2 @docs:docs/plans/P-v0.11-driver-seat.md:566-577
+- [x] v0.11 skill section · prompt scaffolding 触发条件 + CLI 用法 @code:skills/docs-cockpit/SKILL.md:37-122 @docs:docs/plans/P-v0.11-driver-seat.md#§6.2 @docs:docs/plans/P-v0.11-driver-seat.md:566-577 @docs:docs/plans/P-v0.11-driver-seat.md:367
 - [ ] v0.11 plugin.json + marketplace.json + __init__.py + CHANGELOG 4 文件 version bump @code:.claude-plugin/plugin.json @code:.claude-plugin/marketplace.json @code:docs_cockpit/__init__.py:7 @code:CHANGELOG.md @docs:CLAUDE.md:42-54 @docs:docs/plans/P-v0.11-driver-seat.md:579-584
-- [ ] v0.12 候选 · MCP server · 让 Claude 直连消费 cockpit prompt(替代 copy-paste) @docs:docs/plans/P-v0.11-driver-seat.md:586-590
+- [ ] v0.12 候选 · MCP server · 让 Claude 直连消费 cockpit prompt(替代 copy-paste) @docs:docs/plans/P-v0.11-driver-seat.md:586-590 @docs:docs/plans/P-v0.11-driver-seat.md:40 @docs:docs/plans/P-v0.11-driver-seat.md:81
