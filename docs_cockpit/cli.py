@@ -47,9 +47,11 @@ def main(argv: list[str] | None = None) -> int:
     build_p.set_defaults(func=cmd_build)
 
     # 0.9.0:lint 子命令 · 只校验不 build · 配合 docs-cockpit-author skill 使用
+    # 0.18.0(gap #3):lint = build 校验子集 · 跑跟 build 同款 issue collection ·
+    #                  只是不写 HTML / state.json · 加 --include / --exclude / --legacy-schema-only
     lint_p = sub.add_parser(
         "lint",
-        help="校验 frontmatter 是否符合 docs-cockpit-author 规范(不 build · CI / pre-commit 用)",
+        help="校验 frontmatter + body 是否符合 docs-cockpit-author 规范(不 build · CI / pre-commit 用)",
     )
     lint_p.add_argument("--config", "-c", default="docs-cockpit.yaml",
                        help="YAML 配置文件路径")
@@ -59,6 +61,18 @@ def main(argv: list[str] | None = None) -> int:
                        help="把 warning 也升级成 error(默认只 error 非零退出)")
     lint_p.add_argument("--prompts", action="store_true",
                        help="0.11.0-alpha.3 · 额外校验 prompt template syntax(Jinja2)+ user override 文件存在性")
+    lint_p.add_argument(
+        "--include", dest="include_categories", default=None,
+        help="0.18.0 · 只跑指定类别 lint(逗号分隔)· e.g. `frontmatter-schema,subtask-missing-anchors`",
+    )
+    lint_p.add_argument(
+        "--exclude", dest="exclude_categories", default=None,
+        help="0.18.0 · 跳过指定类别 lint(逗号分隔)· e.g. `--exclude doc-lang-mix,title-has-anchor`",
+    )
+    lint_p.add_argument(
+        "--legacy-schema-only", action="store_true",
+        help="0.18.0 · 回到 0.17 之前的行为 · 只跑 validate_meta(不跑 title / anchor lint)· CI 兼容兜底",
+    )
     lint_p.set_defaults(func=cmd_lint)
 
     init_p = sub.add_parser("init", help="生成最小可用配置模板")
@@ -185,6 +199,28 @@ def main(argv: list[str] | None = None) -> int:
     )
     from . import apply_patch as _apply_patch_mod
     ap_p.set_defaults(func=_apply_patch_mod.cmd_apply_patch)
+
+    # 0.18.0 gap #2 · apply-body-patch CLI · body checklist inline annotation 行级 edit
+    abp_p = sub.add_parser(
+        "apply-body-patch",
+        help="0.18.0 · 把 body checklist edit patch(add/replace/remove inline @code/@docs)落回 MD",
+    )
+    abp_p.add_argument(
+        "md_path",
+        help="目标 module MD 文件路径(例如 docs/spec/module/M07-mcp-server.md)",
+    )
+    abp_p.add_argument(
+        "patch_file", nargs="?", default=None,
+        help="body patch YAML 文件 · 省略则从 stdin 读",
+    )
+    abp_p.add_argument(
+        "--apply", action="store_true",
+        help="真写回 MD(默认 dry-run · 只 print diff 不动文件)· 写前生成 .bak 备份",
+    )
+    def _cmd_apply_body_patch_dispatch(args):
+        from . import body_patch as _bp
+        return _bp.cmd_apply_body_patch(args)
+    abp_p.set_defaults(func=_cmd_apply_body_patch_dispatch)
 
     # 0.12 M10 · suggest · LLM-augmented soft document optimization · plan §5 Approach W2
     sg_p = sub.add_parser(

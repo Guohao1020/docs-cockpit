@@ -35,8 +35,11 @@ from .schema import (
     _DOCS_SECTION_RE,
     _SUBTASK_SECTION_RE,
     VALID_SUBTASK_STATUSES,
+    detect_doc_language,
     extract_docs_from_body,
     extract_subtasks_from_body,
+    lint_subtask_anchors,
+    lint_subtask_titles,
     normalize_subtasks,
     slugify,
     split_frontmatter,
@@ -814,6 +817,11 @@ def cmd_lint(args: argparse.Namespace) -> int:
       0 · 全通过(可能仍有 hint · hint 不阻塞)
       0 · 仅有 warn / hint(默认) · 加 --strict-warn 升级
       1 · 至少 1 个 error · 一律退出 1
+
+    v0.18.0(gap #3)· lint 跑跟 build 完全相同的 issue collection:
+        validate_meta + lint_subtask_titles + lint_subtask_anchors
+      只是不写 HTML / state.json。--include / --exclude 按 category filter ·
+      --legacy-schema-only 回到 0.17 之前只跑 validate_meta 的老行为。
     """
     config_path = pathlib.Path(args.config).resolve()
     if not config_path.exists():
@@ -830,6 +838,9 @@ def cmd_lint(args: argparse.Namespace) -> int:
     ranges = {k: tuple(v) for k, v in ranges_cfg.items()}
 
     issues: list[Issue] = []
+    # 顺手把 modules 攒一份 · 给 lint_subtask_titles / lint_subtask_anchors 用
+    # (跟 build_payload 不同 · 这里只要 meta + body · 不 resolve linked docs · 不 embed content)
+    modules_for_lint: list[dict] = []
     for key in ("modules", "concepts"):
         group_cfg = config.get(key)
         if not group_cfg:
@@ -841,6 +852,27 @@ def cmd_lint(args: argparse.Namespace) -> int:
             _, body = split_frontmatter(content)
             if fm_enabled:
                 issues.extend(validate_meta(path, meta, ranges, body=body))
+            # 给 lint_subtask_titles / lint_subtask_anchors 攒最小 module dict
+            if key == "modules":
+                subtasks = extract_subtasks_from_body(body) if body else []
+                # 没 body subtask 看 frontmatter 有没有 object 形式
+                if not subtasks and isinstance(meta.get("subtasks"), list):
+                    subtasks = [s for s in meta["subtasks"] if isinstance(s, dict)]
+                modules_for_lint.append({
+                    "id": meta.get("id", ""),
+                    "title": meta.get("title", ""),
+                    "path": str(path),
+                    "subtasks": subtasks,
+                })
+
+    # 0.18.0 · lint 跟 build 跑同款 title / anchor lint(--legacy-schema-only 跳过)
+    if not getattr(args, "legacy_schema_only", False):
+        project = config.get("project", {}) or {}
+        doc_language = (project.get("doc_language") or "").strip().lower() or None
+        if doc_language is None:
+            doc_language = detect_doc_language(modules_for_lint)
+        issues.extend(lint_subtask_titles(modules_for_lint, doc_language))
+        issues.extend(lint_subtask_anchors(modules_for_lint))
 
     # 0.11.0-alpha.3 · W3:--prompts 校验 prompt template syntax
     if getattr(args, "prompts", False):
@@ -869,11 +901,26 @@ def cmd_lint(args: argparse.Namespace) -> int:
                             f"Jinja2 syntax error at line {e.lineno}: {e.message}",
                             suggestion="check `{% %}` / `{{ }}` balancing · refer to internal generic.md.j2",
                             reference="docs-cockpit-author · §10 prompt templates",
+                            category="prompt-template",
                         ))
             if not checked:
                 _safe_print("     [warn] --prompts: no templates found (neither in docs/prompts/ nor builtin)")
         except ImportError:
             _safe_print("     [warn] --prompts: jinja2 not installed · skipping prompt lint")
+
+    # 0.18.0 · --include / --exclude category filter
+    # 空 category 视作 'frontmatter-schema'(向后兼容 0.17 之前的 validate_meta issues)
+    def _issue_category(iss: Issue) -> str:
+        return iss.category or "frontmatter-schema"
+
+    include_csv = getattr(args, "include_categories", None)
+    exclude_csv = getattr(args, "exclude_categories", None)
+    if include_csv:
+        include_set = {c.strip() for c in include_csv.split(",") if c.strip()}
+        issues = [i for i in issues if _issue_category(i) in include_set]
+    if exclude_csv:
+        exclude_set = {c.strip() for c in exclude_csv.split(",") if c.strip()}
+        issues = [i for i in issues if _issue_category(i) not in exclude_set]
 
     # 仅在 lint 时按 severity 排序 · error 在前 · 修起来按重要性
     severity_rank = {"error": 0, "warn": 1, "hint": 2}

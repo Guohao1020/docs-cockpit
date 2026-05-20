@@ -100,9 +100,18 @@ class Issue:
       error · MUST fix · --strict 下退出码非零 · 看板接不住或会渲染错
       warn  · SHOULD fix · 用户体验问题 · 仍能 build
       hint  · COULD fix · 锦上添花 · 不影响 build
+
+    category(v0.18.0+ · 默认空串向后兼容)· 给 cmd_lint --include / --exclude 用 ·
+    每条 lint 落 1 个稳定 string ID · 跟 message 文本解耦:
+      frontmatter-schema    · validate_meta 出的所有 schema 校验(id / status / progress / etc)
+      title-has-anchor      · lint_subtask_titles · title 含 §N.M / 文件路径
+      doc-lang-mix          · lint_subtask_titles · title 跨 project_lang 界混 prose
+      subtask-missing-anchors · lint_subtask_anchors · subtask 0 anchor
+      prompt-template       · cmd_lint --prompts · Jinja2 syntax error
+      (老 Issue 默认空 category · CLI 显示为 'uncategorized' · 不影响 filter)
     """
 
-    __slots__ = ("severity", "path", "field", "message", "suggestion", "reference")
+    __slots__ = ("severity", "path", "field", "message", "suggestion", "reference", "category")
 
     def __init__(
         self,
@@ -112,6 +121,7 @@ class Issue:
         message: str,
         suggestion: str = "",
         reference: str = "",
+        category: str = "",
     ):
         self.severity = severity
         self.path = path
@@ -119,6 +129,7 @@ class Issue:
         self.message = message
         self.suggestion = suggestion
         self.reference = reference
+        self.category = category
 
     def as_dict(self) -> dict:
         return {
@@ -128,6 +139,7 @@ class Issue:
             "message": self.message,
             "suggestion": self.suggestion,
             "reference": self.reference,
+            "category": self.category,
         }
 
     def format_for_terminal(self) -> str:
@@ -312,6 +324,7 @@ def lint_subtask_titles(
                             "tech tokens like 'API' / 'MCP' / 'CLI' are whitelist-OK"
                         ),
                         reference="docs-cockpit-author · §16.2 title style 黄金法则",
+                        category="doc-lang-mix",
                     )
                 )
             # 2) anchor-in-title check
@@ -331,6 +344,7 @@ def lint_subtask_titles(
                             "code_anchors[].path or doc_anchors[].raw · title should say WHAT user gets"
                         ),
                         reference="docs-cockpit-author · §16.2 title style 黄金法则",
+                        category="title-has-anchor",
                     )
                 )
     return out
@@ -376,6 +390,7 @@ def lint_subtask_anchors(modules: list[dict] | None) -> list[Issue]:
                             f"或跑 `docs-cockpit verify {mid}` 让 LLM 帮你诊断 + 建议补什么 anchor"
                         ),
                         reference="docs-cockpit-author · §16.6 anchor 完整性 SOP + LLM verify",
+                        category="subtask-missing-anchors",
                     )
                 )
     return out

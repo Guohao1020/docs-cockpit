@@ -1076,3 +1076,55 @@ docs-cockpit verify M<id>
 | `refine`                       | 精度 refine · 把 anchor 升级到 file:lines 级(0.11 已有)|
 
 四件互补 · 写完一个 module 至少跑 lint + verify 各一次再 ship。
+
+### §16.7 · 0.18.0 · lint = build · MCP 闭环 · body patch edit ops
+
+**Why** — Sourcery dogfood 用户拍出 P0 三个断裂:
+
+- `lint` 跟 `build` 校验规则不一致 · 同 commit lint 报 0 issue · build 报 110 warning
+- MCP 没 `cockpit_build` tool · 副驾改完 MD 必须切回 CLI 才能让 `cockpit://state` 看新数据
+- `cockpit_apply_patch` 只支持 frontmatter Form A · 不支持 body checklist inline annotation(plan §6.1 推荐姿势)
+
+**Changes**:
+
+1. **`lint` = `build` 校验子集** · `docs-cockpit lint` 现在跑 `validate_meta` + `lint_subtask_titles` + `lint_subtask_anchors` 全套 · 跟 `build` 看到的 issue 一样:
+
+   ```bash
+   docs-cockpit lint                                # 跟 build 同款 issue · 不写 HTML
+   docs-cockpit lint --include doc-lang-mix         # 只跑指定类别
+   docs-cockpit lint --exclude title-has-anchor     # 跳过指定类别
+   docs-cockpit lint --legacy-schema-only           # 0.17 之前的老行为(CI 兼容兜底)
+   ```
+
+   `Issue` 加 `category` 字段 · 5 个稳定 ID:`frontmatter-schema` / `title-has-anchor` / `doc-lang-mix` / `subtask-missing-anchors` / `prompt-template`。
+
+2. **`cockpit_build` MCP tool** · 副驾闭环「改 → build → 验」全 MCP · 不切 CLI:
+
+   ```jsonc
+   { "strict": false }
+   // returns { ok, modules, errors, warnings, hints, last_build, state_uri, issues[] }
+   ```
+
+   推荐顺序:`cockpit_apply_patch` 或 `cockpit_apply_body_checklist_patch` → `cockpit_build` → 重读 `cockpit://state` 拿 fresh data。
+
+3. **`cockpit_apply_body_checklist_patch` MCP tool**(+ 等价 CLI `docs-cockpit apply-body-patch`)· 对 body checklist 行 inline `@code:` / `@docs:` annotation 做行级 edit:
+
+   ```yaml
+   module: M07
+   edits:
+     - subtask: M07-f75501
+       action: add_annotation       # add_annotation | replace_annotation | remove_annotation
+       annotation_type: code        # code | docs
+       value: "sourcery/mcp.py:42-89"
+   ```
+
+   跟 `cockpit_apply_patch`(frontmatter 走 Form A)互补 · 不替换。**verify 流程**用这个 tool 把 ❌ wrong verdict 的 anchor remove 掉再 add 新的。
+
+**SOP 升级**:写完 subtask 跑 `lint` + `build` 都要全绿 · 再跑 `verify` LLM 二次确认。改 anchor 时:
+
+| 想干的事 | 用哪个 tool |
+|---|---|
+| 整个 subtask object 重写 / 多字段 batch update | `cockpit_apply_patch`(frontmatter) |
+| 只动 1 行的 1 个 anchor(verify 输出来的精确修正) | `cockpit_apply_body_checklist_patch`(body) |
+| 改完想验 dashboard 更新 | `cockpit_build` |
+| 看当前完整 state | `cockpit://state` resource |

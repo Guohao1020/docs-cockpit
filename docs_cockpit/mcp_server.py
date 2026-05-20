@@ -55,9 +55,15 @@ SERVER_NAME = "docs-cockpit"
 
 TOOL_COCKPIT_PROMPT = "cockpit_prompt"
 TOOL_COCKPIT_APPLY_PATCH = "cockpit_apply_patch"
+TOOL_COCKPIT_APPLY_BODY_CHECKLIST_PATCH = "cockpit_apply_body_checklist_patch"  # 0.18.0 · gap #2
+TOOL_COCKPIT_BUILD = "cockpit_build"  # 0.18.0 · gap #1 · MCP build trigger
 RESOURCE_COCKPIT_STATE = "cockpit://state"
 
 _log = logging.getLogger(__name__)
+
+# 0.18.0 · build 是 IO-heavy(写 state.json / index.html / refine/*.md)·
+# 副驾连续触发会 race condition · 用 asyncio.Lock 串行化 · 不丢任何调用 · 排队跑
+_build_lock = asyncio.Lock()
 
 
 # ─── Server context · 启动时由 cmd_mcp_serve 注入 ────────────────────────
@@ -183,6 +189,68 @@ async def list_tools() -> list[types.Tool]:
                 "required": ["yaml_patch", "module_id"],
             },
         ),
+        types.Tool(
+            name=TOOL_COCKPIT_BUILD,
+            description=(
+                "Rebuild the cockpit dashboard from current module / concept MDs. "
+                "Equivalent to `docs-cockpit build` CLI. Use this after editing MDs "
+                "via cockpit_apply_patch / cockpit_apply_body_checklist_patch so "
+                "subsequent cockpit_prompt / cockpit://state reads see fresh data. "
+                "Returns { ok, modules, concepts, errors, warnings, hints, "
+                "last_build, issues[] }."
+            ),
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "strict": {
+                        "type": "boolean",
+                        "default": False,
+                        "description": (
+                            "Equivalent to CLI --strict. If true, any error "
+                            "issue makes ok=false (warnings still allowed)."
+                        ),
+                    },
+                },
+                "required": [],
+            },
+        ),
+        types.Tool(
+            name=TOOL_COCKPIT_APPLY_BODY_CHECKLIST_PATCH,
+            description=(
+                "Apply a body checklist edit patch to a module MD. Operates on "
+                "inline `@code:` / `@docs:` annotations on body `- [x] ...` lines "
+                "(NOT frontmatter `subtasks:`). Three actions supported: "
+                "add_annotation, replace_annotation, remove_annotation. "
+                "Use this AFTER `cockpit_apply_patch` when you need fine-grained "
+                "edit ops (e.g. verify CLI's ❌-verdict anchor removal + new add). "
+                "Dry-run default · returns unified diff. apply=true writes with .bak."
+            ),
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "yaml_patch": {
+                        "type": "string",
+                        "description": (
+                            "YAML body patch. Format:\n"
+                            "  module: M07\n"
+                            "  edits:\n"
+                            "    - subtask: M07-f75501\n"
+                            "      action: add_annotation         "
+                            "# add_annotation | replace_annotation | remove_annotation\n"
+                            "      annotation_type: code          "
+                            "# code | docs\n"
+                            "      value: 'path/file.py:42-89'\n"
+                        ),
+                    },
+                    "apply": {
+                        "type": "boolean",
+                        "default": False,
+                        "description": "If true, writes back to MD with .bak.",
+                    },
+                },
+                "required": ["yaml_patch"],
+            },
+        ),
     ]
 
 
@@ -196,12 +264,17 @@ async def call_tool(
         return await _handle_cockpit_prompt(arguments)
     if name == TOOL_COCKPIT_APPLY_PATCH:
         return await _handle_cockpit_apply_patch(arguments)
+    if name == TOOL_COCKPIT_APPLY_BODY_CHECKLIST_PATCH:
+        return await _handle_cockpit_apply_body_checklist_patch(arguments)
+    if name == TOOL_COCKPIT_BUILD:
+        return await _handle_cockpit_build(arguments)
     return [
         types.TextContent(
             type="text",
             text=(
                 f"Unknown tool: {name}. "
-                f"Available: {TOOL_COCKPIT_PROMPT}, {TOOL_COCKPIT_APPLY_PATCH}."
+                f"Available: {TOOL_COCKPIT_PROMPT}, {TOOL_COCKPIT_APPLY_PATCH}, "
+                f"{TOOL_COCKPIT_APPLY_BODY_CHECKLIST_PATCH}, {TOOL_COCKPIT_BUILD}."
             ),
         )
     ]
@@ -364,6 +437,213 @@ async def _handle_cockpit_apply_patch(
             type="text", text=json.dumps(summary, ensure_ascii=False, indent=2)
         )
     ]
+
+
+async def _handle_cockpit_apply_body_checklist_patch(
+    arguments: dict[str, Any]
+) -> list[types.TextContent]:
+    """0.18.0 · gap #2 · 调 body_patch.apply_body_patch_to_file backend.
+
+    跟 cockpit_apply_patch 区别:
+    - cockpit_apply_patch · frontmatter `subtasks:` Form A · id-keyed object merge
+    - 本 tool · body `## 待办` checklist · inline @code / @docs annotation 行级 edit
+    """
+    ctx = _ensure_ctx()
+    yaml_patch = arguments.get("yaml_patch") or ""
+    apply = bool(arguments.get("apply", False))
+
+    if not yaml_patch:
+        return [types.TextContent(type="text", text="Error: yaml_patch is required")]
+
+    # body patch 自带 `module: <id>` 字段 · 不需要再单独传 module_id 参数
+    # 反查 module MD 路径走 state.json 的 modules[].path
+    from .body_patch import BodyPatchFormatError, apply_body_patch_to_file, parse_body_patch
+
+    # 先 parse 拿 module id · 再去 state.json 找 path
+    try:
+        parsed = parse_body_patch(yaml_patch)
+    except BodyPatchFormatError as e:
+        return [types.TextContent(type="text", text=f"Patch parse error: {e}")]
+    module_id = parsed["module"]
+
+    try:
+        state = json.loads(ctx.state_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as e:
+        return [
+            types.TextContent(
+                type="text",
+                text=f"Error: cannot read state.json: {e}",
+            )
+        ]
+    module = next(
+        (m for m in (state.get("modules") or []) if m.get("id") == module_id), None
+    )
+    if module is None:
+        return [
+            types.TextContent(
+                type="text",
+                text=(
+                    f"Error: module {module_id} not found in state.json · "
+                    f"did you run `cockpit_build` after creating it?"
+                ),
+            )
+        ]
+    md_path_str = module.get("path")
+    if not md_path_str:
+        return [
+            types.TextContent(
+                type="text",
+                text=f"Error: module {module_id} has no source path in state.json",
+            )
+        ]
+    md_path = pathlib.Path(md_path_str)
+    if not md_path.exists():
+        return [
+            types.TextContent(
+                type="text",
+                text=f"Error: source MD not found: {md_path}",
+            )
+        ]
+
+    try:
+        result = apply_body_patch_to_file(yaml_patch, md_path, apply=apply)
+    except BodyPatchFormatError as e:
+        return [types.TextContent(type="text", text=f"Patch apply error: {e}")]
+
+    summary = {
+        "target": str(md_path),
+        "module": module_id,
+        "applied": result["applied"],
+        "conflicts": result["conflicts"],
+        "warnings": result["warnings"],
+        "wrote": result["wrote"],
+        "bak_path": result["bak_path"],
+        "diff": result["diff"],
+    }
+    return [
+        types.TextContent(
+            type="text",
+            text=json.dumps(summary, ensure_ascii=False, indent=2),
+        )
+    ]
+
+
+async def _handle_cockpit_build(
+    arguments: dict[str, Any]
+) -> list[types.TextContent]:
+    """0.18.0 · gap #1 · 重 build 看板 · 等价 `docs-cockpit build` CLI.
+
+    用 `_build_lock` 串行化 · 副驾连续调时排队 · 不并发写 state.json / index.html。
+    跑同步 `cmd_build` 用 asyncio.to_thread 包成 awaitable · 不阻塞 event loop。
+    """
+    ctx = _ensure_ctx()
+    strict = bool(arguments.get("strict", False))
+
+    import datetime as _dt
+
+    async with _build_lock:
+        start_ts = _dt.datetime.now()
+
+        def _do_build() -> dict[str, Any]:
+            """同步 build · 跑在 thread pool · 避免阻塞 stdio event loop.
+
+            stdout 在 MCP transport 是 JSON-RPC 通道 · cmd_build 的 _safe_print
+            会污染协议流 · 用 contextlib.redirect_stdout 捕走 · 保留 captured 字符串
+            给调试用。stderr 不动(MCP 把 stderr 当 server log channel)。
+            """
+            import argparse as _ap
+            import contextlib as _contextlib
+            import io as _io
+
+            from .build import cmd_build as _cmd_build
+
+            ns = _ap.Namespace(
+                config=str(ctx.config_path),
+                debug=False,
+                no_version_check=True,  # MCP 跑不需要弹版本 banner
+                strict=strict,
+            )
+            captured = _io.StringIO()
+            try:
+                with _contextlib.redirect_stdout(captured):
+                    exit_code = _cmd_build(ns)
+            except Exception as e:  # noqa: BLE001 · 任何 build 异常都不该崩 MCP server
+                return {
+                    "ok": False,
+                    "exit_code": -1,
+                    "error": f"{type(e).__name__}: {e}",
+                    "stdout_captured": captured.getvalue(),
+                }
+            return {
+                "ok": exit_code == 0,
+                "exit_code": exit_code,
+                "error": None,
+                "stdout_captured": captured.getvalue(),
+            }
+
+        try:
+            result = await asyncio.to_thread(_do_build)
+        except Exception as e:  # noqa: BLE001
+            return [
+                types.TextContent(
+                    type="text",
+                    text=json.dumps(
+                        {"ok": False, "error": f"build dispatch failed: {e}"},
+                        ensure_ascii=False,
+                    ),
+                )
+            ]
+
+        # 读刚写的 state.json · 拿 issues / 计数 · 拼 response payload
+        summary: dict[str, Any] = {
+            "ok": result["ok"],
+            "exit_code": result["exit_code"],
+            "last_build": start_ts.isoformat(),
+            "state_uri": RESOURCE_COCKPIT_STATE,
+            "state_path": str(ctx.state_path),
+            "modules": 0,
+            "concepts": 0,
+            "system_docs": 0,
+            "errors": 0,
+            "warnings": 0,
+            "hints": 0,
+            "issues": [],
+        }
+        if result.get("error"):
+            summary["error"] = result["error"]
+        try:
+            state = json.loads(ctx.state_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as e:
+            summary["state_read_error"] = str(e)
+            return [
+                types.TextContent(
+                    type="text",
+                    text=json.dumps(summary, ensure_ascii=False, indent=2),
+                )
+            ]
+
+        summary["modules"] = len(state.get("modules") or [])
+        summary["concepts"] = len(state.get("concepts") or [])
+        summary["system_docs"] = len(state.get("systemDocs") or [])
+        issues_raw = state.get("issues") or []
+        summary["issues"] = issues_raw
+        summary["errors"] = sum(1 for i in issues_raw if i.get("severity") == "error")
+        summary["warnings"] = sum(
+            1 for i in issues_raw if i.get("severity") == "warn"
+        )
+        summary["hints"] = sum(1 for i in issues_raw if i.get("severity") == "hint")
+
+        # --strict 时 · 任何 error issue 翻 ok=false(即使 exit_code=0 · build 本身按
+        # 历史行为 warn / hint 不阻塞退出)。这里跟 CLI --strict 语义对齐。
+        if strict and summary["errors"] > 0:
+            summary["ok"] = False
+
+        return [
+            types.TextContent(
+                type="text",
+                text=json.dumps(summary, ensure_ascii=False, indent=2),
+            )
+        ]
 
 
 # ─── Resource list + handler ──────────────────────────────────────────────

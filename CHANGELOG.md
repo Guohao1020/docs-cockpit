@@ -2,6 +2,117 @@
 
 本项目遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/) · 版本号采用 [SemVer](https://semver.org/lang/zh-CN/)。
 
+## [0.18.0] · 2026-05-20
+
+兑现用户 Sourcery dogfood 攒出的 P0 三个断裂体验 gap(roadmap §v0.18):MCP 没 build trigger · MCP 没 body checklist edit · lint 跟 build 两套校验规则。本 release 都收口。
+
+### Why · 用户原话
+
+> 「MCP 没有 `cockpit_build` 工具 · 副驾改完 MD 必须切回 CLI · 现状:Claude Code 改完 module MD 后 · MCP cockpit://state 仍读旧 state.json」
+>
+> 「`cockpit_apply_patch` 只支持 frontmatter · 不支持 body checklist 模式 · plan §6.1 推荐 inline `- [x] @code:... @docs:...` annotation(diff 友好)· 但 apply_patch 只接 frontmatter `subtasks:` object」
+>
+> 「lint 跟 build 校验规则不一致 · Sourcery 项目 lint 报 0 issue · 同一 commit build 报 110 warning」
+
+### Added · `cockpit_build` MCP tool(gap #1)
+
+```jsonc
+// tool: cockpit_build
+{ "strict": false }   // optional · 等价 CLI --strict
+// returns
+{
+  "ok": true, "modules": 17, "concepts": 0, "system_docs": 7,
+  "errors": 0, "warnings": 0, "hints": 0,
+  "last_build": "2026-05-20T...", "state_path": "...",
+  "state_uri": "cockpit://state",
+  "issues": [ {severity, path, field, message, suggestion, reference, category} ]
+}
+```
+
+副驾闭环:`改 MD → cockpit_apply_*_patch → cockpit_build → cockpit://state 拿 fresh data`。
+
+实现细节:
+- `_build_lock = asyncio.Lock()` 模块级单例 · 串行化连续 build 调用 · 防 state.json / index.html race write
+- 同步 `cmd_build` 走 `asyncio.to_thread` · 不阻塞 stdio event loop
+- `contextlib.redirect_stdout` 捕 cmd_build 的 print 输出 · stderr 不动(MCP stderr = server log channel · stdout = JSON-RPC 协议流)
+- `no_version_check=True` 强制 · MCP 跑不需要弹版本 banner
+
+### Added · `cockpit_apply_body_checklist_patch` MCP tool + `body_patch.py` 模块(gap #2)
+
+跟现有 `cockpit_apply_patch` 互补 · 不是替换:
+
+| 工具 | 目标 | 输入 schema |
+|---|---|---|
+| `cockpit_apply_patch`(M08)| frontmatter `subtasks:` Form A | object schema · id-keyed merge |
+| **`cockpit_apply_body_checklist_patch`(0.18.0 新)**| body `## 待办` checklist · inline `@code:` / `@docs:` annotation | edit ops · 行级精确 add / replace / remove |
+
+为什么开新 tool 不复用老:
+- frontmatter patch 是 declarative replace(整 object 重写)· body patch 是 imperative edit(行级 op)
+- frontmatter 只 add 不删 · body patch 三种 action 必需(verify 流程要支持把 ❌ wrong anchor remove + 新 add)
+- 把两种 schema 塞同一 tool · LLM 会选错
+
+Patch 格式:
+
+```yaml
+module: M07
+edits:
+  - subtask: M07-f75501
+    action: add_annotation        # add_annotation | replace_annotation | remove_annotation
+    annotation_type: code         # code | docs
+    value: "sourcery/mcp.py:42-89"
+  - subtask: M07-53a63a
+    action: replace_annotation
+    annotation_type: docs
+    value: "docs/RFC/007.md#§3"
+  - subtask: M07-9adb12
+    action: remove_annotation
+    annotation_type: code
+    value: "old/stale.py"          # 精确匹配 · 找不到报 conflict
+```
+
+Idempotency 保证:
+- `add_annotation` value 已存在 → no-op
+- `replace_annotation` 同 type 下所有 anchor 清空 → 写 value
+- `remove_annotation` value 不存在 → 显式 conflict
+
+新模块 `docs_cockpit/body_patch.py` + 配套 CLI `docs-cockpit apply-body-patch <md_path> [patch_file] [--apply]` 跟 cmd_apply_patch 同款 stdin / 文件输入。
+
+顺手修一个 frontmatter splice 老 bug:`_replace_body_in_text` 在 frontmatter close 后只补 1 个 `\n` · 原文是 `\n\n` · 导致 diff 多删一行空行噪声。`body_patch.py` 自己写 `_splice_body_preserve_layout` 保留连续空白行 · 不动 apply_patch.py 老 caller。
+
+### Changed · `lint` = `build` 校验子集(gap #3)
+
+`docs-cockpit lint` 现在跑跟 `build` 完全相同的 issue collection:
+- `validate_meta`(frontmatter schema)
+- `lint_subtask_titles`(title-has-anchor + doc-lang-mix)
+- `lint_subtask_anchors`(subtask-missing-anchors)
+
+只是不写 HTML / state.json。回头看 v0.16-v0.17 出的 title / anchor lint · build 跑得到 · lint 跑不到 · mental model 不一致 · 本 release 修。
+
+新增 3 个 flag:
+
+```bash
+docs-cockpit lint --include doc-lang-mix,title-has-anchor   # 只跑指定类别
+docs-cockpit lint --exclude doc-lang-mix                    # 跳过指定类别
+docs-cockpit lint --legacy-schema-only                      # 回到 0.17 之前 · 只跑 validate_meta(CI 兼容兜底)
+```
+
+`Issue` 加 `category` 字段(默认空 · 视为 `frontmatter-schema`)· 5 个稳定 string ID:
+- `frontmatter-schema`(默认 · validate_meta 出的所有 schema 校验)
+- `title-has-anchor` · `doc-lang-mix`(lint_subtask_titles)
+- `subtask-missing-anchors`(lint_subtask_anchors)
+- `prompt-template`(--prompts 校验出的 Jinja2 syntax error)
+
+state.json schema 加新字段 `issues[].category` · 老消费者忽略未知字段不破。
+
+### Breaking · 半 break
+
+- CI 配 `docs-cockpit lint --strict-warn` 的项目可能突然挂(之前 lint 不查 title / anchor · 现在查)· 加 `--legacy-schema-only` 一档兼容兜底
+- 老 Issue 实例化代码兼容(category 是可选 kwarg · 默认空)
+
+0.17.0 → 0.18.0 走 minor · SKILL.md change + 新 CLI 子命令 + 新 MCP tool 都触发 minor bump。
+
+升级:`docs-cockpit upgrade` · plugin layer change 触发 cache clear + 重启 prompt。
+
 ## [0.17.0] · 2026-05-20
 
 补 0.16.0 dogfood 用户拍出来的两个死角:① lint 只看 title style 不看 anchor 数量 · 0 anchor 的 subtask 不报警 ② 现有 anchor 没人 LLM 二次确认 · 文件路径写对了但行号 / 章节指错没人抓。
