@@ -90,7 +90,11 @@ DEFAULT_STATUS_RANGES = {
 VALID_STATUSES = set(DEFAULT_STATUS_RANGES.keys())
 
 # 文档类型 enum · 用于 type 字段一致性校验
-VALID_DOC_TYPES = {"module", "concept", "plan", "rfc", "spec", "memory", "roadmap"}
+VALID_DOC_TYPES = {
+    "module", "concept", "plan", "rfc", "spec", "memory", "roadmap",
+    "sprint-plan",        # 0.19.0 · agile sprint plan(每个 sprint 一份 · 描述 backlog + DoR/DoD)
+    "subtask-plan",       # 0.16.0 · per-subtask plan(复杂 subtask 必写)· 加这里让 validate_meta 不报 unknown
+}
 
 
 class Issue:
@@ -395,6 +399,440 @@ def lint_subtask_anchors(modules: list[dict] | None) -> list[Issue]:
                 )
     return out
 
+
+# ── 0.19.0 · sprint-plan schema + sprint-readiness lint ─────────────────
+#
+# 用户 Sourcery dogfood 反馈:24 个 module 都填了 `sprint: "0.7"` / `"M1.5.a"` ·
+# 但没有任何一个文档描述「sprint 0.7 这个版本要做什么 · 做完算什么」· 版本
+# 视角缺失。v0.19 引入 sprint-plan 一等公民 + DoR/DoD 校验门。
+#
+# 设计 spec · docs/plans/P-v0.19-agile-version-planning.md · §3 + §4。
+
+# required:缺 → error(阻断 build)
+_SPRINT_PLAN_REQUIRED_FIELDS = ("id", "type", "title", "status", "window", "goals")
+# recommended:缺 → warn(允许 tooling-only sprint · 没动 module backlog)
+_SPRINT_PLAN_RECOMMENDED_FIELDS = ("in_scope", "prd_refs", "dor", "dod")
+_SPRINT_PLAN_OPTIONAL_FIELDS = (
+    "progress", "out_of_scope", "docs", "retro", "desc", "owner",
+    "depends_on", "blocks", "sprint", "prd_ref", "manualProgress", "updated_at",
+)
+_SPRINT_PLAN_STATUSES = frozenset({"planned", "in-progress", "done", "blocked"})
+
+
+def _normalize_sprint_id(raw: str) -> str:
+    """规整 sprint id · 兼容 `V0.19` / `0.19` / `v0.19` 三种写法 · 内部统一 `V0.19`."""
+    if not isinstance(raw, str):
+        return ""
+    s = raw.strip()
+    if not s:
+        return ""
+    if s[0] in ("V", "v"):
+        s = s[1:]
+    return "V" + s
+
+
+def validate_sprint_plan(
+    path: pathlib.Path, meta: dict
+) -> list[Issue]:
+    """v0.19.0 · 校验 sprint-plan 类型 doc 的 frontmatter schema.
+
+    跟 validate_meta 分开 · 因为 sprint-plan 字段集跟 module / concept 完全不同 ·
+    塞一个函数里 if-else 太脏。build.py 在识别 type=sprint-plan 时 dispatch 到本函数。
+    """
+    issues: list[Issue] = []
+    if not isinstance(meta, dict):
+        issues.append(
+            Issue(
+                severity="error",
+                path=path,
+                field="frontmatter",
+                message="sprint-plan frontmatter must be a YAML dict",
+                reference="docs-cockpit-author · §17 sprint-plan schema",
+                category="sprint-schema",
+            )
+        )
+        return issues
+
+    # required fields · 缺 → error
+    for f in _SPRINT_PLAN_REQUIRED_FIELDS:
+        if f not in meta or meta[f] in (None, "", [], {}):
+            issues.append(
+                Issue(
+                    severity="error",
+                    path=path,
+                    field=f,
+                    message=f"sprint-plan missing required field `{f}`",
+                    suggestion=(
+                        f"add `{f}` to frontmatter · see template at "
+                        f"`docs_cockpit/templates/sprint-plan.md.j2`"
+                    ),
+                    reference="docs-cockpit-author · §17 sprint-plan schema",
+                    category="sprint-schema",
+                )
+            )
+    # recommended fields · 区分两种情况:
+    #   - 字段没出现(用户忘了)→ warn
+    #   - 字段在但值是 None / "" / {} → warn
+    #   - 字段在且值是 explicit empty list [] → OK(用户显式声明 tooling sprint · 看过了决定空)
+    for f in _SPRINT_PLAN_RECOMMENDED_FIELDS:
+        if f not in meta:
+            missing = True
+        else:
+            v = meta[f]
+            # explicit empty list 视为用户已 review · 不报警
+            missing = v is None or v == "" or v == {}
+        if missing:
+            issues.append(
+                Issue(
+                    severity="warn",
+                    path=path,
+                    field=f,
+                    message=(
+                        f"sprint-plan missing recommended `{f}` · "
+                        f"tooling sprint 可显式 `{f}: []` 标记已 review"
+                    ),
+                    suggestion=(
+                        f"see template `docs_cockpit/templates/sprint-plan.md.j2` · "
+                        f"`{f}` semantics defined in author skill §17"
+                    ),
+                    reference="docs-cockpit-author · §17 sprint-plan schema",
+                    category="sprint-schema",
+                )
+            )
+
+    # status enum
+    status = meta.get("status")
+    if status is not None and status not in _SPRINT_PLAN_STATUSES:
+        issues.append(
+            Issue(
+                severity="error",
+                path=path,
+                field="status",
+                message=(
+                    f"sprint-plan.status={status!r} invalid · must be one of "
+                    f"{sorted(_SPRINT_PLAN_STATUSES)}"
+                ),
+                reference="docs-cockpit-author · §17 sprint-plan schema",
+                category="sprint-schema",
+            )
+        )
+
+    # in_scope must be list of {module, subtasks?}
+    in_scope = meta.get("in_scope")
+    if in_scope is not None:
+        if not isinstance(in_scope, list):
+            issues.append(
+                Issue(
+                    severity="error",
+                    path=path,
+                    field="in_scope",
+                    message=f"in_scope must be a list · got {type(in_scope).__name__}",
+                    category="sprint-schema",
+                )
+            )
+        else:
+            for i, entry in enumerate(in_scope):
+                if not isinstance(entry, dict):
+                    issues.append(
+                        Issue(
+                            severity="error",
+                            path=path,
+                            field=f"in_scope[{i}]",
+                            message=f"each in_scope entry must be a dict · got {type(entry).__name__}",
+                            category="sprint-schema",
+                        )
+                    )
+                    continue
+                if not isinstance(entry.get("module"), str) or not entry.get("module").strip():
+                    issues.append(
+                        Issue(
+                            severity="error",
+                            path=path,
+                            field=f"in_scope[{i}].module",
+                            message="in_scope entry missing required string `module` field",
+                            category="sprint-schema",
+                        )
+                    )
+                subs = entry.get("subtasks")
+                if subs is not None and not isinstance(subs, list):
+                    issues.append(
+                        Issue(
+                            severity="error",
+                            path=path,
+                            field=f"in_scope[{i}].subtasks",
+                            message=(
+                                f"subtasks must be a list of subtask id strings · "
+                                f"got {type(subs).__name__}"
+                            ),
+                            category="sprint-schema",
+                        )
+                    )
+
+    # dor / dod at least 1 item each (warn · not error · 给老 sprint-plan 兼容空)
+    for f in ("dor", "dod"):
+        if f in meta and isinstance(meta[f], list) and not meta[f]:
+            issues.append(
+                Issue(
+                    severity="warn",
+                    path=path,
+                    field=f,
+                    message=f"sprint-plan.{f} is empty · at least 1 item recommended",
+                    suggestion=(
+                        f"see template · {f} = Definition of "
+                        f"{'Ready (DoR · 开干前条件)' if f == 'dor' else 'Done (DoD · 完成标准)'}"
+                    ),
+                    reference="docs-cockpit-author · §17 sprint-plan schema",
+                    category="sprint-schema",
+                )
+            )
+
+    return issues
+
+
+def lint_sprint_readiness(
+    modules: list[dict] | None,
+    sprint_plans: list[dict] | None,
+    enforce: bool = False,
+) -> list[Issue]:
+    """v0.19.0 · sprint-readiness DoR 校验.
+
+    对每个 status=planned 或 in-progress 的 sprint-plan 跑两组校验:
+      A) 需求对齐 · 每个 in_scope subtask 有 prd_ref 或 @docs anchor 指向 prd_refs
+      B) LLM 参考文档 · 每个 in_scope subtask 有 @code 或 @docs anchor
+
+    `enforce=False` 默认 · 只对显式存在 sprint-plan 的 sprint 报 issue
+    `enforce=True`(yaml `project.enforce_sprint_plans: true`)· 任何 module.sprint
+                  没对应 sprint-plan 也报 warn(强制规范化)
+
+    Reference · author skill §17。
+    """
+    out: list[Issue] = []
+    if not sprint_plans:
+        return out
+
+    # build module / subtask 索引(by id)便于查 in_scope 反查
+    module_by_id: dict[str, dict] = {}
+    if modules:
+        for m in modules:
+            mid = m.get("id")
+            if mid:
+                module_by_id[mid] = m
+
+    for sp in sprint_plans:
+        meta = sp.get("meta") or {}
+        path = pathlib.Path(sp.get("path") or "sprint-plan.md")
+        sprint_id = meta.get("id") or path.stem
+        status = meta.get("status", "")
+        if status not in ("planned", "in-progress"):
+            continue  # done / blocked sprint · 不跑 readiness
+
+        prd_refs = meta.get("prd_refs") or []
+        prd_paths = {
+            r.get("path", "").strip()
+            for r in prd_refs
+            if isinstance(r, dict) and r.get("path")
+        }
+
+        for entry in meta.get("in_scope") or []:
+            if not isinstance(entry, dict):
+                continue
+            mid = entry.get("module", "")
+            if not mid:
+                continue
+            module = module_by_id.get(mid)
+            if module is None:
+                out.append(
+                    Issue(
+                        severity="warn",
+                        path=path,
+                        field=f"in_scope.module={mid}",
+                        message=(
+                            f"sprint {sprint_id} 引用的 module `{mid}` 在 state.json 找不到 · "
+                            f"是不是 module id typo · 或者还没 build?"
+                        ),
+                        suggestion="跑 `docs-cockpit build` 后再 `docs-cockpit sprint check`",
+                        reference="docs-cockpit-author · §17 sprint-readiness",
+                        category="sprint-readiness",
+                    )
+                )
+                continue
+
+            # 拿目标 subtask 集合 · 不指定 = 整个 module 所有 subtask
+            target_subs = entry.get("subtasks") or []
+            all_subs = module.get("subtasks") or []
+            subs_by_id = {s.get("id"): s for s in all_subs if s.get("id")}
+
+            if target_subs:
+                checking = []
+                for sid in target_subs:
+                    if sid in subs_by_id:
+                        checking.append(subs_by_id[sid])
+                    else:
+                        out.append(
+                            Issue(
+                                severity="warn",
+                                path=path,
+                                field=f"in_scope.module={mid}.subtasks={sid}",
+                                message=(
+                                    f"sprint {sprint_id} 引用的 subtask `{sid}` 在 "
+                                    f"module `{mid}` 找不到 · title 改了导致 id 漂移?"
+                                ),
+                                suggestion=(
+                                    f"看 `docs-cockpit prompt {mid}` 列出 module 内所有 "
+                                    f"subtask · 找对应 id 修正本 sprint-plan"
+                                ),
+                                reference="docs-cockpit-author · §17 sprint-readiness",
+                                category="sprint-readiness",
+                            )
+                        )
+            else:
+                checking = all_subs
+
+            for sub in checking:
+                sid = sub.get("id", "?")
+                title_snippet = (sub.get("title") or "").strip()[:60]
+                has_code = bool(sub.get("code_anchors")) or bool(sub.get("code"))
+                has_docs = bool(sub.get("doc_anchors")) or bool(sub.get("docs"))
+
+                # 校验 B) LLM 参考文档 · 至少一边 anchor
+                if not has_code and not has_docs:
+                    out.append(
+                        Issue(
+                            severity="warn",
+                            path=path,
+                            field=f"in_scope.module={mid}.subtask={sid}",
+                            message=(
+                                f"sprint {sprint_id} · subtask `{sid}` ({title_snippet!r}) "
+                                f"既无 @code 也无 @docs · LLM 开干时拿不到上下文 · DoR 未满足"
+                            ),
+                            suggestion=(
+                                f"给 subtask 加 @code:path/file.py:N-M 跟 / 或 "
+                                f"@docs:path.md#§N · 或跑 `docs-cockpit verify {mid}`"
+                            ),
+                            reference="docs-cockpit-author · §17 sprint-readiness (大模型参考文档)",
+                            category="sprint-readiness",
+                        )
+                    )
+
+                # 校验 A) 需求对齐 · 看 subtask 是否能 trace 到 prd_refs
+                if prd_paths:
+                    # 拿 subtask 的 docs anchor target paths
+                    docs_paths: set[str] = set()
+                    for da in sub.get("doc_anchors") or []:
+                        if isinstance(da, dict):
+                            p = da.get("path") or da.get("raw")
+                            if p:
+                                # 提取 path · 去掉 #§N anchor / :line 部分
+                                docs_paths.add(_strip_anchor_suffix(p))
+                    for d in sub.get("docs") or []:
+                        if isinstance(d, str):
+                            docs_paths.add(_strip_anchor_suffix(d))
+
+                    # 也接受 subtask.prd_ref 字段(rare · subtask 级显式 PRD 引用)
+                    if sub.get("prd_ref"):
+                        docs_paths.add("__has_prd_ref__")
+
+                    aligned = "__has_prd_ref__" in docs_paths or any(
+                        any(p in dp or dp in p for dp in docs_paths)
+                        for p in prd_paths if p
+                    )
+                    if not aligned:
+                        out.append(
+                            Issue(
+                                severity="warn",
+                                path=path,
+                                field=f"in_scope.module={mid}.subtask={sid}",
+                                message=(
+                                    f"sprint {sprint_id} · subtask `{sid}` 没 trace 到 "
+                                    f"prd_refs 任何一条 · 需求对齐 DoR 未满足"
+                                ),
+                                suggestion=(
+                                    f"在 subtask 加 @docs anchor 指向 sprint-plan.prd_refs "
+                                    f"里列的 PRD/RFC · 例:@docs:" + (next(iter(prd_paths)) if prd_paths else "docs/PRD/...")
+                                ),
+                                reference=(
+                                    "docs-cockpit-author · §17 sprint-readiness (需求对齐)"
+                                ),
+                                category="sprint-readiness",
+                            )
+                        )
+
+        # 校验 prd_refs 文件本身存在
+        for r in prd_refs:
+            if not isinstance(r, dict):
+                continue
+            ref_path = (r.get("path") or "").strip()
+            if not ref_path:
+                continue
+            # 用 path 自己判断是否在 file system(这里只接 relative path · 不解析 vars)
+            ref_resolved = pathlib.Path(ref_path)
+            if not ref_resolved.is_absolute():
+                # 走 sprint-plan 文件相对 repo root 推断 · path 已存 build 时的 string
+                # 这里粗略检查 · build 时已被 resolve_doc_path 处理过的 anchor 是绝对路径
+                # 用户手写的 prd_refs.path 可能相对 · 这里跳过 strict 校验避免误报
+                continue
+            if not ref_resolved.exists():
+                out.append(
+                    Issue(
+                        severity="warn",
+                        path=path,
+                        field="prd_refs",
+                        message=(
+                            f"sprint {sprint_id} · prd_refs path `{ref_path}` 找不到文件 · "
+                            f"链路断了"
+                        ),
+                        suggestion="检查 path 是否拼错 · 或者文件改名后没更新",
+                        reference="docs-cockpit-author · §17 sprint-readiness",
+                        category="sprint-readiness",
+                    )
+                )
+
+    # enforce mode · module.sprint 没对应 sprint-plan 也报警
+    if enforce and modules:
+        known_sprint_ids = {
+            _normalize_sprint_id((sp.get("meta") or {}).get("id", "") or "")
+            for sp in sprint_plans
+        }
+        seen_orphans: set[str] = set()
+        for m in modules:
+            ms = (m.get("sprint") or "").strip()
+            if not ms:
+                continue
+            normalized = _normalize_sprint_id(ms)
+            if normalized in known_sprint_ids or normalized in seen_orphans:
+                continue
+            seen_orphans.add(normalized)
+            out.append(
+                Issue(
+                    severity="warn",
+                    path=pathlib.Path(m.get("path") or m.get("id", "module") + ".md"),
+                    field=f"sprint={ms}",
+                    message=(
+                        f"module 引用 sprint `{ms}` · 但 docs/plans/ 找不到 "
+                        f"对应 sprint-plan(enforce_sprint_plans=true)"
+                    ),
+                    suggestion=f"跑 `docs-cockpit sprint init {ms}` scaffold 一份",
+                    reference="docs-cockpit-author · §17 sprint-readiness (enforce)",
+                    category="sprint-readiness",
+                )
+            )
+
+    return out
+
+
+def _strip_anchor_suffix(path_str: str) -> str:
+    """剥掉 anchor 后缀 · `path.md#§3.1` → `path.md` · `path.py:42-89` → `path.py`."""
+    if not isinstance(path_str, str):
+        return ""
+    # 优先 split 第一个 # (heading anchor)
+    if "#" in path_str:
+        path_str = path_str.split("#", 1)[0]
+    # 再 split 最后一个 `:`(line range · 但不能误伤 `docs/foo:bar/x.py`)
+    # 用 regex: `:<digits>[-<digits>]$` 才剥
+    m = re.search(r":(\d+(?:-\d+)?)\s*$", path_str)
+    if m:
+        path_str = path_str[: m.start()]
+    return path_str.strip()
 
 
 # ── MD body section detection (0.4.0 · frontmatter 缺字段时从正文提取) ──

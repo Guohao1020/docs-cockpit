@@ -2,6 +2,114 @@
 
 本项目遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/) · 版本号采用 [SemVer](https://semver.org/lang/zh-CN/)。
 
+## [0.19.0] · 2026-05-20
+
+兑现 Sourcery dogfood 反馈:24 个 module 都填了 `sprint: "0.7"` / `M1.5.a` 字段 · 但没有任何文档描述「这个 sprint 到底要做什么 / 做完算什么」· 版本视角缺失。v0.19 引入 **sprint-plan 一等公民 + DoR/DoD 校验门** · 把 PRD/RFC → sprint → subtask 闭环成 docs-cockpit 工具链 native。
+
+### Why · 用户原话
+
+> 「根据用户生成的 spec / PRD / plan / RFC 等等文档 · 根据敏捷开发的范式规划出不同的版本 · 每个版本的做任务都有哪些 · 需要落地的 plan 文档都有哪些 · **每个版本开始前都需要校验是否有了充分的需求对齐和大模型参考文档**」
+
+### Added · 新 doc type `sprint-plan`
+
+每个 sprint 一份 MD · 走 `docs/plans/V<x.y>[-<slug>].md` 命名:
+
+```yaml
+---
+id: V0.19                          # 跟 module.sprint 字段双向兼容("0.19" ↔ "V0.19" 自动规整)
+type: sprint-plan                  # 新 doc type
+title: "..."
+status: planned | in-progress | done | blocked
+window: "2026-05-21 → 2026-06-04"  # ISO date range
+goals: ["..."]                     # user-visible 产物
+in_scope:                          # sprint backlog · 显式列哪些 module / subtask
+  - module: M07
+    subtasks: [M07-f75501]         # 留空 = 整个 module
+prd_refs: [{section, title, path}] # 需求对齐 · DoR check #1
+dor: ["..."]                       # Definition of Ready
+dod: ["..."]                       # Definition of Done
+retro: {what_worked, what_didnt, carryover}  # sprint 结束填
+---
+```
+
+新 module 实现:
+- `docs_cockpit/sprint.py` · load_sprint_plans + cmd_sprint_init / check / list
+- `docs_cockpit/templates/sprint-plan.md.j2` · scaffold 模板
+- `docs_cockpit/schema.py` · `validate_sprint_plan` + `lint_sprint_readiness` + `_normalize_sprint_id` + `_strip_anchor_suffix`
+
+### Added · 3 个新 CLI subcommand
+
+```bash
+# scaffold 一份 sprint-plan · 自动从 state.json 反查 module.sprint 字段填 in_scope[]
+docs-cockpit sprint init 0.20
+docs-cockpit sprint init 0.20 --window "2026-06-05 → 2026-06-19"
+docs-cockpit sprint init 0.20 --slug captcha-pool   # → V0.20-captcha-pool.md
+
+# DoR 校验 · 输出 issue 报告 · CI 用 --strict 阻断
+docs-cockpit sprint check 0.20
+docs-cockpit sprint check 0.20 --strict
+docs-cockpit sprint check --all
+
+# 列所有 sprint-plan + 状态
+docs-cockpit sprint list
+docs-cockpit sprint list --status in-progress
+```
+
+### Added · 2 个新 lint category
+
+**`sprint-schema`** · sprint-plan 自身 schema 校验:
+- required(error)· id / type / title / status / window / goals
+- recommended(warn)· in_scope / prd_refs / dor / dod
+- 区分「字段没填(用户忘)」vs「显式空 list(用户 review 后决定 tooling sprint)」· 后者不报警
+
+**`sprint-readiness`** · DoR 校验 · 兑现用户原话的两个诉求:
+- 需求对齐 · 每个 in_scope subtask 必须 trace 到 prd_refs(走 prd_ref 字段 或 @docs anchor 指向 prd_refs.path)
+- LLM 参考文档 · 每个 in_scope subtask 必须有 @code 或 @docs anchor(没 context LLM 干不了活)
+- in_scope.module / subtask id 在 state.json 找不到 · 报 warn(防 typo)
+- prd_refs[].path 文件存在性
+
+`enforce_sprint_plans: true` 时强制模式 · `module.sprint` 没对应 sprint-plan 也报 warn。
+
+### Changed · build / lint pipeline 自动跑 sprint-readiness
+
+`docs-cockpit build` 跟 `docs-cockpit lint` 在 v0.18 lint pipeline 基础上自动加 `lint_sprint_readiness` · **默认 opt-in**:
+
+- 没 sprint-plan(`docs/plans/V*.md` 空)· lint 跳过 · 老项目零迁移成本
+- 有 sprint-plan · 自动跑校验 · 跟其它 lint 同款 issue 报告
+- `--include sprint-readiness` / `--exclude sprint-readiness` 走 v0.18 的 category filter 接口
+
+### Skill · author skill §17 整理 agile workflow
+
+新 §17 章节(0.16-0.18 的 §16.7 后接)· 6 节:
+
+- §17.1 · 三层模型(release · sprint · subtask)+ 文件命名约定
+- §17.2 · sprint-plan 必填字段 schema
+- §17.3 · DoR 表 · 哪些条件不让放过
+- §17.4 · 标准 5 步 sprint workflow
+- §17.5 · 跟现有工具的关系
+- §17.6 · 5 个 anti-pattern
+
+### Dogfood · 自家 V0.18 + V0.19 sprint plan
+
+- `docs/plans/V0.18-mcp-build-and-body-patch.md` · 上 sprint retroactive(已 ship · status=done)
+- `docs/plans/V0.19-agile-version-planning.md` · 本 sprint(tooling sprint · in_scope: [])
+- `docs/plans/P-v0.19-agile-version-planning.md` · 本 release 设计文档(release plan 走 P-* 命名)
+
+`docs-cockpit sprint check --all` 2 plan 全 0 issue。
+
+### Breaking · 无
+
+新加 doc type / 新加 lint category / 新加 CLI subcommand · 老 schema 不动。0.18.0 → 0.19.0 走 minor(SKILL.md change + 新 CLI + 新 doc type 都触发 minor bump)。
+
+### 留给 v0.19.x 的事
+
+- v0.19.1 · MCP `cockpit_sprint_readiness` tool
+- v0.19.2 · LLM-driven sprint composer `docs-cockpit sprint plan <version>` 读 PRD/RFC 输出 in_scope[]
+- v0.19.3 · dashboard sprint timeline 重做 · goals + dor/dod 渲染进时间线
+- v0.20 · gap #4 title hash strip + grace period · gap #5 SemVer sprint sort
+
+升级:`docs-cockpit upgrade` · plugin layer change 触发 cache clear + 重启 prompt。
+
 ## [0.18.0] · 2026-05-20
 
 兑现用户 Sourcery dogfood 攒出的 P0 三个断裂体验 gap(roadmap §v0.18):MCP 没 build trigger · MCP 没 body checklist edit · lint 跟 build 两套校验规则。本 release 都收口。

@@ -1128,3 +1128,98 @@ docs-cockpit verify M<id>
 | 只动 1 行的 1 个 anchor(verify 输出来的精确修正) | `cockpit_apply_body_checklist_patch`(body) |
 | 改完想验 dashboard 更新 | `cockpit_build` |
 | 看当前完整 state | `cockpit://state` resource |
+
+## §17 · Agile sprint planning · DoR / DoD 校验(0.19.0+)
+
+**Why** — Sourcery dogfood 反馈:24 个 module 都填了 `sprint: "0.7"` / `M1.5.a` · 但没有任何一个文档描述「这个 sprint 到底要做什么 · 做完算什么」。版本视角缺失 · 散落 spec 串不起来。v0.19 引入 sprint-plan 一等公民 + DoR/DoD 校验门 · 把 PRD/RFC → sprint → subtask 闭环。
+
+设计 spec · `docs/plans/P-v0.19-agile-version-planning.md`(本 release scaffold)。
+
+### §17.1 · 三层模型(release · sprint · subtask)
+
+| 层 | 粒度 | doc type | filename 约定 | 答的问题 |
+|---|---|---|---|---|
+| release plan | 跨多 sprint · 一个产品大方向 | `plan` | `docs/plans/P-v<release>-<slug>.md` | 这个 release 要解决什么大问题 |
+| **sprint plan**(0.19 新)| 1-4 周 · 一个 sprint | `sprint-plan` | `docs/plans/V<x.y>[-<slug>].md` | 这 1-4 周交付什么 user-visible 产物 |
+| module spec | 多 sprint 渐进 | `module` | `docs/spec/module/M<NN>-<slug>.md` | 这个模块累计 ship 哪些能力 |
+| subtask plan(0.16 新)| 单 subtask · 几小时-几天 | `subtask-plan` | `docs/plans/M<NN>/S<NN>-<slug>.md` | 这条 subtask 具体怎么做 |
+
+### §17.2 · sprint-plan 必填字段(schema)
+
+```yaml
+---
+id: V0.19                            # 必填 · 跟 module.sprint 字段值对齐("0.19" ↔ "V0.19" 自动规整)
+type: sprint-plan                    # 必填 · 新 doc type
+title: "Sprint 0.19 · ..."           # 必填
+status: planned | in-progress | done | blocked
+window: "2026-05-21 → 2026-06-04"    # 必填 · ISO date range
+goals:                               # 必填 · 至少 1 条 · user-visible 产物
+  - "..."
+in_scope:                            # 必填 · sprint backlog · 列哪些 module / subtask
+  - module: M07
+    subtasks: [M07-f75501, M07-53a63a]   # 留空 = 整个 module
+out_of_scope: ["..."]                # 显式 NOT in sprint · 防 scope creep
+prd_refs:                            # 需求对齐 · DoR check #1 · 至少 1 条
+  - { section: "§6.3", title: "...", path: "docs/PRD/Sourcery_PRD_V1.0.docx" }
+dor: ["..."]                         # Definition of Ready · sprint 开干前条件
+dod: ["..."]                         # Definition of Done · sprint 结束的验收
+retro:                               # sprint 结束后填
+  what_worked: ""
+  what_didnt: ""
+  carryover: []                      # 没做完滚到下个 sprint 的 subtask id list
+---
+```
+
+### §17.3 · DoR(Definition of Ready)· 两条不让放过
+
+用户原话:「每个版本开始前都需要校验是否有了**充分的需求对齐**和**大模型参考文档**」· lint 自动校验:
+
+| DoR | 谁来检查 | lint category |
+|---|---|---|
+| **需求对齐** · 每个 in_scope subtask 能 trace 到 prd_refs 任一条(走 prd_ref 字段 或 @docs anchor) | `lint_sprint_readiness` | `sprint-readiness` |
+| **大模型参考文档** · 每个 in_scope subtask 有 @code 或 @docs anchor(LLM 拿得到上下文) | `lint_sprint_readiness` | `sprint-readiness` |
+| 引用的 PRD/RFC 文件存在 + 可读 | `lint_sprint_readiness` | `sprint-readiness` |
+| in_scope.module / subtask id 在 state.json 找得到 | `lint_sprint_readiness` | `sprint-readiness` |
+| 复杂 subtask 有独立 plan MD(per §16.3)| 手工 self-check | (尚未自动 lint)|
+
+不满足 DoR · `docs-cockpit sprint check <version>` 报 warn(`--strict` 升 error 阻断)。
+
+### §17.4 · 标准 sprint workflow(5 步)
+
+```bash
+# Step 1 · 开 sprint 前 scaffold sprint plan
+docs-cockpit sprint init 0.20                           # scaffold V0.20.md
+                                                         # · 自动反查 module.sprint=="0.20" 填 in_scope[]
+docs-cockpit sprint init 0.20 --slug captcha-pool       # → docs/plans/V0.20-captcha-pool.md
+
+# Step 2 · 编辑 sprint plan · 填 goals / dor / dod / prd_refs
+$EDITOR docs/plans/V0.20.md
+
+# Step 3 · 跑 DoR 校验 · 没过把对应 subtask 补 anchor / plan
+docs-cockpit sprint check 0.20
+docs-cockpit sprint check 0.20 --strict               # CI 用
+
+# Step 4 · 开干 · sprint 中改完 subtask 跑 build 看 progress 自动算
+docs-cockpit build
+
+# Step 5 · sprint 结束 · 填 retro · 把 status 改 done · CHANGELOG 加 entry
+$EDITOR docs/plans/V0.20.md                            # retro.what_worked / what_didnt / carryover
+```
+
+### §17.5 · 跟现有工具的关系
+
+| 现有工具 | sprint workflow 里的角色 |
+|---|---|
+| `docs-cockpit build` | 触发 sprint-plan schema + sprint-readiness lint · 跟 module lint 一起报 |
+| `docs-cockpit lint` | 跑跟 build 同款 issue list · `--include sprint-readiness` 只看 sprint 类警告 |
+| `docs-cockpit verify M<id>` | 给 sprint 内某 module 跑 LLM 二次确认 anchor · 修 ❌ wrong 的 anchor |
+| `cockpit_apply_body_checklist_patch` | sprint 中改 subtask 的 anchor · DoR 满足后再 ship |
+| `cockpit_build` MCP tool | 副驾改完 sprint-plan 立刻调 · 看 readiness 通不通过 |
+
+### §17.6 · Anti-patterns
+
+- ❌ sprint-plan 里 in_scope[] 列 module 没填 prd_refs · DoR 第 1 条不过(需求对齐)
+- ❌ 把所有 module 一股脑塞 in_scope[] · sprint 范围爆 · 不切实际的 carryover
+- ❌ goals[] 写 "实现 ResourcePool" 这种实现细节 · 应该写「用户能从 CLI 查池子里的 account / proxy 状态」这种 user-visible 体验
+- ❌ 跨 sprint 抢工 · subtask 跨 3 个 sprint 渐进交付时没在 retro.carryover 留痕迹 · 后人看不懂
+- ❌ status=done 但 dod[] 里有未勾的项 · sprint check 不该放过

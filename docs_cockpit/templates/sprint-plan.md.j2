@@ -1,0 +1,81 @@
+---
+id: {{ sprint_id_normalized }}
+type: sprint-plan
+title: "Sprint {{ sprint_id_normalized }} · TODO 一句话说本 sprint 交付什么"
+status: planned
+sprint: "{{ sprint_id }}"
+progress: 0
+window: "{{ window }}"
+owner: TODO
+desc: "TODO · 一句话讲 sprint 用户得到什么(< 100 字)"
+prd_ref: "TODO · § / RFC 编号"
+docs:
+  - { title: "Author skill §17 · agile workflow", path: "skills/docs-cockpit-author/SKILL.md" }
+
+# user-visible 产物 · 必填 · sprint 结束时这些必须 demo
+goals:
+  - "TODO · goal 1 · 用户能干什么"
+
+# 显式 sprint backlog · scaffold 已根据 module.sprint=={{ sprint_id }} 自动反查
+in_scope:
+{% for entry in in_scope -%}
+  - module: {{ entry.module }}
+    subtasks: []   # 留空 = 整个 module 都在 · 想精挑就列 subtask id
+{% endfor -%}
+{% if not in_scope -%}
+  # TODO · scaffold 没找到 module.sprint=={{ sprint_id }} 的 module · 手工填
+  # - module: M01
+  #   subtasks: [M01-a1b2c3]
+{% endif %}
+
+# 显式 NOT 在 sprint · 防 scope creep
+out_of_scope: []
+
+# 需求对齐 · 必填 · DoR check #1 · 每个 in_scope subtask 必须 trace 到至少一条
+prd_refs:
+  - { section: "TODO · §N", title: "TODO · 跟本 sprint 相关的 PRD/RFC section", path: "docs/PRD/Sourcery_PRD_V1.0.docx" }
+
+# Definition of Ready · 开干前满足的条件 · sprint check 校验这条
+dor:
+  - "每个 in_scope subtask 有 prd_ref 或 @docs anchor 指向 prd_refs 任一条"
+  - "每个 in_scope subtask 有 @code 或 @docs anchor(LLM 拿得到上下文)"
+  - "复杂 subtask 有独立 plan MD(per docs-cockpit-author §16.3)"
+
+# Definition of Done · sprint 结束的验收
+dod:
+  - "所有 in_scope subtask status=done"
+  - "lint 0 error / 0 warning"
+  - "CHANGELOG 加 entry"
+  - "demo 跑通 · 至少 1 个 goal 现场演示"
+
+# sprint 结束后填(retro 一节 · 给下个 sprint 复盘)
+retro:
+  what_worked: ""
+  what_didnt: ""
+  carryover: []      # 没做完滚到下个 sprint 的 subtask id list
+---
+
+# Sprint {{ sprint_id_normalized }} plan
+
+> 这份 sprint-plan 由 `docs-cockpit sprint init {{ sprint_id }}` 在 {{ today }} scaffold ·
+> 编辑后跑 `docs-cockpit sprint check {{ sprint_id_normalized }}` 看 DoR 是否满足。
+
+## §1 · 用户得到什么(详写 goals)
+
+(每个 goals[] 条目展开一段 · 用户视角讲清楚体验 · 不讲实现细节 · < 200 字 / 条)
+
+## §2 · 跟上 sprint 的衔接
+
+(上个 sprint 的 carryover · 跟本 sprint 的依赖关系 · 哪些前提必须已 done)
+
+## §3 · 风险 + 假设
+
+(已知 risks · 团队 assumptions · 哪些前提如果不成立 · 半路要重新规划)
+
+## §4 · 验证 · 谁来跑 demo
+
+(每个 goal 怎么验 · 谁 sign-off · 哪些自动化测试 cover · 哪些手动跑)
+
+## §5 · Retro(sprint 结束后填)
+
+什么 worked · 什么 didn't · carryover 解释。

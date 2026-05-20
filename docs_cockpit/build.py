@@ -466,6 +466,27 @@ def build_payload(
     anchor_issues = lint_subtask_anchors(modules)
     issues.extend(anchor_issues)
 
+    # 0.19.0 · agile sprint plan readiness lint · 找 docs/plans/V*.md sprint-plan
+    # · 跑 lint_sprint_readiness 看 DoR 满不满足。默认 opt-in · 没 sprint-plan 不报警
+    # · `project.enforce_sprint_plans: true` 时强制(module.sprint 没对应 plan 也报)
+    try:
+        from .sprint import load_sprint_plans
+        from .schema import lint_sprint_readiness as _lint_sr
+        repo_root = pathlib.Path(vars_.get("repo", "."))
+        sprint_plans = load_sprint_plans(repo_root)
+        if sprint_plans or project.get("enforce_sprint_plans", False):
+            sr_issues = _lint_sr(
+                modules,
+                sprint_plans,
+                enforce=bool(project.get("enforce_sprint_plans", False)),
+            )
+            issues.extend(sr_issues)
+            # 顺手把每个 sprint-plan 的 schema 校验 issues 也 surface
+            for sp in sprint_plans:
+                issues.extend(sp.get("_validate_issues") or [])
+    except Exception:  # noqa: BLE001 · sprint feature 是 opt-in · 异常不该挂 build
+        pass
+
     payload = {
         "project": payload_project,
         "systemDocs": system_docs,
@@ -873,6 +894,23 @@ def cmd_lint(args: argparse.Namespace) -> int:
             doc_language = detect_doc_language(modules_for_lint)
         issues.extend(lint_subtask_titles(modules_for_lint, doc_language))
         issues.extend(lint_subtask_anchors(modules_for_lint))
+
+        # 0.19.0 · agile sprint readiness · 跟 build pipeline 对齐 · 默认 opt-in
+        try:
+            from .sprint import load_sprint_plans
+            from .schema import lint_sprint_readiness as _lint_sr
+            repo_root = pathlib.Path(vars_.get("repo", "."))
+            sprint_plans = load_sprint_plans(repo_root)
+            if sprint_plans or project.get("enforce_sprint_plans", False):
+                issues.extend(_lint_sr(
+                    modules_for_lint,
+                    sprint_plans,
+                    enforce=bool(project.get("enforce_sprint_plans", False)),
+                ))
+                for sp in sprint_plans:
+                    issues.extend(sp.get("_validate_issues") or [])
+        except Exception:  # noqa: BLE001
+            pass
 
     # 0.11.0-alpha.3 · W3:--prompts 校验 prompt template syntax
     if getattr(args, "prompts", False):

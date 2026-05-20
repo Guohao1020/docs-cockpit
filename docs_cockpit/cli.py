@@ -302,6 +302,53 @@ def main(argv: list[str] | None = None) -> int:
         return _mcp.cmd_mcp_serve(args)
     mcp_p.set_defaults(func=_cmd_mcp_serve)
 
+    # 0.19.0 · sprint · agile version planning · sprint-plan 一等公民
+    sprint_p = sub.add_parser(
+        "sprint",
+        help="0.19.0 · agile sprint plan · scaffold / DoR 校验 / list(see P-v0.19 design)",
+    )
+    sprint_sub = sprint_p.add_subparsers(dest="sprint_cmd", required=True)
+
+    sp_init = sprint_sub.add_parser(
+        "init",
+        help="scaffold 一份 sprint-plan MD(docs/plans/V<x.y>[-<slug>].md)",
+    )
+    sp_init.add_argument("version", help="sprint id (例: 0.19 或 V0.19)")
+    sp_init.add_argument("--window", default=None, help="ISO date range · 默认今天+14 天")
+    sp_init.add_argument("--slug", default=None, help="文件名 slug · 例 mcp-readiness")
+    sp_init.add_argument("--force", action="store_true", help="覆盖已存在文件(先 .bak)")
+    sp_init.add_argument("--config", "-c", default="docs-cockpit.yaml")
+
+    sp_check = sprint_sub.add_parser(
+        "check",
+        help="对一个或所有 sprint-plan 跑 DoR 校验(需求对齐 + LLM 参考文档充分性)",
+    )
+    sp_check.add_argument("version", nargs="?", default=None, help="sprint id · 跟 --all 二选一")
+    sp_check.add_argument("--all", dest="all_sprints", action="store_true", help="跑所有 sprint-plan")
+    sp_check.add_argument("--strict", action="store_true", help="warn 升 error · CI 用")
+    sp_check.add_argument("--config", "-c", default="docs-cockpit.yaml")
+
+    sp_list = sprint_sub.add_parser(
+        "list",
+        help="列所有 sprint-plan + 状态(progress / window / status)",
+    )
+    sp_list.add_argument("--status", default=None, choices=["planned", "in-progress", "done", "blocked"])
+    sp_list.add_argument("--config", "-c", default="docs-cockpit.yaml")
+
+    def _cmd_sprint_dispatch(args):
+        from . import sprint as _sprint_mod
+        if args.sprint_cmd == "init":
+            return _sprint_mod.cmd_sprint_init(args)
+        if args.sprint_cmd == "check":
+            return _sprint_mod.cmd_sprint_check(args)
+        if args.sprint_cmd == "list":
+            return _sprint_mod.cmd_sprint_list(args)
+        print(f"[ERR] unknown sprint subcommand: {args.sprint_cmd}", file=sys.stderr)
+        return 2
+    sp_init.set_defaults(func=_cmd_sprint_dispatch)
+    sp_check.set_defaults(func=_cmd_sprint_dispatch)
+    sp_list.set_defaults(func=_cmd_sprint_dispatch)
+
     # 0.17.0 · verify · LLM 二次确认 subtask anchor 准不准 · 跟 lint_subtask_anchors 联动
     vf_p = sub.add_parser(
         "verify",
