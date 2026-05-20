@@ -1020,3 +1020,59 @@ dashboard 点 subtask 「让 MCP 客户端能拉到当前 project state」· 右
 - ❌ 在 plan MD body 复制粘贴整段 `code_anchors[].preview` · 那是 anchor 字段的事 · plan body 讲思路不讲代码
 - ❌ 用 sha1 id 当 parent_subtask 但 module body 用 序号(混用)· 锁一种 · 整个 module 一致
 - ❌ 老 doc 没 plan MD · 直接写新 subtask 没 plan MD · 复杂的应该补 · 简单的可以无
+
+### §16.6 · Anchor 完整性 SOP + LLM verify(0.17.0+)
+
+**Why** — 0.16.0 dogfood 用户反馈:lint 只看 title style 不看 anchor 数量 · 出现 「subtask 0 anchor」死角(M01 Web控制台 3 个 subtask 都没 `@code:` / `@docs:` · 浏览器看就是裸 checkbox · LLM 拉不到上下文)。同时已有 anchor 的 subtask 没人 verify 真指对地方(M12 `account_proxy.py:42-89` 可能是 init 函数也可能是无关的常量定义 · 谁也不知道)。
+
+**Anchor minimum bar** — 每个 subtask 至少满足一边:
+
+| 类型 | 形式 | 示例 |
+|---|---|---|
+| Code anchor | `@code:path/file.py[:N-M]` | `@code:docs_cockpit/verify.py:42-89` |
+| Doc anchor  | `@docs:path.md[#§N.M | :start-end]` | `@docs:docs/plans/P-v0.17-verify.md#§3` |
+
+complex subtask(满足 §16.3 trigger 写独立 plan MD 的)· 推荐两边都给:`@code` 指代码落地点 · `@docs` 指 plan / RFC 节(注意 plan MD 走 `parent_subtask` 自动接通 · 不用手写 `@docs:docs/plans/M07/S01-*.md`)。
+
+**SOP · 写完 subtask 跑 3 步**:
+
+```bash
+# 1. lint 抓死规则缺口
+docs-cockpit lint
+#    期望:0 subtask-missing-anchors warning
+
+# 2. build 跑全部 lint(title style + anchor 完整性 + frontmatter validate)
+docs-cockpit build
+#    期望:0 warning / 0 error
+
+# 3. LLM 二次确认 anchor 真指到对的位置(0.17.0+)
+docs-cockpit verify M<id>
+#    或:docs-cockpit verify M<id> --copy   → 进剪贴板 · 贴给浏览器 LLM
+```
+
+**verify 4 档 verdict**:
+
+| Verdict | 含义 | 处理 |
+|---|---|---|
+| ✅ `accurate` | anchor 文件存在 · 行号 / 章节真指到跟 title 相关内容 | 不动 |
+| ⚠️ `partial`  | 文件在 · 但 line range 略偏 | 调整范围 |
+| ❌ `wrong`   | 文件不存在 / 内容跟 title 完全无关 | 必须改 anchor 或 mark TODO |
+| ❓ `missing` | subtask 0 anchor | 补 anchor(跟 lint warning 重叠 · verify 给具体建议) |
+
+**driver-seat 信任来自精度** — 错 anchor 比缺 anchor 伤害更大(用户点过去看到无关代码 · 信任崩塌)。LLM 找不到对应 section 必须给 ❌ + `# TODO: …` · **不准瞎猜行号**。
+
+**verify 输出模式 · 二选一**:
+
+- **模式 A**(Claude Code / Cursor / Codex CLI · 有 Edit 工具):直接改 `docs/spec/module/M<id>-*.md` body checklist · 跑 build 验证 · 报告改动 summary
+- **模式 B**(浏览器 LLM):输出 YAML patch · 用户走 `docs-cockpit apply-patch docs/spec/module/M<id>-*.md patch.yaml --apply` 落地
+
+**与其它工具的关系**:
+
+| 工具 | 角色 |
+|---|---|
+| `lint subtask-missing-anchors` | 死规则 · build 时自动报「0 anchor」(0.17.0 新)|
+| `suggest anchor-completeness`  | 软建议 · 列缺 anchor 的 subtask · LLM 给浅建议(0.12 已有)|
+| `verify` (本节)| LLM 二次确认 · Read 真文件 · 4 档 verdict + YAML patch(0.17.0 新)|
+| `refine`                       | 精度 refine · 把 anchor 升级到 file:lines 级(0.11 已有)|
+
+四件互补 · 写完一个 module 至少跑 lint + verify 各一次再 ship。

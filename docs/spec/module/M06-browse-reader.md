@@ -30,7 +30,7 @@ blocks: []
 
 ## 3 · 待办
 
-- [x] browse.html.tmpl 渲染 tree
+- [x] 渲染左侧树形导航 · 项目根 + ~/.claude/{plans,projects} 全扫一遍按目录展开 @code:docs_cockpit/templates/browse.html.tmpl @code:docs_cockpit/browse.py
 - [x] 把通用 markdown 渲染器接入 · 支持 GFM 表格跟代码块 @code:docs_cockpit/templates/browse.html.tmpl
-- [x] tree filter / search
-- [x] file:// 兼容(不走 fetch · MD 内容内联)
+- [x] 树形导航支持关键字过滤 · 用户搜文件名快速跳转 @code:docs_cockpit/templates/browse.html.tmpl
+- [x] file:// 协议兼容 · MD 内容 build 阶段内联进 HTML · 不依赖 fetch @code:docs_cockpit/browse.py @code:docs_cockpit/templates/browse.html.tmpl

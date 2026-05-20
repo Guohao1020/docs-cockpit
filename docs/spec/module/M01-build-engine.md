@@ -58,9 +58,9 @@ docs-cockpit.yaml + MD files
 
 ## 3 · 待办
 
-- [x] v0.10 build_payload + render_html 稳定
-- [x] frontmatter validator + Issue.reference 体系
-- [x] docs 三步 fallback path resolver
+- [x] v0.10 build_payload + render_html 稳定 @code:docs_cockpit/build.py:380-466 @code:docs_cockpit/build.py:469-540
+- [x] frontmatter validator + Issue.reference 体系 @code:docs_cockpit/schema.py:96-141 @docs:CLAUDE.md
+- [x] docs 三步 fallback path resolver(绝对 → 相对 source → 相对 repo 根 · 修 0.7.0 双 docs/docs/ 实拍 bug)@code:docs_cockpit/paths.py @docs:CLAUDE.md
 - [x] 按职责拆分 build 引擎模块边界 @code:docs_cockpit/schema.py @code:docs_cockpit/paths.py @code:docs_cockpit/cli.py @code:docs_cockpit/build.py @docs:docs/plans/P-v0.11-driver-seat.md#§6.1
 - [x] 把 subtask 升为一等公民 schema · 给每条 subtask 独立 id 跟状态校验 @code:docs_cockpit/schema.py:421-475 @docs:docs/plans/P-v0.11-driver-seat.md
 - [x] 让每条 subtask 锚定到代码行号 · 文件读出错也不崩 @code:docs_cockpit/paths.py:402-456 @docs:docs/plans/P-v0.11-driver-seat.md

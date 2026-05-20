@@ -2,6 +2,71 @@
 
 本项目遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/) · 版本号采用 [SemVer](https://semver.org/lang/zh-CN/)。
 
+## [0.17.0] · 2026-05-20
+
+补 0.16.0 dogfood 用户拍出来的两个死角:① lint 只看 title style 不看 anchor 数量 · 0 anchor 的 subtask 不报警 ② 现有 anchor 没人 LLM 二次确认 · 文件路径写对了但行号 / 章节指错没人抓。
+
+### Why · 用户原话
+
+> 「重新 build 后还是有问题 · 子任务和文档关联未通过大模型进行二次确认 · 关联的文档和代码有缺失」(截图:M01 Web控制台 3 个 subtask · 0 anchor;M12 Resource Pool subtask 有 anchor 但 title 塞 `M1.1 ResourcePool[T]` / `account_proxy.py` / `§3.1`)
+
+### Added · `lint_subtask_anchors` · severity=warn
+
+`schema.lint_subtask_anchors(modules)` 在 `build_payload` 跑 lint_subtask_titles 之后跑 · 把 issues append:
+
+- **`subtask-missing-anchors`** · subtask 既无 `@code:` / `code:` 也无 `@docs:` / `docs:` · LLM 跟用户都拉不到上下文
+
+判断规则:`code_anchors + code` 全空 **且** `doc_anchors + docs` 全空 才报警。允许 code-only 或 docs-only subtask · 这俩里有一个就算有上下文锚点。
+
+reference 指向 `docs-cockpit-author · §16.6 anchor 完整性 SOP + LLM verify`(本 release 同步加)。
+
+### Added · `docs-cockpit verify <module_id>` CLI · 4 档 verdict LLM 二次确认
+
+```bash
+docs-cockpit verify M03                  # 渲染 M03 verify prompt → stdout
+docs-cockpit verify M03 --copy           # → 剪贴板
+docs-cockpit verify --all                # 跑所有 module(prompt 体量大 · 慎用)
+```
+
+新模块 `docs_cockpit/verify.py` + 新模板 `docs_cockpit/templates/prompts/verify.md.j2` · 复用 prompt.py 的 SandboxedEnvironment + ChoiceLoader(走 `docs/prompts/` user override · 再回退内置)。
+
+LLM 收到 prompt 后:
+1. Read 每个 subtask claimed 的 `code:` / `docs:` anchor target file
+2. 对照 subtask title + module desc · 给 4 档 verdict:
+   - ✅ `accurate` · anchor 真指到相关内容
+   - ⚠️ `partial` · 文件在 · 但 line range / 章节略偏
+   - ❌ `wrong` · 文件不存在 / 内容跟 title 完全无关
+   - ❓ `missing` · subtask 完全没 anchor
+3. 模式 A(Claude Code / Cursor / Codex CLI)· 直接 Edit MD body checklist 改 annotation · 跑 build 验证
+4. 模式 B(浏览器 LLM)· 输出 YAML patch · 用户跑 `docs-cockpit apply-patch` 落地
+
+跟现有工具的关系(四件互补):
+
+| 工具 | 角色 |
+|---|---|
+| `lint subtask-missing-anchors`(本 release 新)| 死规则 · build 时自动报「0 anchor」 |
+| `suggest anchor-completeness.md.j2`(M10)| 软建议 · 列缺 anchor 的 subtask · 让 LLM 给「补什么」浅建议 |
+| `verify verify.md.j2`(本 release 新)| LLM 二次确认 · Read 真文件 + 4 档 verdict · YAML patch 可灌 apply-patch |
+| `refine refine.md.j2`(M07)| 精度 refine · 把 anchor 升级到 `file:lines` 级 |
+
+driver-seat 信任来自精度 · verify 强调「错 anchor 比缺 anchor 伤害更大」· 找不到对应 section 给 ❌ + `# TODO` · 不瞎猜行号。
+
+### Changed · author skill · §16.6 anchor 完整性 SOP + LLM verify(新加)
+
+`skills/docs-cockpit-author/SKILL.md` §16 新加 §16.6(§16.3-§16.5 顺位不动 · 防止破坏现有引用):
+
+- 写 subtask 时 minimum bar:title + `@code:` 跟 `@docs:` 至少一边
+- 复杂 subtask 推荐两边都给
+- 写完跑 `docs-cockpit build` · 看 lint 是否 0 `subtask-missing-anchors` warning
+- 再跑 `docs-cockpit verify M<id>` · 让 LLM 二次确认 anchor 真准
+- ❌ wrong 的 anchor 走 apply-patch 落地
+
+### Breaking · 无
+
+不删字段 · 不改 schema · 老 module MD 不动可继续 build。0.16.0 → 0.17.0 走 minor 因为加了 SKILL.md 章节 + 新 CLI 子命令(per 项目 SemVer 规则)。
+
+升级:`docs-cockpit upgrade` · plugin layer change 触发 cache clear + 重启 prompt。
+
 ## [0.16.0] · 2026-05-20
 
 兑现用户 dogfood 反馈的 3 个 subtask 治理根问题:title 中英混 / title 塞 anchor 信息 / 没有 per-subtask 独立 plan MD。北极星明确·**docs-cockpit 本质是 skill · python 只是辅助**。本 release 主体改 SKILL.md · Python 加 2 个 lint check · 不写 auto-fixer。

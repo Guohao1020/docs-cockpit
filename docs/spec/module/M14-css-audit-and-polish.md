@@ -43,4 +43,4 @@ v0.12.1 修过的 `.split-page[hidden] { display: none }` specificity bug 暴露
 - [x] 扫一遍 i18n key 跟 hardcoded fallback · 确认 alpha 期占位文案已清干净 @code:docs_cockpit/templates/index.html.tmpl
 - [x] 加轻量集成测试 · 不依赖 playwright 走 string-based 校验关键 DOM 结构 @code:tests/integration/test_dashboard_render.py
 - [x] hash route 浏览器级测试推迟到下个 sprint · 当前静态结构已被集成测试 cover @code:tests/integration/test_dashboard_render.py
-- [x] CHANGELOG 加 CSS audit section · 走 v0.14.3 patch · 列 4 元素 explicit override 验证 + 不加 global safety net 的评估
+- [x] CHANGELOG 加 CSS audit 章节 · 走 v0.14.3 patch · 列 4 元素 explicit override 验证 + 评估不加 global safety net 的理由 @docs:CHANGELOG.md

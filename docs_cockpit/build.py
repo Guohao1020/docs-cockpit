@@ -457,6 +457,12 @@ def build_payload(
     title_issues = lint_subtask_titles(modules, payload_project["doc_language"])
     issues.extend(title_issues)
 
+    # 0.17.0 · 跑 anchor 完整性 lint · subtask 缺 @code: 跟 @docs: 都没 → warn
+    # (skill §16.3 references · 用户反馈 0.16.0 lint 只看 title 不看 anchor 数量)
+    from .schema import lint_subtask_anchors
+    anchor_issues = lint_subtask_anchors(modules)
+    issues.extend(anchor_issues)
+
     payload = {
         "project": payload_project,
         "systemDocs": system_docs,

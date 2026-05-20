@@ -336,6 +336,51 @@ def lint_subtask_titles(
     return out
 
 
+def lint_subtask_anchors(modules: list[dict] | None) -> list[Issue]:
+    """v0.17.0 · 给 build_payload 调 · 出 1 类新 Issue:
+        - subtask-missing-anchors warn · subtask 既无 @code: 也无 @docs: annotation
+
+    用户反馈(0.16.0 dogfood 之后):lint 只看 title style · 不看 anchor 数量 ·
+    导致 M01 「3 个 subtask · 0 anchor」这种空架子 build 不报警 · LLM 跟用户拉不到上下文。
+
+    阈值:`code_anchors` + `doc_anchors` 同时为空才报警。任有一边 = 有上下文锚点 ·
+    不报警(允许 doc-only / code-only subtask)。
+
+    Reference · 指向 author skill §16.3 anchor 完整性 SOP。
+    """
+    out: list[Issue] = []
+    if not modules:
+        return out
+    for m in modules:
+        mid = m.get("id", "?")
+        mpath_str = m.get("path") or ""
+        mpath = pathlib.Path(mpath_str) if mpath_str else pathlib.Path(mid + ".md")
+        for sub in m.get("subtasks") or []:
+            sid = sub.get("id", "?")
+            # 同时支持新(code_anchors / doc_anchors object list)跟老(code / docs 字符串 list)schema
+            has_code = bool(sub.get("code_anchors")) or bool(sub.get("code"))
+            has_docs = bool(sub.get("doc_anchors")) or bool(sub.get("docs"))
+            if not has_code and not has_docs:
+                title_snippet = (sub.get("title") or "").strip()[:60] or "(空 title)"
+                out.append(
+                    Issue(
+                        severity="warn",
+                        path=mpath,
+                        field=f"subtasks[{sid}].anchors",
+                        message=(
+                            f"subtask 既无 @code: 也无 @docs: annotation · "
+                            f"LLM 跟用户都拉不到上下文 · title={title_snippet!r}"
+                        ),
+                        suggestion=(
+                            f"在 body checklist 行末加 @code:path/file.py:N-M 跟 / 或 @docs:path.md#§N.M · "
+                            f"或跑 `docs-cockpit verify {mid}` 让 LLM 帮你诊断 + 建议补什么 anchor"
+                        ),
+                        reference="docs-cockpit-author · §16.6 anchor 完整性 SOP + LLM verify",
+                    )
+                )
+    return out
+
+
 
 # ── MD body section detection (0.4.0 · frontmatter 缺字段时从正文提取) ──
 #

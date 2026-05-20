@@ -39,7 +39,7 @@ blocks: []
 
 ## 3 · 待办
 
-- [x] portfolio add/list/remove/tag CLI 全部上线
+- [x] portfolio add/list/remove/tag CLI 全部上线 @code:docs_cockpit/portfolio.py @code:docs_cockpit/cli.py
 - [x] 跨平台规整用户级注册表里的路径 · Windows 跟 POSIX 都能读写 @code:docs_cockpit/portfolio.py
-- [x] snapshot CLI + weekly diff
-- [x] docs-cockpit-portfolio skill · narrative output
+- [x] snapshot CLI + weekly diff · 用户每周 export 项目状态留快照 · 下次跑 diff 看 WoW 变化 @code:docs_cockpit/portfolio.py
+- [x] docs-cockpit-portfolio skill 输出多项目周报 · 跨项目叙事 + WoW 对比 @code:skills/docs-cockpit-portfolio/SKILL.md @docs:skills/docs-cockpit-portfolio/SKILL.md

@@ -266,6 +266,32 @@ def main(argv: list[str] | None = None) -> int:
         return _mcp.cmd_mcp_serve(args)
     mcp_p.set_defaults(func=_cmd_mcp_serve)
 
+    # 0.17.0 · verify · LLM 二次确认 subtask anchor 准不准 · 跟 lint_subtask_anchors 联动
+    vf_p = sub.add_parser(
+        "verify",
+        help="LLM 二次确认 subtask 的 anchor 是否真指到对的代码 / 文档(渲染 prompt · 给 Claude / Cursor / 浏览器 LLM 跑)",
+    )
+    vf_p.add_argument(
+        "module_id", nargs="?", default=None,
+        help="目标 module id(例 M03)· 跟 --all 二选一",
+    )
+    vf_p.add_argument(
+        "--all", dest="all_modules", action="store_true",
+        help="跑所有 module · prompt 体量大 · 慎用",
+    )
+    vf_p.add_argument(
+        "--copy", action="store_true",
+        help="复制 prompt 到剪贴板(需要 pyperclip)",
+    )
+    vf_p.add_argument(
+        "--config", "-c", default="docs-cockpit.yaml",
+        help="项目 docs-cockpit.yaml 路径 · 默认 CWD",
+    )
+    def _cmd_verify_dispatch(args):
+        from . import verify as _verify_mod
+        return _verify_mod.cmd_verify(args)
+    vf_p.set_defaults(func=_cmd_verify_dispatch)
+
     up_p = sub.add_parser(
         "upgrade",
         help="一条命令升级 CLI + plugin (auto-detect backend · 智能判断要不要重启)",
