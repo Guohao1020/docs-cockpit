@@ -159,6 +159,8 @@ If you're tempted to put a "see also" link in `subtasks:`, it's `docs:`. If you'
 
 ### §3.1 · subtasks format (v0.11 object schema · 向后兼容 v0.10)
 
+> **0.16.0 · title style rules are MANDATORY** — see §16 for the full rubric. Quick recap: one sentence requirement (not code logic) · single language matching `project.doc_language` · NO `§N.M` / file paths / line numbers / function names in title (those go to `code:` / `docs:` fields). Violations surface as `doc-lang-mix` / `title-has-anchor` warnings at build time.
+
 v0.10 用 `list[str]` · v0.11 升到 object schema with `id / title / status / code / docs`. The string form keeps working — validator treats a bare string as `{title: <string>}` and generates the rest. Three equivalent forms:
 
 **Form A · frontmatter object array (v0.11 · 最高精度 · 支持 code/docs anchor):**
@@ -833,3 +835,188 @@ When **aliasing** (Path B2) · `canonical_id` MUST still follow this convention 
 - ❌ Creating both canonical doc AND absorb-source as two physical files — they drift · one goes stale
 - ❌ Using `aliases:` for docs that you DO want as first-class Kanban modules — aliases land in `systemDocs[]` drawer only · for module/concept-class entries write directly at `docs/spec/module/M<NN>-...` instead
 - ❌ Inventing the canonical_id from thin air — derive from plan/RFC subject + sprint context · not random datetime · canonical_id is a stable handle that survives renames
+
+## §16 · skill-first authoring philosophy + subtask title style + per-subtask plan MD (0.16.0+)
+
+This section codifies the project's north-star: **docs-cockpit is a skill ecosystem · python is a helper**. Authoring quality comes from the rules in this skill, not from Python auto-fixers. When you write subtasks, the rules below are non-negotiable.
+
+### §16.1 · Why skill-first (the north-star)
+
+> 「我们项目本质上是 skill · python 代码只是辅助 · 不能依赖 python 代码解决任务问题 · 应该尽可能用 skill 解决问题」 — project owner, 2026-05-20
+
+Implications for you as the author skill agent:
+
+- **You(skill)** decide what a good subtask looks like
+- **Python** detects violations(lint warnings) but does NOT auto-fix
+- **You** write subtasks correctly on the first try by following §16.2 + §16.3
+- Lint warnings are a safety net for legacy docs · not an escape hatch to write sloppy now
+
+### §16.2 · Subtask title style · 4 黄金法则
+
+When you write a subtask title:
+
+**法则 1 · One sentence in user-need language · NOT code language**
+
+```
+✅ 「实现资源池的借/还机制 · 失败自动冷却 + 超时回收」     ← what the user gets
+❌ 「ResourcePool[T] · COOLDOWN(5 失败 → 300s 冷却 / 25min 超时)+ EWMA 评分」  ← code-name dump
+```
+
+**法则 2 · Single language matching project.doc_language**
+
+The project's `docs-cockpit.yaml::project.doc_language` lock applies to all subtask titles. Tech tokens (`API`, `MCP`, `CLI`, `JSON`, `SDK`, etc.) are whitelist-OK · they're cross-lingual.
+
+```
+zh-CN project · ✅ 「实现 MCP server 的 stdio 接入」          ← 中文主体 + 白名单 'MCP'
+zh-CN project · ❌ 「实现 MCP server 的 stdio 接入 with SDK choice」  ← 'with' / 'choice' 非白名单
+en project    · ✅ "Implement stdio adapter for the MCP server"
+en project    · ❌ "Implement stdio adapter 给 MCP server 接入"        ← CJK 在 en project
+```
+
+**法则 3 · NO anchor info in title · 走 `code:` / `docs:` 字段**
+
+These belong in `code_anchors[]` / `doc_anchors[]`, NEVER in title:
+
+- `§3.1` / `§4.6 / §4.7 / §4.8` heading numbers
+- `DATA_SCHEMA.md` / `account_proxy.py` file paths
+- `:42-89` line ranges
+- `ResourcePool[T]` / `lazyAccountProxy()` function / class identifiers
+
+```
+✅ title: 「同步 vendor 池的字段定义」
+   docs:  ["docs/DATA_SCHEMA.md#§3.1", "docs/DATA_SCHEMA.md#§3.2"]
+   code:  ["sourcery/resources/vendor_pool.py"]
+
+❌ title: 「M1.2 Lane F · DATA_SCHEMA.md §3.1 / §3.2 行同步 + §4.6 / §4.7 / §4.8 ...」
+```
+
+**法则 4 · 一句话讲需求逻辑 · 不讲实施步骤**
+
+```
+✅ 「让 dashboard 在多 sprint 时显示 sprint 筛选下拉」        ← 用户得到的能力
+❌ 「在 index.html.tmpl 加 `<select id='backlog-filter-sprint'>` 渲染 sprint 选项」  ← 实施细节
+```
+
+实施细节属于 per-subtask plan MD body(见 §16.3)· 不是 title。
+
+### §16.3 · Per-subtask plan MD · 复杂 subtask 必须有独立文件
+
+**Trigger** — 任何 subtask 满足以下任一 · MUST 写独立 plan MD:
+
+- 实施需要 2 步以上(不是 1 行 edit · 也不是 trivial)
+- 跨 2+ 文件 / 模块
+- 含设计 / approach 选择(2 种以上做法可比较)
+- 含 acceptance criteria 多于 1 条
+
+Trivial 单步(改一个常量 · 跑一个命令)可省。
+
+**File location**:
+
+```
+docs/plans/
+  M<NN>/                            ← module dir · 跟 module file 同名零 pad 2 位
+    S<NN>-<slug>.md                 ← subtask plan · S 前缀 · 零 pad 2 位 · kebab-case slug
+```
+
+例:
+
+```
+docs/plans/
+  M07/
+    S01-implement-mcp-stdio-adapter.md
+    S02-wire-cockpit-prompt-tool.md
+    S03-add-cockpit-state-resource.md
+```
+
+**Frontmatter**:
+
+```yaml
+---
+type: subtask-plan
+parent_module: M07
+parent_subtask: M07-S1            # 序号形式 · 跟 module body checklist 顺序一致
+                                  # 或 sha1 形式 "M07-f75501" · 跟 frontmatter 显式 id 同
+title: "实现 MCP server 的 stdio 接入"     # 跟 subtask title 一致(单语 · 无 anchor)
+status: not-started               # 自动跟 module 内 subtask.status 同步
+desc: "一句话讲用户得到什么"
+---
+```
+
+**Body 4 节(标准结构)**:
+
+```markdown
+## 用户得到什么
+(一段话 · 用户需求语言 · 不讲代码细节 · 不超过 100 字)
+
+## 范围
+(从哪到哪 · 边界清晰 · 跟其它 subtask 的分工)
+
+## 实施 approach
+(这里可以放 §N.M / 文件名 / 函数名 / 行号 · 这是 plan body 不是 title)
+(给 2-3 种 approach 比较 · 标 chosen)
+
+## 验证
+(acceptance criteria 1-3 条 · 可测试 · "跑 X 命令 / 看 Y 输出 / 文件 Z 存在")
+```
+
+**Dashboard auto-wire**:
+
+build 阶段 · `schema.py` 会自动扫 `docs/plans/M<module-id>/S*-*.md` · 用 `parent_subtask` 字段反查 module 内对应 subtask · 自动 inject 到 `subtask.doc_anchors[]` 首位。dashboard 点 subtask 默认渲染**这条 subtask plan**(不再优先渲染 module 级 docs)。
+
+无需手动在 subtask 上写 `@docs:docs/plans/M07/S01-...md` · 自动接通。
+
+### §16.4 · Worked example
+
+User: 「给 M07 写一条 subtask · 把 cockpit_state resource 接通」
+
+You **shouldn't** write:
+
+```yaml
+- id: M07-S2
+  title: "M07-S2 · cockpit_state resource (mcp_server.py:120-180) · read state.json + return JSON"  # ❌ 4 法则全破
+```
+
+You **should** write:
+
+1. Module body checklist · single-line:
+
+   ```markdown
+   - [ ] 让 MCP 客户端能拉到当前 project state(modules / subtasks / issues)
+   ```
+
+2. Create `docs/plans/M07/S02-cockpit-state-resource.md`:
+
+   ```markdown
+   ---
+   type: subtask-plan
+   parent_module: M07
+   parent_subtask: M07-S2
+   title: "让 MCP 客户端能拉到当前 project state"
+   status: not-started
+   desc: "Claude / Cursor 等通过 MCP resource 直接读 state.json · 不用手动 cat 文件"
+   ---
+
+   ## 用户得到什么
+   Claude Code / Cursor / Codex 这类 MCP 客户端启动 docs-cockpit MCP server 之后 · 能通过标准 resource 接口拉到当前项目完整状态(所有 module + subtask + issue)· 不再依赖手动 read state.json。
+
+   ## 范围
+   仅 read 路径 · 不接 write(write 走 cockpit_apply_patch tool 那条)。MIME 类型固定 application/json。
+
+   ## 实施 approach
+   `docs_cockpit/mcp_server.py` 加 `@server.read_resource()` handler · uri 是 `cockpit://state` · 内部 `read_text(docs/state.json)` 返。schema 跟 build 输出的 state.json 完全一致 · 不做转换。
+
+   ## 验证
+   - 启 `docs-cockpit mcp-serve` 后 · MCP 客户端能 list_resources 看到 `cockpit://state`
+   - read_resource 返完整 state.json string · JSON.parse 成功
+   - 集成测试 `tests/integration/test_mcp_server.py::test_cockpit_state_resource_reads_state_json` 通过
+   ```
+
+dashboard 点 subtask 「让 MCP 客户端能拉到当前 project state」· 右栏自动渲染 S02 plan body 4 节 · 用户清楚知道这条 subtask 在干嘛。
+
+### §16.5 · Anti-patterns
+
+- ❌ 把实施细节塞进 title 让 title > 60 字 · 拆成 title + plan MD body
+- ❌ 一份 plan MD 覆盖多 subtask · 1 个 file = 1 个 subtask · 1:1
+- ❌ 在 plan MD body 复制粘贴整段 `code_anchors[].preview` · 那是 anchor 字段的事 · plan body 讲思路不讲代码
+- ❌ 用 sha1 id 当 parent_subtask 但 module body 用 序号(混用)· 锁一种 · 整个 module 一致
+- ❌ 老 doc 没 plan MD · 直接写新 subtask 没 plan MD · 复杂的应该补 · 简单的可以无

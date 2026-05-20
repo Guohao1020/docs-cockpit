@@ -420,12 +420,16 @@ def build_payload(
         )
 
     project = config.get("project", {}) or {}
+    # 0.16.0 · project.doc_language · 项目级文档语言锁 · zh-CN | en
+    # 不填 → 后续 detect_doc_language(modules) 启发式判断 · stash 到 payload
+    doc_language = project.get("doc_language", "").strip().lower() or None
     payload_project = {
         "name": project.get("name") or "MyProject",
         "tagline": _expand_project_str(project.get("tagline") or ""),
         "eyebrow": _expand_project_str(project.get("eyebrow") or ""),
         "mark": (project.get("mark") or project.get("glyph") or "·"),
         "lastBuild": build_time,
+        "doc_language": doc_language,  # 可能 None · _build_card_list 后再 auto-detect
     }
 
     repo_root = pathlib.Path(vars_.get("repo", "."))
@@ -441,6 +445,17 @@ def build_payload(
     concepts = _build_card_list(
         config.get("concepts"), vars_, fm_enabled, ranges, issues, full=False
     )
+
+    # 0.16.0 · 如果 yaml 没显式设 doc_language · 启发式 detect
+    if payload_project["doc_language"] is None:
+        from .schema import detect_doc_language
+        payload_project["doc_language"] = detect_doc_language(modules)
+
+    # 0.16.0 · 跑 title style + doc-lang consistency lint(skill §16 references)
+    # 仅 warn / hint · 不 reject build
+    from .schema import lint_subtask_titles
+    title_issues = lint_subtask_titles(modules, payload_project["doc_language"])
+    issues.extend(title_issues)
 
     payload = {
         "project": payload_project,

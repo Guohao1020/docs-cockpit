@@ -141,6 +141,202 @@ class Issue:
         return "\n".join(parts)
 
 
+# ── 0.16.0 · doc_language detect + subtask title lint ───────────────────
+#
+# 用户反馈 · subtask title 中英混 / 含 §N.M 编号 / 含文件名 · 不读
+# 治理走 author skill §16(规则)+ python lint(detect)二段。这里是 detect 部分。
+
+# CJK Unicode 范围(简体 / 繁体 / 日韩共用 ideograph + 汉字补充)
+_CJK_RE = re.compile(
+    r"[一-鿿"      # CJK Unified Ideographs
+    r"㐀-䶿"        # CJK Extension A
+    r"豈-﫿"        # CJK Compatibility
+    r"　-〿"        # CJK Symbols and Punctuation(中文标点)
+    r"＀-￯"        # Halfwidth/Fullwidth Forms
+    r"]"
+)
+
+# title 里出现下面任一 · 报 title-has-anchor(应走 anchor 字段不是 title):
+#   §1 / §1.2 / §1.2.3            heading 编号引用
+#   foo/bar.md  / foo.py:42-89    文件路径 / 行号
+#   function_name() / Class.foo   函数 / 方法标识(下划线 + 大写驼峰是 hint)
+_ANCHOR_IN_TITLE_RE = re.compile(
+    r"§\d+(?:\.\d+)*"            # §1.2 类编号
+    r"|[\w\-./]+\.(?:md|py|ts|js|tsx|jsx|yaml|yml|toml|json|sql)"  # 文件路径
+    r"|:\d+(?:-\d+)?\b"          # :42 / :42-89 line range
+    r"|\b[a-z_][a-z_0-9]+\(\)"   # function_name() · snake_case
+)
+
+# 技术 token 白名单 · 不参与中英混判定(这些是 cross-lingual 通用术语)
+_TECH_TOKEN_WHITELIST = {
+    "API", "CLI", "MCP", "RFC", "HTTP", "HTTPS", "URL", "URI", "JSON", "YAML",
+    "TOML", "XML", "HTML", "CSS", "JS", "TS", "MD", "PDF", "PNG", "JPG", "GIF",
+    "REST", "GraphQL", "gRPC", "OAuth", "JWT", "SSO", "RBAC", "ACL",
+    "SDK", "IDE", "OS", "CPU", "GPU", "RAM", "SSD", "I/O", "DB", "SQL",
+    "TDD", "BDD", "CI", "CD", "PR", "MR", "DSL", "ORM",
+    "AI", "ML", "LLM", "NLP", "CV", "RL", "ETA", "TTL",
+    "Claude", "Cursor", "Codex", "Continue", "Aider", "GPT", "Anthropic", "OpenAI",
+    "GitHub", "GitLab", "git", "Linux", "macOS", "Windows", "Mac",
+    "Python", "TypeScript", "JavaScript", "Rust", "Go", "Java", "Ruby",
+    "Postgres", "MySQL", "SQLite", "Redis", "Kafka", "Docker",
+    "TODO", "FIXME", "XXX",  # 编码注释惯用
+}
+
+_LATIN_WORD_RE = re.compile(r"\b[A-Za-z][A-Za-z0-9_-]+\b")
+
+# 0.16.0 · English prose 词 · 出现 = 真混 prose · 不是 loanword
+# 中文技术写作里 loanword(server / stdio / runtime / pool / proxy)算正常·
+# prose 词(the / of / and / is / implement / when / which)算混
+_ENGLISH_PROSE_WORDS = frozenset({
+    # 冠词 / 限定词
+    "the", "a", "an", "this", "that", "these", "those",
+    # 介词
+    "of", "to", "in", "on", "at", "by", "for", "with", "from", "into", "onto",
+    "through", "between", "across", "after", "before", "during",
+    # 连词
+    "and", "or", "but", "nor", "yet", "so", "as",
+    # 代词
+    "it", "its", "this", "we", "they", "their", "them", "you", "your", "i",
+    # be 动词
+    "is", "are", "was", "were", "be", "been", "being", "am",
+    # 助动词
+    "do", "does", "did", "have", "has", "had", "will", "would",
+    "can", "could", "should", "may", "might", "must",
+    # 否定 / 副词
+    "not", "no", "yes", "very", "more", "less", "much", "many", "few",
+    # 常见 prose 动词(非技术名词)
+    "implement", "implements", "implementing", "implemented",
+    "when", "which", "while", "where", "whether", "if",
+    "make", "makes", "made", "making",
+    "use", "uses", "used", "using",
+    "ensure", "ensures", "verify", "verifies",
+})
+
+
+def detect_doc_language(modules: list[dict] | None) -> str:
+    """启发式 detect 项目主语言 · 看 module title 的 CJK 字符占比.
+
+    > 30% CJK → "zh-CN" · else "en"。空 / 不确定 → "en"(英文默认)。
+    """
+    if not modules:
+        return "en"
+    cjk_chars = 0
+    total_chars = 0
+    for m in modules:
+        title = (m.get("title") or "")
+        for ch in title:
+            if ch.isspace() or not ch.isprintable():
+                continue
+            total_chars += 1
+            if _CJK_RE.match(ch):
+                cjk_chars += 1
+    if total_chars == 0:
+        return "en"
+    return "zh-CN" if (cjk_chars / total_chars) > 0.30 else "en"
+
+
+def _has_mixed_language(title: str, project_lang: str) -> bool:
+    """判 title 是否中英混(超出 project_lang 锁定范围).
+
+    zh-CN project · title 含 CJK + 任一 English prose 词(the / of / and / when / implement
+                   等)→ mixed。技术 loanword(server / stdio / runtime / pool · 即使
+                   不在白名单)不算混 · 这是自然中文-技术写作惯例。
+    en project    · title 含 CJK 字符 → mixed
+    """
+    if not title:
+        return False
+    has_cjk = bool(_CJK_RE.search(title))
+
+    if project_lang == "zh-CN":
+        # 看是否有 English prose 词 · 是 = mixed prose · 否 = loanword 算正常
+        latin_words = [
+            w.lower() for w in _LATIN_WORD_RE.findall(title)
+            if w not in _TECH_TOKEN_WHITELIST and not w.isdigit()
+        ]
+        has_prose_word = any(w in _ENGLISH_PROSE_WORDS for w in latin_words)
+        return has_cjk and has_prose_word
+    elif project_lang == "en":
+        # en project · 不允许 title 含 CJK
+        return has_cjk
+    return False
+
+
+def _title_has_anchor_ref(title: str) -> tuple[bool, str]:
+    """判 title 是否含 anchor 信息(§N / 文件名 / 行号 / 函数名).
+
+    Returns (offending: bool, sample: str) · sample 是命中的具体片段 · 报错给参考。
+    """
+    if not title:
+        return False, ""
+    m = _ANCHOR_IN_TITLE_RE.search(title)
+    if m:
+        return True, m.group(0)
+    return False, ""
+
+
+def lint_subtask_titles(
+    modules: list[dict] | None,
+    project_lang: str,
+) -> list[Issue]:
+    """v0.16.0 · 给 build_payload 调 · 出 2 类新 Issue:
+        - doc-lang-mix  warn   · title 跨 project_lang 界混语言
+        - title-has-anchor warn · title 含 anchor 信息(应走 code/docs 字段)
+
+    Reference · 都指向 author skill §16(本 sprint 新加)。
+    """
+    out: list[Issue] = []
+    if not modules:
+        return out
+    for m in modules:
+        mid = m.get("id", "?")
+        mpath_str = m.get("path") or ""
+        mpath = pathlib.Path(mpath_str) if mpath_str else pathlib.Path(mid + ".md")
+        for sub in m.get("subtasks") or []:
+            sid = sub.get("id", "?")
+            title = (sub.get("title") or "").strip()
+            if not title:
+                continue
+            # 1) language mix check
+            if _has_mixed_language(title, project_lang):
+                out.append(
+                    Issue(
+                        severity="warn",
+                        path=mpath,
+                        field=f"subtasks[{sid}].title",
+                        message=(
+                            f"title mixes languages outside project doc_language={project_lang!r}: "
+                            f"{title!r}"
+                        ),
+                        suggestion=(
+                            "Rewrite in a single language matching project.doc_language · "
+                            "tech tokens like 'API' / 'MCP' / 'CLI' are whitelist-OK"
+                        ),
+                        reference="docs-cockpit-author · §16.2 title style 黄金法则",
+                    )
+                )
+            # 2) anchor-in-title check
+            offending, sample = _title_has_anchor_ref(title)
+            if offending:
+                out.append(
+                    Issue(
+                        severity="warn",
+                        path=mpath,
+                        field=f"subtasks[{sid}].title",
+                        message=(
+                            f"title contains anchor-like ref {sample!r} · "
+                            f"these belong in `code:` / `docs:` fields not title"
+                        ),
+                        suggestion=(
+                            "Move §N / file paths / line numbers / function names to "
+                            "code_anchors[].path or doc_anchors[].raw · title should say WHAT user gets"
+                        ),
+                        reference="docs-cockpit-author · §16.2 title style 黄金法则",
+                    )
+                )
+    return out
+
+
+
 # ── MD body section detection (0.4.0 · frontmatter 缺字段时从正文提取) ──
 #
 # 用户常常已经在 MD body 里维护 `## 待办` + `- [ ]` checklist 或 `## 关联`

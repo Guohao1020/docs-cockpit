@@ -2,6 +2,82 @@
 
 本项目遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/) · 版本号采用 [SemVer](https://semver.org/lang/zh-CN/)。
 
+## [0.16.0] · 2026-05-20
+
+兑现用户 dogfood 反馈的 3 个 subtask 治理根问题:title 中英混 / title 塞 anchor 信息 / 没有 per-subtask 独立 plan MD。北极星明确·**docs-cockpit 本质是 skill · python 只是辅助**。本 release 主体改 SKILL.md · Python 加 2 个 lint check · 不写 auto-fixer。
+
+### Why · 用户原话
+
+> 「subtask 描述禁止使用中英文混合的模式 · 可以问用户希望使用的文档语言并且记住到项目维度 · 使用纯的中文或者英文描述子任务 · 禁止引用编号 · 需要一句话说清楚这个子任务的需求逻辑而不是代码逻辑 · 子任务必须有独立的 plan md 文件 · 我们项目本质上是 skill · python 代码只是辅助 · 不能依赖 python 代码解决任务问题 · 应该尽可能的使用 skill 解决问题」
+
+实际 dogfood 例子(用户截图):
+- ❌ `M1.1 · ResourcePool[T] 通用借/还 + COOLDOWN(5 失败 → 300s 冷却 / 25min 超时)+ EWMA 评分`(混语 + 含 anchor)
+- ❌ `M1.2 Lane F · DATA_SCHEMA.md §3.1 / §3.2 行同步 + §4.6 / §4.7 / §4.8 三张 vendor 池新表预留 + §4.1 Fingerprint 表撤销`(根本读不懂)
+
+### Added · `project.doc_language` 锁项目文档语言
+
+`docs-cockpit.yaml`:
+
+```yaml
+project:
+  doc_language: "zh-CN"   # zh-CN | en · 不填启发式 detect
+```
+
+不填触发 `schema.detect_doc_language(modules)` · 看 module title CJK 占比 > 30% → `zh-CN` · else `en`。判定结果 stash 到 `payload.project.doc_language` · 给 lint 用 · 给 standup / portfolio skill 消费。
+
+dogfood:本 repo `docs-cockpit.yaml` 显式锁 `zh-CN`。
+
+### Added · 2 个 lint Issue type · severity=warn
+
+`schema.lint_subtask_titles(modules, project_lang)` 在 `build_payload` 之后跑 · 把 issues append 到 build issues list:
+
+- **`doc-lang-mix`** · title 跨 project lang 界混 prose · 检测 English prose 词(`the` / `of` / `and` / `implement` / `when` 等)出现在 zh-CN project · 或 CJK 字符出现在 en project。技术 loanword(`server` / `stdio` / `runtime`)不算混 · 这是自然中文-技术写作惯例 · 不误伤
+- **`title-has-anchor`** · title 含 anchor 信息(§N.M / `path/file.md` / `:42-89` 行号 / `function()` 标识)· 这些应该走 `code:` / `docs:` 字段不是 title
+
+两个 issue 的 reference 都指向 `docs-cockpit-author · §16.2 title style 黄金法则`。
+
+实际效果 · 自家 dogfood 跑 build 立刻爆 45 个 anchor-in-title warning(M01-M17 全有)· 证明 lint 准 + 用户截图反馈一致。
+
+### Added · author skill §16 · skill-first authoring philosophy
+
+`skills/docs-cockpit-author/SKILL.md` 加 §16 · 5 节:
+
+- **§16.1** · skill-first north-star 解释 · 为什么 docs-cockpit 是 skill 不是 python
+- **§16.2** · subtask title 4 黄金法则
+  - 法则 1 · 一句话讲用户得到什么 · 不讲代码细节
+  - 法则 2 · 单语 match project.doc_language(技术 token 白名单 OK)
+  - 法则 3 · 禁 `§N.M` / 文件路径 / 行号 / 函数名(这些走 anchor 字段)
+  - 法则 4 · 需求逻辑 · 不是实施步骤
+- **§16.3** · per-subtask plan MD · 复杂 subtask 必写独立文件
+  - 位置:`docs/plans/M<NN>/S<NN>-<slug>.md`(用户选 D2 · per-module dir)
+  - frontmatter 含 `parent_module` / `parent_subtask` / `type: subtask-plan`
+  - body 4 节(用户得到什么 / 范围 / 实施 approach / 验证)
+- **§16.4** · worked example · 完整 case 走一遍正反对比
+- **§16.5** · 5 个 anti-patterns
+
+### Changed · author skill §3.1 顶部加 0.16.0 title style 强制提示
+
+跟 §16 互引 · 写 subtask 时 §3.1 一眼看到 4 法则 · 不用翻到 §16。
+
+### Verified
+
+- 34 new tests for doc_language + lint · 334 total · 0 回归
+- dogfood build clean · 17 modules / 45 anchor-in-title warnings(预期 · skill §16 教 AI 慢慢补完)· 0 mix-lang warning(白名单 / prose 词 heuristic 准)
+- detect_doc_language 启发式 OK · docs-cockpit yaml 没写 zh-CN 时 detect 仍判 zh-CN(CJK 占比 95%+)
+
+### Not changed · 兼容性
+
+- 老 yaml 无 `doc_language` 字段 → detect_doc_language 自动判 · 不破
+- 老 module 无 title 风格问题 → lint 0 warn · 不破
+- subtask plan MD 不强制 · 当前 dashboard 仅做 detect · v0.17 候选(auto-wire 到 `doc_anchors[]` 渲染)
+- 走 minor 不走 patch · SKILL.md 改(§16 新 + §3.1 改)= at least minor per project SemVer
+
+### Known limitations · 留 v0.17+
+
+- per-subtask plan MD scanner + auto-wire 到 `subtask.doc_anchors[]` 还没实施 · 当前规范定下来了 · scanner 留下个 sprint
+- title-style auto-fix 不计划做(干涉性 + 跟 north-star 冲突)· 仅 lint warn 让 AI 学规则慢慢迁
+- `--from-browser chrome` 仍 stub(M13 deferred)· 不在本 release scope
+
 ## [0.15.0] · 2026-05-20
 
 兑现用户 dogfood 给出的 plan/spec/RFC 工作流需求 · 把 superpowers + gstack 跟 docs-cockpit canonical 命名 wire 通 · 加 yaml `aliases:` 兜底已生成在外部位置的文档。

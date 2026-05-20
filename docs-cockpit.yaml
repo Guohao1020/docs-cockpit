@@ -16,6 +16,11 @@ project:
   tagline: "YAML-frontmatter 驱动的项目 Kanban · CLI + Claude Code plugin 双形态"
   # 0.12.2 · {version} placeholder · build 时替换为 CLI __version__ · 跟着 release 自动走
   eyebrow: "DOGFOOD · v{version}"
+  # 0.16.0 · 项目级 doc_language · subtask title style lint 据此 enforce
+  # zh-CN · 锁中文 · title 含非白名单 Latin 单词或 anchor 信息出 warn
+  # en    · 锁英文 · title 含 CJK 出 warn
+  # 不填  · 启发式 detect(看 module title CJK 占比)
+  doc_language: "zh-CN"
   output: docs/index.html
 
 paths:
