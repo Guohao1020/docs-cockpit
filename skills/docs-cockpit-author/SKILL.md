@@ -709,3 +709,127 @@ When responding to a `bundle-recommendation` prompt, output:
 - ❌ Bundling across sprints just because cohesion is high — usually means the sprint boundary is wrong · fix the sprint assignment first
 - ❌ Bundling a `done` subtask with `not-started` ones — skip done subtasks · they're noise in the prompt
 - ❌ Ignoring conflict warnings · `⚠ same file lines overlap` means merge conflict guaranteed
+
+## §15 · Authoring plan / RFC / spec — orchestrate superpowers + gstack (0.15.0+)
+
+When the user asks to **create a new plan / RFC / spec / module-MD / concept-MD** in a docs-cockpit project, **don't write it from scratch**. Orchestrate the right planning skill, then write the final doc at the docs-cockpit canonical path. This way the doc benefits from the planning skill's rigor (Phase 1-5 brainstorming · cross-model second opinion · alternatives generation) AND it lands in the layout that the dashboard / standup / portfolio skills can read.
+
+### §15.1 · Detection — which planning toolkit is available
+
+Run these checks silently · surface a one-line summary:
+
+```bash
+# Anthropic superpowers plugin (Claude Code marketplace)
+ls ~/.claude/plugins/cache/superpowers-marketplace/superpowers/ 2>/dev/null | head -1
+# Garry Tan's gstack personal-skills toolkit
+cat ~/.claude/skills/gstack/VERSION 2>/dev/null
+```
+
+Report: `Planning toolkits: superpowers 5.x · gstack 1.33.x`(or whichever is present · or `none detected`).
+
+### §15.2 · Routing — which skill to invoke
+
+| User intent | Recommended skill | Why |
+|---|---|---|
+| 「探索 v0.X 该做啥」/ Open-ended scope | `gstack:office-hours` | YC 6-forcing-question + cross-model + alternatives · best for early-stage exploration |
+| 「写实施 plan」/ Write impl plan | `superpowers:writing-plans` | TDD bite-sized-task structure · checkboxes the dashboard renders |
+| 「挑战 scope · 找 10-star 版本」 | `gstack:plan-ceo-review` | EXPANSION vs HOLD vs REDUCTION mode · pushes back on weak assumptions |
+| 「锁架构 + 测试覆盖」 | `gstack:plan-eng-review` | 8-9 review dimensions · data flow / edge / perf / test plan |
+| 「UX 评审 before build」 | `gstack:plan-design-review` | dimensional 0-10 scoring + interactive sharpen |
+| 「写 module spec」 | `superpowers:brainstorming` then write per §11 | HARD-GATE forces requirement check before write |
+| 「写 RFC」 | `gstack:plan-eng-review` (arch-heavy) OR `superpowers:writing-plans` (TDD-heavy) | Pick by RFC's main axis |
+
+If ambiguous · ask ONE clarifying AskUserQuestion · don't ask more.
+
+### §15.3 · Auto-install if missing
+
+**Superpowers** — instruct user to paste in Claude Code:
+
+```
+/plugin marketplace add obra/superpowers-marketplace
+/plugin install superpowers@superpowers-marketplace
+```
+
+After install · restart Claude Code · retry. Don't invoke `Skill()` before install completes.
+
+**Gstack** — instruct user to paste:
+
+```
+git clone https://github.com/garrytan/gstack ~/.claude/skills/gstack && cd ~/.claude/skills/gstack && ./setup
+```
+
+If install requires sudo / no network / user declines · fall back to direct authoring per §11 · don't block.
+
+### §15.4 · Capture skill output → write canonical docs-cockpit doc
+
+After the planning skill completes its design phase · you (the author skill agent) take its output and produce the canonical docs-cockpit artifact. **Never** leave the user with a doc at `~/.gstack/projects/...` or `docs/superpowers/plans/...` that the dashboard can't see.
+
+Two paths depending on what the planning skill produced:
+
+**Path A · Skill output is design content in chat · file not yet written.**
+
+You write directly to canonical:
+
+```
+docs/plans/P-v<sprint>-<slug>.md            # plan
+docs/RFC/RFC-<NNN>-<slug>.md                # RFC
+docs/spec/module/M<NN>-<slug>.md            # module spec
+docs/spec/concept/C<NN>-<slug>.md           # concept spec
+```
+
+Prepend canonical frontmatter (id / type / sprint / status / depends_on / docs / etc.) per §2.
+
+**Path B · Skill wrote a file at its default location** (superpowers → `docs/superpowers/plans/YYYY-MM-DD-<feature>.md` · gstack → `~/.gstack/projects/<slug>/<user>-<branch>-design-<datetime>.md`).
+
+Two sub-options:
+
+- **B1 · Absorb (move + canonical frontmatter)** — preferred when the file is in-repo. Read · prepend docs-cockpit frontmatter · move to canonical path · add `prior_design:` field linking lineage. Use when safely moving a file under `docs/superpowers/...` into `docs/plans/...`.
+
+- **B2 · Alias (file stays put)** — preferred when the file lives outside the repo (e.g. `~/.gstack/projects/...`) or is shared with other tools that depend on the original path. Register an entry in `docs-cockpit.yaml::aliases`:
+
+  ```yaml
+  aliases:
+    - canonical_id: "P-v0.15-driver-seat-next"
+      canonical_type: "plan"
+      source: "{home}/.gstack/projects/docs-cockpit/harvey-main-design-20260520-103015.md"
+      title: "v0.15 driver-seat 续作 · 跨 project portfolio"
+      desc: "MCP server polish + cross-project backlog + ..."
+      icon: "plan"
+  ```
+
+  Run `docs-cockpit build` — alias appears in System Docs drawer under canonical id · click to render source MD inline · no file moves.
+
+### §15.5 · The full flow · worked example
+
+User: 「帮我给 v0.15 写一个 driver-seat 续作的 plan」
+
+You:
+
+1. Detect: `superpowers 5.1.0 + gstack 1.33.2` both installed
+2. Route: open-ended → `gstack:office-hours`
+3. Invoke `Skill(skill: "office-hours")` · let it walk Phase 1-5
+4. Skill saves at `~/.gstack/projects/<slug>/harvey-main-design-20260520-103015.md` (default)
+5. After APPROVED status · propose to user:
+   > Skill produced design at `~/.gstack/projects/<slug>/...`. Options:
+   > A) **Absorb** — copy to `docs/plans/P-v0.15-driver-seat-next.md` with docs-cockpit frontmatter(recommended · in-repo canonical)
+   > B) **Alias** — keep at original location · add `aliases:` entry to `docs-cockpit.yaml`(recommended if gstack timeline-log depends on original path)
+6. User picks · you execute · `docs-cockpit build` · verify new doc shows up in dashboard
+
+For Path A (no skill-output file) · just write canonical directly · skip absorb/alias.
+
+### §15.6 · Canonical filename rules (recap from §4)
+
+- `docs/plans/P-v<sprint>-<slug>.md` · sprint matches a `module.sprint` value
+- `docs/RFC/RFC-<NNN>-<slug>.md` · NNN zero-padded 3-digit (`RFC-007` not `RFC-7`)
+- `docs/spec/module/M<NN>-<slug>.md` · NN zero-padded 2-digit · matches frontmatter `id:`
+- `docs/spec/concept/C<NN>-<slug>.md` · NN same conv
+- `<slug>` kebab-case · 2-5 words · derived from H1 / title
+
+When **aliasing** (Path B2) · `canonical_id` MUST still follow this convention (`P-v0.15-driver-seat-next` etc.) even though `source` points elsewhere. Convention enforced at canonical-id layer · not file system.
+
+### §15.7 · Anti-patterns
+
+- ❌ Leaving the skill's default-location output as the "primary" copy and never producing a canonical docs-cockpit doc — dashboard misses it · standup can't read · users don't know the design exists
+- ❌ Creating both canonical doc AND absorb-source as two physical files — they drift · one goes stale
+- ❌ Using `aliases:` for docs that you DO want as first-class Kanban modules — aliases land in `systemDocs[]` drawer only · for module/concept-class entries write directly at `docs/spec/module/M<NN>-...` instead
+- ❌ Inventing the canonical_id from thin air — derive from plan/RFC subject + sprint context · not random datetime · canonical_id is a stable handle that survives renames

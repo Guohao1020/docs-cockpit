@@ -214,6 +214,111 @@ def _build_card_list(
 _MAX_SYSDOC_EMBED_BYTES = 50 * 1024  # 50KB
 
 
+def _build_aliases(
+    entries: list[dict] | None,
+    vars_: dict[str, str],
+    repo_root: pathlib.Path,
+) -> list[dict]:
+    """v0.15.0 · 读 yaml `aliases:` block · 把外部已生成的 plan/RFC/spec 文档(来自
+    superpowers `docs/superpowers/plans/...` · gstack `~/.gstack/projects/...` · 或
+    其它工具的散落位置)以 docs-cockpit canonical 命名注册进 systemDocs[] · 文件
+    原地不动 · 只覆盖显示名 + 元数据。
+
+    每条 entry 形如:
+        - canonical_id: "P-v0.15-driver-seat-next"
+          canonical_type: "plan"   # plan / rfc / spec / concept-doc · 当前都落 systemDocs
+          source: "docs/superpowers/plans/2026-05-20-mcp.md"
+          title: "v0.15 driver-seat 续作"      # 覆盖原 H1
+          desc:  "..."
+          icon:  "plan"
+
+    解析:支持 `{home}` / `{repo}` / `{env:X}` 变量 · 跟 system_docs 一致 · 三步路径
+    fallback(absolute → relative to config → relative to home)· embed body content
+    · 50KB cap 跟 system_docs 一致。
+
+    Returns:list of card dicts · 直接 extend 到 payload['systemDocs'] · 不进 modules
+    Kanban(canonical_type=module/concept 留 v0.16 候选 · 当前 MVP 只支持 doc-style)。
+    """
+    if not entries:
+        return []
+    out: list[dict] = []
+    for entry in entries:
+        canonical_id = entry.get("canonical_id") or entry.get("id") or ""
+        if not canonical_id:
+            continue
+        raw_source = entry.get("source") or entry.get("path") or ""
+        expanded = _expand(raw_source, vars_)
+        item = {
+            "id": canonical_id,
+            "title": entry.get("title", "") or canonical_id,
+            "path": expanded,
+            "desc": entry.get("desc", ""),
+            "icon": entry.get("icon")
+            or _icon_for_canonical_type(entry.get("canonical_type", "doc")),
+            "content": "",
+            "mtime": None,
+            "exists": False,
+            # 0.15.0 · alias 专属元数据 · standup / portfolio 可消费
+            "alias": True,
+            "canonical_type": entry.get("canonical_type", "doc"),
+            "source_path": raw_source,
+        }
+        if not expanded:
+            out.append(item)
+            continue
+        p = pathlib.Path(expanded)
+        # 三步 path fallback(对齐 _resolve_doc_path)
+        if not p.is_absolute() and not p.exists():
+            for base in (repo_root, pathlib.Path.home()):
+                cand = (base / p).resolve()
+                if cand.exists():
+                    p = cand
+                    break
+        if not p.exists():
+            out.append(item)
+            continue
+        item["exists"] = True
+        item["path"] = str(p)
+        try:
+            stat = p.stat()
+            item["mtime"] = _dt.datetime.fromtimestamp(stat.st_mtime).strftime(
+                "%Y-%m-%d %H:%M"
+            )
+            if p.is_file() and p.suffix.lower() in (".md", ".markdown"):
+                raw_text = p.read_text(encoding="utf-8", errors="replace")
+                _, body = split_frontmatter(raw_text)
+                body_bytes = body.encode("utf-8")
+                if len(body_bytes) <= _MAX_SYSDOC_EMBED_BYTES:
+                    item["content"] = body
+                else:
+                    truncated = body_bytes[:_MAX_SYSDOC_EMBED_BYTES].decode(
+                        "utf-8", errors="replace"
+                    )
+                    kb = len(body_bytes) // 1024
+                    item["content"] = (
+                        truncated
+                        + f"\n\n---\n\n*[Content truncated · body is {kb} KB · "
+                        f"embed limit {_MAX_SYSDOC_EMBED_BYTES // 1024} KB. "
+                        f"Open the file directly to read the rest.]*\n"
+                    )
+        except (OSError, UnicodeError):
+            pass
+        out.append(item)
+    return out
+
+
+def _icon_for_canonical_type(ct: str) -> str:
+    """canonical_type → icon 默认映射 · 给 alias entry 用."""
+    return {
+        "plan": "plan",
+        "rfc": "doc",
+        "spec": "doc",
+        "concept-doc": "design",
+        "memory": "memory",
+        "roadmap": "plan",
+    }.get(ct, "doc")
+
+
 def _build_system_docs(
     entries: list[dict] | None, vars_: dict[str, str], repo_root: pathlib.Path
 ) -> list[dict]:
@@ -325,6 +430,11 @@ def build_payload(
 
     repo_root = pathlib.Path(vars_.get("repo", "."))
     system_docs = _build_system_docs(config.get("system_docs"), vars_, repo_root)
+    # 0.15.0 · aliases · 把外部已生成的 plan/RFC/spec 注册进 systemDocs
+    # 跟 system_docs 并排显示 · 文件原地不动 · canonical 命名仅展示层
+    alias_cards = _build_aliases(config.get("aliases"), vars_, repo_root)
+    if alias_cards:
+        system_docs = system_docs + alias_cards
     modules = _build_card_list(
         config.get("modules"), vars_, fm_enabled, ranges, issues, full=True
     )

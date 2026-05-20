@@ -2,6 +2,71 @@
 
 本项目遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/) · 版本号采用 [SemVer](https://semver.org/lang/zh-CN/)。
 
+## [0.15.0] · 2026-05-20
+
+兑现用户 dogfood 给出的 plan/spec/RFC 工作流需求 · 把 superpowers + gstack 跟 docs-cockpit canonical 命名 wire 通 · 加 yaml `aliases:` 兜底已生成在外部位置的文档。
+
+### Why · 用户反馈
+
+> 你要帮用户自动创建好 spec plan rfc · 并且如果统一驾驶舱的文档别名(尽量保证原始文件名的统一规范。如果已经生成好的文档即用别名控制统一规范)
+
+实际场景:用户跑 `gstack:office-hours` 输出 design doc 落在 `~/.gstack/projects/<slug>/...` · 跑 `superpowers:writing-plans` 落在 `docs/superpowers/plans/...` · docs-cockpit 看不到 · 用户得手动 cp + 加 frontmatter · 体验差。
+
+### Added · author skill §15 · 编排 superpowers + gstack
+
+`skills/docs-cockpit-author/SKILL.md` 加 §15 「Authoring plan / RFC / spec」7 节:
+
+- **§15.1 · Detection** · `ls ~/.claude/plugins/cache/superpowers-marketplace/` + `cat ~/.claude/skills/gstack/VERSION` 测哪个 toolkit 装了
+- **§15.2 · Routing** · 7 行 intent → skill 映射表(office-hours / writing-plans / plan-ceo-review / plan-eng-review / plan-design-review / brainstorming)
+- **§15.3 · Auto-install** · 缺 superpowers 提示 `/plugin marketplace add obra/superpowers-marketplace` · 缺 gstack 提示 git clone command · 用户拒装就 fallback 到 §11 直接 author
+- **§15.4 · Capture skill output** · 两条 path:
+  - Path A · skill 输出在 chat · 直接写 canonical(`docs/plans/P-v<sprint>-<slug>.md` 等)
+  - Path B · skill 写了 file 在默认位置 · B1 absorb(move 到 canonical + 加 frontmatter)or B2 alias(原地不动 · yaml `aliases:` 注册)
+- **§15.5 · Worked example** · 「帮我写 v0.15 driver-seat 续作 plan」全流程逐步示范
+- **§15.6 · Canonical filename rules** recap from §4 · enforce 一次
+- **§15.7 · Anti-patterns** · 4 个常见坑
+
+### Added · yaml `aliases:` block + build resolver
+
+新顶层配置 block · 跟 `system_docs:` 并列:
+
+```yaml
+aliases:
+  - canonical_id: "P-v0.15-driver-seat-next"
+    canonical_type: "plan"        # plan / rfc / spec / concept-doc · MVP 全落 systemDocs[]
+    source: "{home}/.gstack/projects/<slug>/harvey-main-design-20260520.md"
+    title: "v0.15 driver-seat 续作"     # override 原 H1
+    desc: "..."
+    icon: "plan"                  # 缺省 by canonical_type
+```
+
+`docs_cockpit/build.py::_build_aliases` 实现:
+- 支持 `{home}` / `{repo}` / `{env:X}` 变量展开 · 跟 `system_docs` 一致
+- 三步 path fallback(absolute → relative-to-repo → relative-to-home)
+- embed body content 50KB cap · 跟 system_docs 一致
+- 剥 frontmatter · marked.js 渲染干净
+- 不存在的 source 仍 emit entry(`exists: false`)· dashboard 显 stale 状态 · 不 crash
+- alias card 加 `alias: true` + `canonical_type` + `source_path` 元数据 · 给 standup / portfolio skill 区分
+
+MVP scope:alias 全落 `payload.systemDocs[]` · 通过 System Docs drawer 可见。canonical_type=module/concept 留 v0.16(需要全 schema 校验 · 子任务解析 · 工作量较大)。
+
+### Verified
+
+- 13 tests for alias resolver(icon mapping / path fallback / home expansion / override / stale / payload integration)· all green
+- 全量回归:198 + 13 = 211 unit · 10 integration · 0 回归
+- dogfood build 仍 clean(17 modules · 100% done · aliases 当前 yaml 没 entry · 不影响)
+
+### Not changed
+
+- 不动 schema 校验(alias 是叠加 surface · 不进 validate_meta)
+- 不动 modules / concepts Kanban 渲染 · alias 仅入 systemDocs drawer
+- 不动 CLI 子命令 · 不引新 dep
+- 老 yaml 没 `aliases:` block · 一字不动地继续 work · build 时 `_build_aliases([], ...)` 返空 list
+
+### SemVer rationale · minor 不是 patch
+
+`SKILL.md` 改动(author skill §15 新章节)按项目约定 = at least minor。yaml schema 加新顶层字段 = new feature。两个加起来 → 0.15.0。
+
 ## [0.14.4] · 2026-05-20
 
 兑现 v0.11 plan §0 的「mode 1 · build-time auto」承诺(deferred 4 sprint)· 干掉 per-module Refine 按钮 · `docs-cockpit build` 自动写 `docs/refine/M<id>.md` 给 LLM CLI pipe。
