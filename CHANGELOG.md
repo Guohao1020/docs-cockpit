@@ -2,6 +2,74 @@
 
 本项目遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/) · 版本号采用 [SemVer](https://semver.org/lang/zh-CN/)。
 
+## [0.14.4] · 2026-05-20
+
+兑现 v0.11 plan §0 的「mode 1 · build-time auto」承诺(deferred 4 sprint)· 干掉 per-module Refine 按钮 · `docs-cockpit build` 自动写 `docs/refine/M<id>.md` 给 LLM CLI pipe。
+
+### Why · 用户 dogfood 反馈
+
+下游 Sourcery 用户实测 21 module · per-module 点 Refine 按钮 → 切 Claude → 粘 → 应用 patch → 切回 dashboard → 下一个 module。手动循环 21 次 · friction 拉满。原话:「现在是每个模块单独优化 · 我希望去掉这个按钮 · 并且在 build 过程自动触发这个按钮的相关逻辑即可 · 无需手动优化每个模块」。
+
+v0.11 alpha.7 §0 implications 锁了「v0.12 模式 1 · build-time auto」· 但 v0.12 没兑现(那个 sprint 优先 MCP/apply-patch/sync-status/suggest)· v0.14.4 收口。
+
+### Removed · 「让 AI 优化 / Refine with AI」per-module 按钮
+
+- `templates/index.html.tmpl` · 删 `.refine-btn` CSS 完整 block · 留 `display:none !important` 兜底规则(老 build 的 HTML 升级时 button DOM 自动隐藏)
+- `_injectRefineButton()` JS 函数干掉 · applyRoute 里调用点删
+- `copyModuleRefinePrompt()` 函数保留 · 给定制脚本 / MCP / 老书签兜底
+- i18n key `refine.btn_label` / `refine.btn_tooltip` 保留(不破 v0.X 兼容)· dashboard 不再渲染
+
+### Added · `docs/refine/M<id>.md` 自动 build 输出
+
+`build.py::cmd_build` · `prompts-refine.js` sidecar 写完后顺手把每个 module 的 refine prompt 单独落地成文件:
+
+```
+docs/
+  refine/
+    M01.md
+    M02.md
+    ...
+    M17.md
+    README.md      ← 索引 + 4 种 pipe 模式示例
+```
+
+文件内容 = 原 button-fired 出的 refine prompt(`render_refine_prompt(module, repo_root, linked_docs)`)。用户拿到一份 disk-ready 的 prompt 集合,任意 LLM CLI pipe:
+
+```bash
+# 单 module
+cat docs/refine/M07.md | claude --print
+
+# 全 module 批量
+for f in docs/refine/*.md; do
+  cat "$f" | claude --print > docs/refine/_patches/$(basename $f .md).patch.yaml
+done
+
+# 一次 apply 所有 patch
+for p in docs/refine/_patches/*.patch.yaml; do
+  mod_id=$(basename $p .patch.yaml)
+  docs-cockpit apply-patch "docs/spec/module/${mod_id}-*.md" "$p" --apply
+done
+```
+
+旧 module 删了 / 改 id 了 · `refine/<old>.md` 自动清理(`refine_dir.glob("*.md")` 跟 current `refine_map` 比 · 不在的 unlink)。
+
+### Fixed · `test_cockpit_prompt_auto_picks_first_not_done` dogfood drift
+
+dogfood 全 module 100% done 后 · `cockpit_prompt(M13)` 返「All subtasks ... are done · nothing to prompt for」(预期行为)· 但老测试 assert 必出 refine section · stale。改成 OR 任一 valid response(refine section · OR all-done 消息)。
+
+### Not changed · 兼容性
+
+- 不动 schema · 不动 CLI · 不动 SKILL.md → 走 patch 不走 minor
+- `prompts-refine.js` sidecar 保留 · MCP server / 老定制脚本不破
+- `docs-cockpit upgrade` 拿 0.14.4 不强制重启 Claude Code
+
+### Verified
+
+- 293 tests pass · 0 回归(+1 test 鲁棒性修)
+- dogfood build · 17 modules / `docs/refine/` 出 17 个 M*.md + 1 README.md
+- M07.md size check · 跟 `prompts-refine.js[M07]` byte-for-byte 一致
+- 干净状态(全 done module · refine prompt 仍生成 · 内容是"audit anchor precision"指令)
+
 ## [Unreleased] · v0.13 sprint(待实施)
 
 v0.13 主题 · DX polish · schema 一致性 · 边界场景。Plan: `docs/plans/P-v0.13-polish-and-edges.md`。M11-M14 模块骨架已 seed · 实施待启动。

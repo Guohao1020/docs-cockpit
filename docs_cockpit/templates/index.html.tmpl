@@ -278,37 +278,11 @@ body.split-mode .sysdoc-list .sysdoc-row.active .sd-title {
 }
 .st-code-btn, .st-doc-btn { position: relative; }
 
-/* 0.11.0-alpha.7 §4.b · split-view 顶部 Refine with AI 按钮(模式 2)
-   follow-up · design.md HP 蓝单色 · 不渐变(不混用多色 design 原则) */
-body.split-mode #module-drawer .drawer-head .refine-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  margin-left: auto;
-  padding: 6px 12px;
-  font-family: var(--f-display);
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--c-on-ink);
-  background: var(--c-primary);
-  border: 1px solid var(--c-primary);
-  border-radius: var(--r-md);
-  cursor: pointer;
-  transition: background 0.12s ease, border-color 0.12s ease, box-shadow 0.12s ease;
-}
-body.split-mode #module-drawer .drawer-head .refine-btn:hover {
-  background: var(--c-primary-bright);
-  border-color: var(--c-primary-bright);
-  box-shadow: var(--shadow-sm);
-}
-body.split-mode #module-drawer .drawer-head .refine-btn:active {
-  background: var(--c-primary-deep);
-  border-color: var(--c-primary-deep);
-}
-body.split-mode #module-drawer .drawer-head .refine-btn svg {
-  width: 14px;
-  height: 14px;
-}
+/* 0.14.4 · 「Refine with AI」按钮已干掉(per-module 点按钮 dogfood 摩擦) ·
+   build 自动写 docs/refine/M<id>.md 给 LLM CLI 直 pipe · 见 v0.14.4 CHANGELOG。
+   prompts-refine.js sidecar 保留 · MCP server / 自定义脚本仍能消费。
+   下面 hidden 规则给老 build 出的 HTML 兜底 · 避免遗留 DOM 残留出现。 */
+body.split-mode #module-drawer .drawer-head .refine-btn { display: none !important; }
 
 /* 0.11.3 · 「同步 source」按钮 · 主动清当前 module 的 subtask override
    secondary tier · outline 而非 filled · 不抢 Refine 主行为 */
@@ -3750,25 +3724,9 @@ body.split-mode #module-drawer .drawer-body {
     drawer.classList.add('open');
   }
 
-  // 0.11.0-alpha.7 §4.b · 在 module split-view 顶部加 Refine 按钮(模式 2)
-  // 复用 alpha.6 的 prompts.js 同款 sidecar 模式 · 取 window.__REFINE_PROMPTS__[module-id]
-  function _injectRefineButton(moduleId) {
-    const drawer = document.getElementById('module-drawer');
-    if (!drawer) return;
-    const head = drawer.querySelector('.drawer-head');
-    if (!head) return;
-    // 移除老按钮(re-render 时避免重复)
-    const old = head.querySelector('.refine-btn');
-    if (old) old.remove();
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = 'refine-btn';
-    btn.title = t('refine.btn_tooltip') || 'Ask AI to refine this module · copy prompt to Claude / Codex';
-    btn.innerHTML = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 1.5l1.6 3.4 3.7.4-2.7 2.6.7 3.6L8 9.8 4.7 11.5l.7-3.6L2.7 5.3l3.7-.4z"/></svg>' +
-      '<span>' + escapeHtml(t('refine.btn_label') || 'Refine with AI') + '</span>';
-    btn.addEventListener('click', () => copyModuleRefinePrompt(moduleId));
-    head.appendChild(btn);
-  }
+  // 0.14.4 · per-module Refine 按钮已干掉 · build 自动写 docs/refine/M<id>.md 替代
+  // 老 build 出的 HTML 若已有 .refine-btn DOM · 走 CSS `display:none` 兜底
+  // copyModuleRefinePrompt 函数保留(下面)· 给定制脚本 / MCP / 老书签兜底
 
   // 0.11.3 · 「同步 source」按钮 · 主动清当前 module 的 subtask override
   // 跟 loadOverrides 的 build-time auto-invalidation 互补 · 用户不想等下次 build 时立刻同步
@@ -4373,8 +4331,7 @@ body.split-mode #module-drawer .drawer-body {
         _moveModuleDrawerToSplitNav();
         // 复用 openModuleDrawer 的渲染 + 事件绑定(CSS 在 split-mode override modal 样式)
         try { openModuleDrawer(_currentRoute.id); } catch (e) { console.error(e); }
-        // 0.11.0-alpha.7 §4.b · 加 Refine 按钮(模式 2)
-        try { _injectRefineButton(_currentRoute.id); } catch (e) {}
+        // 0.14.4 · Refine 按钮已干掉 · build 自动写 docs/refine/<module>.md · 见 CHANGELOG
         // 0.11.3 · 加「同步 source」按钮 · 主动清 module subtask override
         try { _injectResetOverridesButton(_currentRoute.id); } catch (e) {}
       } else if (_currentRoute.kind === 'sysdoc' && _currentRoute.id) {
