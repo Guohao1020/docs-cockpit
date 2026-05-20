@@ -106,10 +106,10 @@ blocks: []
 
 ## 3 · 待办
 
-- [x] `docs_cockpit/bundle.py` · render_bundle_prompt + cohesion_score + conflict_score + recommended_order + bundle_score + render_bundle_meta @code:docs_cockpit/bundle.py
-- [x] `templates/prompts/bundle.md.j2` · 聚合 prompt 模板 · 共享 context 去重 + 推荐顺序 + caller-aware sync @code:docs_cockpit/templates/prompts/bundle.md.j2
-- [x] `templates/suggest/bundle-recommendation.md.j2` · LLM 检查 module 内 bundle 候选 @code:docs_cockpit/templates/suggest/bundle-recommendation.md.j2
-- [x] `cli.py prompt` 加 `--bundle <id1>,<id2>,...` · 走 `bundle.cmd_bundle_prompt` @code:docs_cockpit/cli.py @code:docs_cockpit/bundle.py:325-370
-- [x] `build.py::cmd_build` 写 `docs/bundle-meta.js` sidecar · pairwise cohesion / conflict precompute · 给 backlog UI verdict 用 @code:docs_cockpit/build.py @code:docs_cockpit/bundle.py:298-322
-- [x] author skill §14 「Bundle heuristics」(4 cohesion + 4 conflict + 推荐顺序 + 用法 + anti-patterns)@code:skills/docs-cockpit-author/SKILL.md
-- [x] tests/unit/test_bundle.py · 22 tests cover cohesion/conflict/order/render/meta · 全 pass @code:tests/unit/test_bundle.py
+- [x] 起 bundle 引擎核心 · 渲染聚合 prompt + 算 cohesion / conflict + 推荐执行顺序 @code:docs_cockpit/bundle.py
+- [x] 聚合 prompt 模板 · 共享 module 上下文去重 · 列推荐顺序 · 提示串行汇报 @code:docs_cockpit/templates/prompts/bundle.md.j2
+- [x] suggest 视角的 bundle 候选模板 · 让 LLM 自动挑哪些 subtask 适合一起打包 @code:docs_cockpit/templates/suggest/bundle-recommendation.md.j2
+- [x] CLI 加批量 prompt 入口 · 用户传一串 subtask id 就拿到聚合 prompt @code:docs_cockpit/cli.py @code:docs_cockpit/bundle.py:325-370
+- [x] build 阶段把 pairwise cohesion / conflict 预算成 sidecar · 给驾驶舱多选 UI 即时 verdict @code:docs_cockpit/build.py @code:docs_cockpit/bundle.py:298-322
+- [x] author skill 加 bundle 启发式章节 · 讲清 4 维 cohesion + 4 维 conflict + 推荐顺序 + 反例 @code:skills/docs-cockpit-author/SKILL.md
+- [x] 单元测试覆盖 bundle 引擎全部能力 · cohesion / conflict / 顺序 / 渲染 / sidecar @code:tests/unit/test_bundle.py

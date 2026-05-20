@@ -31,6 +31,6 @@ blocks: []
 ## 3 · 待办
 
 - [x] browse.html.tmpl 渲染 tree
-- [x] marked.js 集成 + GFM
+- [x] 把通用 markdown 渲染器接入 · 支持 GFM 表格跟代码块 @code:docs_cockpit/templates/browse.html.tmpl
 - [x] tree filter / search
 - [x] file:// 兼容(不走 fetch · MD 内容内联)

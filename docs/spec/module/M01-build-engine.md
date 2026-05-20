@@ -61,10 +61,10 @@ docs-cockpit.yaml + MD files
 - [x] v0.10 build_payload + render_html 稳定
 - [x] frontmatter validator + Issue.reference 体系
 - [x] docs 三步 fallback path resolver
-- [x] @plan-eng-review 1A · 拆 `schema.py` + `paths.py` + `cli.py` @code:docs_cockpit/build.py
-- [x] W1 · `normalize_subtasks` + `validate_subtask_schema` @docs:docs/plans/P-v0.11-driver-seat.md
-- [x] W1 · `resolve_code_anchor` + defensive IO + `@lru_cache` @docs:docs/plans/P-v0.11-driver-seat.md
-- [x] HTML template `<script type="application/json">` 嵌入策略 · `__DOCS_JSON__` collision 消除
-- [x] sidecar 输出 · `docs/prompts.js` + `docs/code_previews.js`
-- [x] `</script>` escape 防 script tag 提前关闭
-- [x] pytest 测试基础 · `tests/unit/` + `tests/integration/`
+- [x] 按职责拆分 build 引擎模块边界 @code:docs_cockpit/schema.py @code:docs_cockpit/paths.py @code:docs_cockpit/cli.py @code:docs_cockpit/build.py @docs:docs/plans/P-v0.11-driver-seat.md#§6.1
+- [x] 把 subtask 升为一等公民 schema · 给每条 subtask 独立 id 跟状态校验 @code:docs_cockpit/schema.py:421-475 @docs:docs/plans/P-v0.11-driver-seat.md
+- [x] 让每条 subtask 锚定到代码行号 · 文件读出错也不崩 @code:docs_cockpit/paths.py:402-456 @docs:docs/plans/P-v0.11-driver-seat.md
+- [x] 把 module 数据安全嵌进 HTML 模板 · 避免脚本提前结束 @code:docs_cockpit/build.py:483-498
+- [x] 输出独立 sidecar JS 文件给 dashboard 按需加载 @code:docs_cockpit/build.py:512-535
+- [x] 模板特殊串 `</script>` 转义 · 防 script 标签被内容截断 @code:docs_cockpit/build.py:483-490
+- [x] 立 pytest 测试地基 · 给所有后续 schema 改动护栏 @code:tests/unit/ @code:tests/integration/

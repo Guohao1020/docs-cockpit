@@ -40,7 +40,7 @@ v0.12.1 修过的 `.split-page[hidden] { display: none }` specificity bug 暴露
 - [x] grep template audit · 4 个 hidden element 全部已有 explicit `[hidden] { display: none; }` override · 无 specificity 隐 bug @code:docs_cockpit/templates/index.html.tmpl
 - [x] 评估 global safety net `*[hidden]:not(...)`· 决定**不加**(4 个 element explicit cover · 加 global 性能略损且收益边际)@code:tests/integration/test_dashboard_render.py
 - [x] `renderSplitPreviewSubtaskDoc` head 加 `📍 Showing lines X-Y of <file>` slice info badge · HP 蓝 pill 风格 @code:docs_cockpit/templates/index.html.tmpl
-- [x] data-i18n + hardcoded fallback 扫描 · 0 alpha 残留(0.12.1 已经修 `§4.d will fill`)@code:docs_cockpit/templates/index.html.tmpl
-- [x] tests/integration/test_dashboard_render.py · 不依赖 playwright 的轻量 string-based check · 24 tests cover dashboard root structure + CSS hidden overrides + topbar entries + sidecar scripts + filter bar + bundle bar @code:tests/integration/test_dashboard_render.py
-- [x] M14-022d30 simplified ·  pytest-playwright hash route 测试留 v0.15(避免 browser binary dep 进 CI)· 当前 test_dashboard_render.py 已 cover static structure @code:tests/integration/test_dashboard_render.py
+- [x] 扫一遍 i18n key 跟 hardcoded fallback · 确认 alpha 期占位文案已清干净 @code:docs_cockpit/templates/index.html.tmpl
+- [x] 加轻量集成测试 · 不依赖 playwright 走 string-based 校验关键 DOM 结构 @code:tests/integration/test_dashboard_render.py
+- [x] hash route 浏览器级测试推迟到下个 sprint · 当前静态结构已被集成测试 cover @code:tests/integration/test_dashboard_render.py
 - [x] CHANGELOG 加 CSS audit section · 走 v0.14.3 patch · 列 4 元素 explicit override 验证 + 不加 global safety net 的评估

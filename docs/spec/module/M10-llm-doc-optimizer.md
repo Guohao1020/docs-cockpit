@@ -46,9 +46,9 @@ docs-cockpit suggest --all --strict       # 全部 module + 错误超 N 个 exit
 
 ## §3 · 待办
 
-- [x] suggest.py scaffold · 复用 prompt.py SandboxedEnvironment + ChoiceLoader(template 寻找顺序:repo `docs/suggest/` → 内置) @code:docs_cockpit/suggest.py:42-79 @code:docs_cockpit/prompt.py:85-106 @docs:skills/docs-cockpit-author/SKILL.md#§13
-- [x] 4 个内置 suggest template @code:docs_cockpit/templates/suggest/desc-rewrite.md.j2 @code:docs_cockpit/templates/suggest/subtask-recompose.md.j2 @code:docs_cockpit/templates/suggest/anchor-completeness.md.j2 @code:docs_cockpit/templates/suggest/cross-doc-consistency.md.j2 @docs:skills/docs-cockpit-author/SKILL.md#§13.2
-- [x] `docs-cockpit suggest [module] [--copy] [--all] [--strict]` CLI · `--strict` 把建议视作 issue · CI 用 @code:docs_cockpit/suggest.py:202-282 @code:docs_cockpit/cli.py:165-201 @docs:skills/docs-cockpit-author/SKILL.md#§13.3
-- [x] caller-aware mode(沿用 refine 的 A/B 模式)· Claude Code 直接动手 · 浏览器 LLM 输出 prompt @code:docs_cockpit/templates/suggest/anchor-completeness.md.j2 @docs:skills/docs-cockpit-author/SKILL.md#§13.1
-- [x] author skill §13 「How to consume suggest output」· 5 步流程跟 §11 对齐 @code:skills/docs-cockpit-author/SKILL.md @docs:skills/docs-cockpit-author/SKILL.md#§13
-- [x] 集成测试:对 M03 跑 suggest · 验输出 prompt 含 module 全 frontmatter + linked docs summary + 4 template 都能渲染 @code:tests/unit/test_suggest.py @docs:skills/docs-cockpit-author/SKILL.md#§13
+- [x] 起 LLM 软建议模块的引擎骨架 · 复用 prompt 渲染层 @code:docs_cockpit/suggest.py:42-79 @code:docs_cockpit/prompt.py:85-106 @docs:skills/docs-cockpit-author/SKILL.md
+- [x] 内置四种建议视角的 template · 描述改写 / 子任务重组 / 锚点完整性 / 跨文档一致性 @code:docs_cockpit/templates/suggest/desc-rewrite.md.j2 @code:docs_cockpit/templates/suggest/subtask-recompose.md.j2 @code:docs_cockpit/templates/suggest/anchor-completeness.md.j2 @code:docs_cockpit/templates/suggest/cross-doc-consistency.md.j2 @docs:skills/docs-cockpit-author/SKILL.md
+- [x] 用户命令行触发建议 · 严格模式下当 issue 卡 CI @code:docs_cockpit/suggest.py:202-282 @code:docs_cockpit/cli.py:165-201 @docs:skills/docs-cockpit-author/SKILL.md
+- [x] 沿用 refine 的两套执行模式 · 有 fs 工具直接改 · 浏览器只能输出 prompt @code:docs_cockpit/templates/suggest/anchor-completeness.md.j2 @docs:skills/docs-cockpit-author/SKILL.md
+- [x] 给 author skill 加章节讲清如何消费 suggest 输出 · 跟原有自检流程对齐 @code:skills/docs-cockpit-author/SKILL.md
+- [x] 集成测试 · 选一个 module 跑 suggest · 验 prompt 含完整 module 上下文跟所有 template 都能渲染 @code:tests/unit/test_suggest.py

@@ -55,5 +55,5 @@ commands/
 - [x] First-build bootstrap(uv tool / pipx / pip --user 优先级) @code:skills/docs-cockpit/SKILL.md:149-179 @docs:CLAUDE.md:109-114
 - [x] docs-cockpit upgrade 原子升级(plugin cache 失效 + 重启提示) @code:docs_cockpit/upgrade.py:211-350 @code:docs_cockpit/upgrade.py:193-209 @code:docs_cockpit/upgrade.py:120-133 @docs:skills/docs-cockpit/SKILL.md:124-147 @docs:CLAUDE.md:148
 - [x] v0.11 skill section · prompt scaffolding 触发条件 + CLI 用法 @code:skills/docs-cockpit/SKILL.md:37-122 @docs:docs/plans/P-v0.11-driver-seat.md#§6.2 @docs:docs/plans/P-v0.11-driver-seat.md:566-577 @docs:docs/plans/P-v0.11-driver-seat.md:367
-- [x] v0.11 plugin.json + marketplace.json + __init__.py + CHANGELOG 4 文件 version bump @code:.claude-plugin/plugin.json @code:.claude-plugin/marketplace.json @code:docs_cockpit/__init__.py:7 @code:CHANGELOG.md @docs:CLAUDE.md:42-54 @docs:docs/plans/P-v0.11-driver-seat.md:579-584
-- [x] v0.12 候选 · MCP server · 让 Claude 直连消费 cockpit prompt(替代 copy-paste · **moved to M07-mcp-server.md** · sprint 0.12 已 ship)@docs:docs/spec/module/M07-mcp-server.md @docs:docs/plans/P-v0.11-driver-seat.md:586-590 @docs:docs/plans/P-v0.11-driver-seat.md:40
+- [x] 版本号在 4 处保持一致 · 让发布步骤不漏标记 @code:.claude-plugin/plugin.json @code:.claude-plugin/marketplace.json @code:docs_cockpit/__init__.py:7 @code:CHANGELOG.md @docs:CLAUDE.md:42-54 @docs:docs/plans/P-v0.11-driver-seat.md:579-584
+- [x] 让 AI 通过 MCP 协议直连消费 cockpit · 替代手动复制 prompt(在 M07 落地) @docs:docs/spec/module/M07-mcp-server.md @docs:docs/plans/P-v0.11-driver-seat.md:586-590 @docs:docs/plans/P-v0.11-driver-seat.md:40

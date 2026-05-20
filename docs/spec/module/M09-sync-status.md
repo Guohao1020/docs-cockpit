@@ -56,10 +56,10 @@ docs-cockpit sync-status --from-browser chrome --apply
 
 ## §4 · 待办
 
-- [x] sync_status.py scaffold · `parse_overrides(json)` / `merge_to_md(overrides, md_path)` / `compute_conflicts()` @code:docs_cockpit/sync_status.py:60-110 @code:docs_cockpit/sync_status.py:113-167 @code:docs_cockpit/sync_status.py:170-204 @docs:docs/spec/module/M09-sync-status.md#§2
-- [x] dashboard 加「Export status overrides」按钮 · 下载 JSON @code:docs_cockpit/templates/index.html.tmpl:1697-1706 @code:docs_cockpit/templates/index.html.tmpl:3803-3829 @docs:references/sync_status_workflow.md
-- [x] `docs-cockpit sync-status --import <json> [--apply]` CLI · dry-run-first @code:docs_cockpit/sync_status.py:282-359 @code:docs_cockpit/cli.py:181-205 @docs:references/sync_status_workflow.md
-- [x] `--from-browser <chrome|firefox|edge>` · 0.14.3 兑现 · Firefox 完整(stdlib sqlite3 读 webappsstore.sqlite)· Chrome/Edge stub 指向 Export workflow(plyvel Windows 难装 · v0.15 候选)· `--profile` 显式指定 @code:docs_cockpit/browser_storage.py @code:docs_cockpit/sync_status.py:289-330 @code:tests/unit/test_browser_storage.py @docs:references/sync_status_workflow.md
-- [x] 优先级规则 4 个 case 全 cover + 集成测试 @code:tests/unit/test_sync_status.py:1-220 @code:docs_cockpit/sync_status.py:170-204 @docs:docs/spec/module/M09-sync-status.md#§3
-- [x] `references/sync_status_workflow.md` · 跨机器 daily / weekly 工作流推荐 @code:references/sync_status_workflow.md @docs:references/sync_status_workflow.md
-- [x] `.bak` 备份 + 跟 apply-patch 复用 `safe_write_md()` 工具函数 @code:docs_cockpit/sync_status.py:243-268 @code:docs_cockpit/apply_patch.py:248-272
+- [x] 立同步层骨架 · 三个核心函数解析 / 合并 / 冲突检测 @code:docs_cockpit/sync_status.py:60-110 @code:docs_cockpit/sync_status.py:113-167 @code:docs_cockpit/sync_status.py:170-204 @docs:docs/spec/module/M09-sync-status.md#§2
+- [x] 让用户从 dashboard 一键下载本地勾选状态 · 给同步流程供给输入 @code:docs_cockpit/templates/index.html.tmpl:1697-1706 @code:docs_cockpit/templates/index.html.tmpl:3803-3829 @docs:references/sync_status_workflow.md
+- [x] 命令行接受导出 JSON · 默认 dry-run 看 diff 再 apply @code:docs_cockpit/cli.py:181-205 @docs:references/sync_status_workflow.md
+- [x] 直读浏览器 profile 读出本地勾选 · 用户跳过导出步骤直接同步 @code:docs_cockpit/browser_storage.py @code:tests/unit/test_browser_storage.py @docs:references/sync_status_workflow.md
+- [x] 四种优先级冲突场景全部覆盖 · 集成测试守护 @code:tests/unit/test_sync_status.py:1-220 @docs:docs/spec/module/M09-sync-status.md#§3
+- [x] 写跨机器日 / 周同步流程推荐文档 · 给用户标准操作 @code:references/sync_status_workflow.md
+- [x] 写回 MD 时生成 bak 备份 · 跟 patch 工具共用安全写工具函数 @code:docs_cockpit/sync_status.py:243-268 @code:docs_cockpit/apply_patch.py:248-272

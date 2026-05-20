@@ -48,10 +48,10 @@ docs-cockpit <subcommand> [args]
 
 - [x] v0.10 build / lint / init / migrate / browse / portfolio / upgrade 全部上线
 - [x] First-build bootstrap(plugin 检测 CLI 缺失 → uv tool / pipx / pip --user)
-- [x] @plan-eng-review 1A · `cli.py` 从 build.py 拆出 @code:docs_cockpit/build.py
-- [x] W3 · `docs-cockpit prompt <module-id> [<subtask-id>]` 子命令 @docs:docs/plans/P-v0.11-driver-seat.md
-- [x] W3 · `--copy` flag + pyperclip optional dep · 未装时输出 stdout + stderr 提示
-- [x] W3 · `--list` 列内置 prompt templates
-- [x] W1 · `docs-cockpit migrate-subtasks <file>` · dry-run / --apply
-- [x] W3 · `docs-cockpit lint --prompts` · Jinja2 语法 + template path 校验
-- [x] tests/integration/test_cli_v011.py · CliRunner 覆盖新子命令
+- [x] 把 CLI 入口从 build 引擎拆出 · 独立 dispatcher @code:docs_cockpit/cli.py @code:docs_cockpit/build.py
+- [x] 让用户从命令行直接拿到任意 subtask 的可执行 prompt @code:docs_cockpit/cli.py:88-112 @docs:docs/plans/P-v0.11-driver-seat.md
+- [x] prompt 复制到剪贴板免去用户手动选中 · 没装剪贴板库时给清晰兜底提示 @code:docs_cockpit/cli.py:103-106 @code:docs_cockpit/build.py:780-874
+- [x] 列出内置 prompt template 名让用户挑 @code:docs_cockpit/cli.py:107-110
+- [x] 把老 string 子任务一键升级到新 object schema · dry-run 先看 diff 再 apply @code:docs_cockpit/build.py:712-779
+- [x] lint 加入 prompt template 校验 · 让 CI 能挡住 Jinja2 语法错 @code:docs_cockpit/build.py:587-694
+- [x] CLI 子命令端到端集成测试 · CliRunner 跑通整条 pipeline @code:tests/integration/test_cli_v011.py

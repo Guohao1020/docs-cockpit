@@ -33,12 +33,12 @@ validator 输出的 `Issue.reference` 字段直接指向 SKILL 章节(`📚 see:
 
 ## 3 · 待办
 
-- [x] §1-§8 frontmatter schema 完整(v0.10) @code:skills/docs-cockpit-author/SKILL.md:34-296 @docs:skills/docs-cockpit-author/SKILL.md:34-296
-- [x] docs vs subtasks 决策树 + 双形式(frontmatter / body) @code:skills/docs-cockpit-author/SKILL.md:145-295 @docs:skills/docs-cockpit-author/SKILL.md:145-159
-- [x] file naming conventions(module / concept / plan / rfc / spec) @code:skills/docs-cockpit-author/SKILL.md:297-311 @docs:skills/docs-cockpit-author/SKILL.md#§4
-- [x] validator output 解读 + Issue.reference 反向指向 @code:docs_cockpit/schema.py:478-541 @docs:skills/docs-cockpit-author/SKILL.md#§5
-- [x] §2.4 · subtask 对象 schema 完整定义(`id / title / status / code / docs`) @code:docs_cockpit/schema.py:421-475 @docs:skills/docs-cockpit-author/SKILL.md:160-207 @docs:skills/docs-cockpit-author/SKILL.md:231-260
-- [x] §2.4 · id 算法 `<module-id>-<sha1(title)[:6]>` + title 修改 = id 重算的 trade-off 说明 @code:docs_cockpit/schema.py:398-419 @docs:skills/docs-cockpit-author/SKILL.md:208-230
-- [x] §10 · prompt template 章节 + 4 内置 template 介绍 + ChoiceLoader 寻找顺序 @code:docs_cockpit/prompt.py:130-237 @docs:skills/docs-cockpit-author/SKILL.md:437-461
-- [x] §10.2 · context vars stability contract(plan-eng-review 2A · 列 v0.X vars + since-version + 升级守则) @code:docs_cockpit/prompt.py:239-310 @docs:skills/docs-cockpit-author/SKILL.md:462-481
-- [x] `## 3 · 待办` body 内联语法 `@code:path:lines @docs:ref` 文档化 @code:docs_cockpit/schema.py:185-223 @docs:skills/docs-cockpit-author/SKILL.md:181-207
+- [x] 写齐 frontmatter schema 完整规范 · 给所有后续模块当真相源 @code:skills/docs-cockpit-author/SKILL.md:34-296 @docs:skills/docs-cockpit-author/SKILL.md#section-1-to-8
+- [x] 把 docs 与 subtasks 的边界讲清 · 给用户写文档时不再混淆 @code:skills/docs-cockpit-author/SKILL.md:145-295 @docs:skills/docs-cockpit-author/SKILL.md#§3
+- [x] 锁定五种文档类型的命名规则 · 让 AI 写新文档时落点统一 @code:skills/docs-cockpit-author/SKILL.md:297-311 @docs:skills/docs-cockpit-author/SKILL.md#§4
+- [x] 校验器输出格式标准化 · 每条问题都能追溯到规范段落 @code:docs_cockpit/schema.py:478-541 @docs:skills/docs-cockpit-author/SKILL.md#§5
+- [x] 把 subtask 升为对象 schema · 让每条子任务能独立追踪 @code:docs_cockpit/schema.py:421-475 @docs:skills/docs-cockpit-author/SKILL.md:160-207 @docs:skills/docs-cockpit-author/SKILL.md:231-260
+- [x] 给 subtask id 加稳定生成算法 · 重命名 title 时讲清 trade-off @code:docs_cockpit/schema.py:398-419 @docs:skills/docs-cockpit-author/SKILL.md:208-230
+- [x] 加 prompt template 规范章节 · 四种内置 template 各自适用场景写清 @code:docs_cockpit/prompt.py:130-237 @docs:skills/docs-cockpit-author/SKILL.md:437-461
+- [x] 给 prompt context 变量定 stability contract · 让自定义 template 升级时不破 @code:docs_cockpit/prompt.py:239-310 @docs:skills/docs-cockpit-author/SKILL.md:462-481
+- [x] body 内联 anchor 语法文档化 · 让 AI 在 checklist 里就能挂代码跟文档锚 @code:docs_cockpit/schema.py:185-223 @docs:skills/docs-cockpit-author/SKILL.md:181-207

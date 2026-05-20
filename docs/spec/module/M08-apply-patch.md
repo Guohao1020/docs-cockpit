@@ -63,4 +63,4 @@ subtasks:
 - [x] 冲突检测:patch 想改 M03-e6adea 但用户手改过 · 走「user wins · skip with warning」语义 · 或 `--force` 覆盖 @code:docs_cockpit/apply_patch.py:120-187
 - [x] `.bak` 备份 · 与 migrate-subtasks 一致 @code:docs_cockpit/apply_patch.py:248-272 @code:docs_cockpit/build.py:712-779
 - [x] dry-run / --apply · diff 输出走 unified diff 格式 · 跟 git diff 一致 @code:docs_cockpit/apply_patch.py:221-235 @code:docs_cockpit/cli.py:181-198
-- [x] 集成测试:跑完 refine prompt 把 YAML 喂进 apply-patch · 验 anchor 落到 state.json @code:tests/unit/test_apply_patch.py:1-285 @code:docs_cockpit/templates/prompts/refine.md.j2 @docs:docs/plans/P-v0.11-ai-augmented-precision-alpha7-2026-05-18.md:156-161
+- [x] 端到端集成测试 · 跑完 refine 流程把 patch 喂进来 · 验证 anchor 落到项目状态里 @code:tests/unit/test_apply_patch.py:1-285 @code:docs_cockpit/templates/prompts/refine.md.j2 @docs:docs/plans/P-v0.11-ai-augmented-precision-alpha7-2026-05-18.md:156-161

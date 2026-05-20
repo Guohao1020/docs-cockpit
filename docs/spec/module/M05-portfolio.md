@@ -40,6 +40,6 @@ blocks: []
 ## 3 · 待办
 
 - [x] portfolio add/list/remove/tag CLI 全部上线
-- [x] projects.yaml schema + path normalization(Windows / POSIX)
+- [x] 跨平台规整用户级注册表里的路径 · Windows 跟 POSIX 都能读写 @code:docs_cockpit/portfolio.py
 - [x] snapshot CLI + weekly diff
 - [x] docs-cockpit-portfolio skill · narrative output

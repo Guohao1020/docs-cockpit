@@ -48,7 +48,7 @@ blocks: []
 - [x] `_resolve_code_anchor` 输出加 `path_only` 字段 @code:docs_cockpit/paths.py:422-456
 - [x] `_resolve_subtask_doc_anchor` 输出加 `raw_with_anchor` alias @code:docs_cockpit/paths.py:296-360
 - [x] generic/feature/fix/refactor 4 template 渲染端走 `path_only` @code:docs_cockpit/templates/prompts/generic.md.j2 @code:docs_cockpit/templates/prompts/feature.md.j2 @code:docs_cockpit/templates/prompts/fix.md.j2 @code:docs_cockpit/templates/prompts/refactor.md.j2
-- [x] author skill §3.1.2 加 code anchor 字段表 + §3.1.3 加 doc anchor 字段表 @code:skills/docs-cockpit-author/SKILL.md
-- [x] tests/unit/test_paths.py · TestSchemaConsistency_v0_14_3 · 5 测试 cover 新字段 + 老字段不变 @code:tests/unit/test_paths.py
+- [x] author skill 加 code 跟 doc anchor 字段表 · 让用户跟 AI 都明白新老字段关系 @code:skills/docs-cockpit-author/SKILL.md
+- [x] 单元测试覆盖新字段加跟老字段不变 · 守住稳定契约 @code:tests/unit/test_paths.py
 - [x] M10 suggest 4 template 也走 clean 字段(bundle-recommendation 用 path_only · 其它 3 template 不渲染 ca/da 字段) @code:docs_cockpit/templates/suggest/bundle-recommendation.md.j2
 - [x] CHANGELOG 加 schema-additions section(走 v0.14.3 patch · stability contract reaffirm)

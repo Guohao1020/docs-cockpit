@@ -51,11 +51,11 @@ backend 把 localStorage[`project-kanban-state-v1`] 拉出来 · 走现有 `pars
 
 ## §4 · 待办
 
-- [x] `browser_storage.py` scaffold · `find_profile_dir(name)` 跨平台 + `read_localstorage_chrome(dir)` + `read_localstorage_firefox(path)`
-- [x] Chrome / Edge LevelDB reader · 走 plyvel(optional dep)+ leveldb key 前缀 filter
-- [x] Firefox SQLite reader · 走 stdlib sqlite3 · 不加新 dep
-- [x] pyproject.toml 加 `[project.optional-dependencies] browser = ["plyvel>=1.5"]`
-- [x] sync_status.py::cmd_sync_status `--from-browser` 路径接通 · 替换 stub 报错
-- [x] `--profile <name>` 显式选 profile · default 走 macOS / Windows / Linux per-platform default-release
-- [x] tests/unit/test_browser_storage.py · fixture LevelDB(从 string dict 构造)+ fixture SQLite
-- [x] references/sync_status_workflow.md 更新 Path 2 章节 · 标 v0.13+
+- [x] 起浏览器存储读取层骨架 · 跨平台找 profile 目录 · 给 Chrome 跟 Firefox 两套读法 @code:docs_cockpit/browser_storage.py
+- [x] Chrome / Edge 读 LevelDB · 走 plyvel 可选依赖 · 按 key 前缀过滤本项目记录 @code:docs_cockpit/browser_storage.py
+- [x] Firefox 读 SQLite · 走 stdlib · 不加新依赖 @code:docs_cockpit/browser_storage.py
+- [x] 在打包配置加可选依赖组 · 用户按需安装浏览器读取能力 @code:pyproject.toml
+- [x] sync-status 命令接通直读浏览器路径 · 替换原 stub 报错 @code:docs_cockpit/sync_status.py
+- [x] 用户能显式指定 profile 名 · 不指定就用各平台默认 release profile @code:docs_cockpit/browser_storage.py
+- [x] 单元测试覆盖两种 backend · fixture 构造 LevelDB 跟 SQLite @code:tests/unit/test_browser_storage.py
+- [x] 同步工作流文档加直读浏览器路径章节 · 标 v0.13+ 起可用 @docs:references/sync_status_workflow.md
