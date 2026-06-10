@@ -278,10 +278,7 @@ body.split-mode .sysdoc-list .sysdoc-row.active .sd-title {
 }
 .st-code-btn, .st-doc-btn { position: relative; }
 
-/* 0.14.4 · 「Refine with AI」按钮已干掉(per-module 点按钮 dogfood 摩擦) ·
-   build 自动写 docs/refine/M<id>.md 给 LLM CLI 直 pipe · 见 v0.14.4 CHANGELOG。
-   prompts-refine.js sidecar 保留 · MCP server / 自定义脚本仍能消费。
-   下面 hidden 规则给老 build 出的 HTML 兜底 · 避免遗留 DOM 残留出现。 */
+/* v1.0 · Refine 功能已随认知 CLI 整体删除 · hidden 规则给老 build 出的 HTML 兜底 */
 body.split-mode #module-drawer .drawer-head .refine-btn { display: none !important; }
 
 /* 0.11.3 · 「同步 source」按钮 · 主动清当前 module 的 subtask override
@@ -2231,11 +2228,7 @@ body.split-mode #module-drawer .drawer-body {
       'topbar.crumb': 'Project Dashboard',
       'topbar.back': 'Back',
       'toast.prompt_copied': 'Prompt copied · paste to Claude / Codex',
-      'toast.prompt_missing': 'Prompt not in cache · run docs-cockpit build to refresh prompts.js',
-      'refine.btn_label': 'Refine with AI',
-      'refine.btn_tooltip': 'Ask Claude / Codex to refine this module · review anchor precision · output YAML patch',
-      'toast.refine_copied': 'Refine prompt copied · paste to Claude / Codex · expect a YAML patch back',
-      'toast.refine_missing': 'Refine prompt not in cache · run docs-cockpit build to refresh prompts-refine.js',
+      'toast.prompt_missing': 'Prompt not in cache · run docs-cockpit render to refresh prompts.js',
       'reset.btn_label': 'Reset to source',
       'reset.btn_tooltip': 'Clear local subtask overrides for this module · reload from source MD',
       'toast.reset_done': 'Overrides cleared · reloading from source MD…',
@@ -2263,7 +2256,9 @@ body.split-mode #module-drawer .drawer-body {
       'backlog.filter.clear': 'Clear',
       'bundle.copy': 'Copy bundle prompt',
       'bundle.clear': 'Clear',
-      'toast.bundle_cli_copied': 'CLI copied · paste in terminal · prompt → clipboard',
+      'bundle.prompt_head': 'Please implement the following subtasks together as one bundle (context: see each anchor):',
+      'bundle.prompt_tail': '(Suggested: follow the docs-cockpit-build skill flow — preview each anchor before coding)',
+      'toast.bundle_prompt_copied': 'Bundle prompt copied · paste to Claude / Codex',
       // 0.14.1 multi-select
       'backlog.selectall': 'Select all visible',
       'backlog.selectall_title': 'Select all visible rows (or Shift-click a checkbox to range-select)',
@@ -2540,11 +2535,7 @@ body.split-mode #module-drawer .drawer-body {
       'topbar.crumb': '项目看板',
       'topbar.back': '返回',
       'toast.prompt_copied': 'Prompt 已复制 · 粘到 Claude / Codex',
-      'toast.prompt_missing': 'Prompt 未在缓存 · 跑 docs-cockpit build 刷新 prompts.js',
-      'refine.btn_label': '让 AI 优化',
-      'refine.btn_tooltip': '让 Claude / Codex 检查这个 module 的 anchor 精度 · 输出 YAML patch',
-      'toast.refine_copied': 'Refine prompt 已复制 · 粘到 Claude / Codex · 让它返回 YAML patch',
-      'toast.refine_missing': 'Refine prompt 未在缓存 · 跑 docs-cockpit build 刷新 prompts-refine.js',
+      'toast.prompt_missing': 'Prompt 未在缓存 · 跑 docs-cockpit render 刷新 prompts.js',
       'reset.btn_label': '同步 source',
       'reset.btn_tooltip': '清当前 module 的 subtask 本地 override · 重 load 让 source MD 接管',
       'toast.reset_done': '已清 override · 从 source MD 重 load…',
@@ -2571,7 +2562,9 @@ body.split-mode #module-drawer .drawer-body {
       'backlog.filter.clear': '清除',
       'bundle.copy': '复制 bundle 提示词',
       'bundle.clear': '清除',
-      'toast.bundle_cli_copied': 'CLI 命令已复制 · 在终端粘贴运行 · prompt 自动进剪贴板',
+      'bundle.prompt_head': '请把以下 subtask 作为一个 bundle 一起实现（上下文见各自 anchor）：',
+      'bundle.prompt_tail': '（建议走 docs-cockpit-build skill 的流程：先预演每个 anchor 再动手）',
+      'toast.bundle_prompt_copied': 'Bundle prompt 已复制 · 粘到 Claude / Codex',
       // 0.14.1 multi-select
       'backlog.selectall': '全选当前',
       'backlog.selectall_title': '全选当前筛选内的所有 subtask(或 Shift+点 checkbox 范围选)',
@@ -3718,10 +3711,6 @@ body.split-mode #module-drawer .drawer-body {
     drawer.classList.add('open');
   }
 
-  // 0.14.4 · per-module Refine 按钮已干掉 · build 自动写 docs/refine/M<id>.md 替代
-  // 老 build 出的 HTML 若已有 .refine-btn DOM · 走 CSS `display:none` 兜底
-  // copyModuleRefinePrompt 函数保留(下面)· 给定制脚本 / MCP / 老书签兜底
-
   // 0.11.3 · 「同步 source」按钮 · 主动清当前 module 的 subtask override
   // 跟 loadOverrides 的 build-time auto-invalidation 互补 · 用户不想等下次 build 时立刻同步
   function _injectResetOverridesButton(moduleId) {
@@ -4205,24 +4194,29 @@ body.split-mode #module-drawer .drawer-body {
       toast('No subtasks selected');
       return;
     }
-    // 走 CLI command copy(MVP · 无 server fetch)
-    const cmd = 'docs-cockpit prompt --bundle ' + ids.join(',') + ' --copy';
+    // v1.0 · 认知 CLI 已删 · 前端直接拼自然语言 bundle prompt(id/title 就在 RAW 里)
+    const byId = {};
+    for (const it of _flatSubtasks()) byId[it.id] = it;
+    const lines = ids.map(id => '- ' + id + ((byId[id] && byId[id].title) ? ' · ' + byId[id].title : ''));
+    const text = (t('bundle.prompt_head') || 'Please implement the following subtasks together as one bundle (context: see each anchor):') + '\n' +
+      lines.join('\n') + '\n' +
+      (t('bundle.prompt_tail') || '(Suggested: follow the docs-cockpit-build skill flow — preview each anchor before coding)');
     (async () => {
       try {
-        await navigator.clipboard.writeText(cmd);
-        toast(t('toast.bundle_cli_copied') || 'CLI command copied · paste in terminal · prompt → clipboard');
+        await navigator.clipboard.writeText(text);
+        toast(t('toast.bundle_prompt_copied') || 'Bundle prompt copied · paste to Claude / Codex');
         return;
       } catch (e) {}
       try {
         const ta = document.createElement('textarea');
-        ta.value = cmd;
+        ta.value = text;
         ta.style.position = 'fixed';
         ta.style.opacity = '0';
         document.body.appendChild(ta);
         ta.select();
         const ok = document.execCommand('copy');
         document.body.removeChild(ta);
-        toast(ok ? (t('toast.bundle_cli_copied') || 'CLI copied') : 'Copy failed');
+        toast(ok ? (t('toast.bundle_prompt_copied') || 'Bundle prompt copied') : 'Copy failed');
       } catch (e) {
         toast('Copy failed · ' + e.message);
       }
@@ -4242,33 +4236,6 @@ body.split-mode #module-drawer .drawer-body {
     });
   }
 
-  function copyModuleRefinePrompt(moduleId) {
-    const prompt = (window.__REFINE_PROMPTS__ || {})[moduleId];
-    if (!prompt) {
-      toast(t('toast.refine_missing') || 'Refine prompt not in cache · run docs-cockpit build to refresh prompts-refine.js');
-      return;
-    }
-    (async () => {
-      try {
-        await navigator.clipboard.writeText(prompt);
-        toast(t('toast.refine_copied') || 'Refine prompt copied · paste to Claude / Codex · expect a YAML patch back');
-        return;
-      } catch (e) {}
-      try {
-        const ta = document.createElement('textarea');
-        ta.value = prompt;
-        ta.style.position = 'fixed';
-        ta.style.opacity = '0';
-        document.body.appendChild(ta);
-        ta.select();
-        const ok = document.execCommand('copy');
-        document.body.removeChild(ta);
-        toast(ok ? (t('toast.refine_copied') || 'Refine prompt copied') : 'Copy failed · prompt size: ' + prompt.length + ' chars');
-      } catch (e) {
-        toast('Copy failed · ' + e.message);
-      }
-    })();
-  }
   function _moveModuleDrawerBackToBody() {
     const drawer = document.getElementById('module-drawer');
     if (!drawer) return;
@@ -4516,7 +4483,7 @@ body.split-mode #module-drawer .drawer-body {
   function copySubtaskPrompt(subtaskId) {
     const prompt = (window.__PROMPTS__ || {})[subtaskId];
     if (!prompt) {
-      toast(t('toast.prompt_missing') || 'Prompt not available · run docs-cockpit build to refresh');
+      toast(t('toast.prompt_missing') || 'Prompt not available · run docs-cockpit render to refresh');
       return;
     }
     // 0.10.1 clipboard fallback(file:// 兼容)
