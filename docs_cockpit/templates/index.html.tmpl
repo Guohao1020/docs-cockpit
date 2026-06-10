@@ -991,9 +991,16 @@ body.split-mode #module-drawer .drawer-body {
   background: var(--c-cloud); border-radius: 3px; padding: 1px 6px;
   color: var(--c-charcoal);
 }
-/* H-Task 5 · Copy-prompt CTA 挂载位 · 本版留空 · 空时折叠不占高 */
+/* H-Task 5 · Copy-prompt CTA(单条 .rx-copy + 桶级 .rx-copy-bucket) */
 .rx-card .rx-foot { margin-top: 8px; display: flex; justify-content: flex-end; gap: 6px; }
 .rx-card .rx-foot:empty { display: none; margin: 0; }
+.rx-copy, .rx-copy-bucket {
+  background: transparent; border: 1px solid var(--c-hairline); border-radius: var(--r-pill);
+  font-family: var(--f-mono); font-size: 10.5px; color: var(--c-primary);
+  padding: 2px 10px; cursor: pointer;
+}
+.rx-copy:hover, .rx-copy-bucket:hover { border-color: var(--c-primary); background: var(--c-primary-soft); }
+.hd-rx-bulk { display: flex; justify-content: flex-end; }
 .hd-empty { font-size: 12.5px; color: var(--c-graphite); font-style: italic; padding: 8px 0; }
 
 /* 面板 (c)(d) · 行动区 + 折叠块(accepted debts 表 / 完整报告) */
@@ -2396,6 +2403,7 @@ body.split-mode #module-drawer .drawer-body {
       'bundle.prompt_head': 'Please implement the following subtasks together as one bundle (context: see each anchor):',
       'bundle.prompt_tail': '(Suggested: follow the docs-cockpit-build skill flow — preview each anchor before coding)',
       'toast.bundle_prompt_copied': 'Bundle prompt copied · paste to Claude / Codex',
+      'toast.health_rx_copied': 'Prescription prompt copied · paste to Claude / Codex',
       // 0.14.1 multi-select
       'backlog.selectall': 'Select all visible',
       'backlog.selectall_title': 'Select all visible rows (or Shift-click a checkbox to range-select)',
@@ -2430,6 +2438,17 @@ body.split-mode #module-drawer .drawer-body {
       'health.debt_reason': 'Reason',
       'health.debt_review': 'Review',
       'health.full_report': 'Full report',
+      'health.copy_rx': 'Copy prompt',
+      'health.copy_bucket': 'Copy all {n}',
+      'health.rx_prompt_head': 'Please fix the following docs-cockpit health prescription{meta}:',
+      'health.rx_prompt_meta': ' ({meta})',
+      'health.rx_prompt_bucket_head': 'Please fix the following {n} health prescriptions in order (sorted by impact):',
+      'health.rx_prompt_sev_line': '[{severity}] {title}',
+      'health.rx_prompt_root_cause': 'Root cause: ',
+      'health.rx_prompt_anchors': 'Location:',
+      'health.rx_prompt_fix': 'Suggested fix: ',
+      'health.rx_prompt_module': 'Module: ',
+      'health.rx_prompt_tail': 'When done, run `docs-cockpit render` to verify, and update the corresponding prescription status in docs/HEALTH.md.',
       'hero.eyebrow': 'PROJECT DASHBOARD · MODULE PROGRESS',
       'hero.title': 'Project progress overview',
       'hero.tagline': 'Module status · sprint progress · core concepts · one-stop visualization with fine-grained progress control.',
@@ -2729,6 +2748,7 @@ body.split-mode #module-drawer .drawer-body {
       'bundle.prompt_head': '请把以下 subtask 作为一个 bundle 一起实现（上下文见各自 anchor）：',
       'bundle.prompt_tail': '（建议走 docs-cockpit-build skill 的流程：先预演每个 anchor 再动手）',
       'toast.bundle_prompt_copied': 'Bundle prompt 已复制 · 粘到 Claude / Codex',
+      'toast.health_rx_copied': '处方 prompt 已复制 · 粘到 Claude / Codex',
       // 0.14.1 multi-select
       'backlog.selectall': '全选当前',
       'backlog.selectall_title': '全选当前筛选内的所有 subtask(或 Shift+点 checkbox 范围选)',
@@ -2763,6 +2783,17 @@ body.split-mode #module-drawer .drawer-body {
       'health.debt_reason': '理由',
       'health.debt_review': '复查时间',
       'health.full_report': '完整报告',
+      'health.copy_rx': '复制处方 prompt',
+      'health.copy_bucket': '复制本桶 {n} 条',
+      'health.rx_prompt_head': '请解决以下 docs-cockpit 体检处方{meta}：',
+      'health.rx_prompt_meta': '（{meta}）',
+      'health.rx_prompt_bucket_head': '请按顺序解决以下 {n} 条体检处方（按伤害排序）：',
+      'health.rx_prompt_sev_line': '【{severity}】{title}',
+      'health.rx_prompt_root_cause': '根因：',
+      'health.rx_prompt_anchors': '位置：',
+      'health.rx_prompt_fix': '建议修法：',
+      'health.rx_prompt_module': '所属模块：',
+      'health.rx_prompt_tail': '完成后跑 `docs-cockpit render` 验证，并更新 docs/HEALTH.md 中对应处方状态。',
       'topbar.sysdocs_title': '系统文档 (D)',
       'hero.eyebrow': '通用项目看板 · 模块进度',
       'hero.title': '项目进度概览',
@@ -3421,6 +3452,60 @@ body.split-mode #module-drawer .drawer-body {
     if (wasOpen) openDrawer('health-drawer');   // 语言切换重渲染时保持打开
   }
 
+  // ── H-Task 5 · Copy-prompt CTA(单条 + 桶级批量)──────
+  // 单条处方的 prompt 正文块(不含头/尾句)· degraded 容错:
+  // anchors / module / root_cause / fix 缺哪段就省哪段 · 绝不输出「位置：undefined」
+  function _rxPromptBlock(r) {
+    if (!r || typeof r !== 'object') return '';
+    const title = r.title || r.id || '—';
+    const sev = (typeof r.severity === 'string' && r.severity) ? r.severity : '';
+    const lines = [sev ? t('health.rx_prompt_sev_line', { severity: sev, title: title }) : title];
+    if (r.root_cause) lines.push(t('health.rx_prompt_root_cause') + r.root_cause);
+    const anchors = (Array.isArray(r.anchors) ? r.anchors : [])
+      .filter(a => typeof a === 'string' && a.trim());
+    if (anchors.length) {
+      lines.push(t('health.rx_prompt_anchors') + '\n' + anchors.map(a => '- ' + a.trim()).join('\n'));
+    }
+    if (r.fix) lines.push(t('health.rx_prompt_fix') + r.fix);
+    if (typeof r.module === 'string' && r.module) lines.push(t('health.rx_prompt_module') + r.module);
+    return lines.join('\n');
+  }
+
+  // 拼整段可粘贴 prompt:头(单条带 date·mode / 桶级带 N + 按伤害排序)+ 各条块 + 统一收尾句一次
+  function _buildRxPromptText(items, isBucket) {
+    const h = RAW.health || {};
+    let head;
+    let blocks = items;
+    if (isBucket) {
+      // 头部声称「按伤害排序」· 这里真排(high → medium → low → 未知)· 稳定排序保同级原序
+      const rank = { high: 0, medium: 1, low: 2 };
+      blocks = items.slice().sort((a, b) => {
+        const ra = rank[(a && typeof a.severity === 'string') ? a.severity.toLowerCase() : ''];
+        const rb = rank[(b && typeof b.severity === 'string') ? b.severity.toLowerCase() : ''];
+        return (ra === undefined ? 9 : ra) - (rb === undefined ? 9 : rb);
+      });
+      head = t('health.rx_prompt_bucket_head', { n: items.length });
+    } else {
+      const dateStr = (h.date == null) ? '' : String(h.date).trim();
+      const modeLabel = _healthModeLabel(h.mode);
+      const subParts = [];
+      if (dateStr) subParts.push(dateStr);
+      if (modeLabel) subParts.push(modeLabel);
+      // date/mode 全缺 → 括号段整体省略(不输出空括号)
+      const meta = subParts.length ? t('health.rx_prompt_meta', { meta: subParts.join(' · ') }) : '';
+      head = t('health.rx_prompt_head', { meta: meta });
+    }
+    return head + '\n' +
+      blocks.map(_rxPromptBlock).filter(Boolean).join('\n\n') + '\n' +
+      t('health.rx_prompt_tail');
+  }
+
+  function _copyRxPrompt(items, isBucket) {
+    copyText(_buildRxPromptText(items, isBucket),
+      () => toast(t('toast.health_rx_copied')),
+      () => toast(t('toast.copy_failed')));
+  }
+
   // 处方卡列表 · 按 _healthBucket 过滤渲染(tab 切换只重绘这一段)
   function _renderHealthRx(scope, rxAll) {
     const list = scope.querySelector('#hd-rx-list');
@@ -3437,7 +3522,12 @@ body.split-mode #module-drawer .drawer-body {
       list.innerHTML = '<div class="hd-empty">' + escapeHtml(t('health.rx_empty')) + '</div>';
       return;
     }
-    list.innerHTML = items.map(r => {
+    // 桶级批量 Copy:当前 tab 非「全部」且桶内有处方 → 列表头挂「复制本桶 N 条」
+    const bulkHtml = (_healthBucket !== 'all' && items.length)
+      ? '<div class="hd-rx-bulk"><button type="button" class="rx-copy-bucket">' +
+          escapeHtml(t('health.copy_bucket', { n: items.length })) + '</button></div>'
+      : '';
+    list.innerHTML = bulkHtml + items.map((r, i) => {
       if (!r || typeof r !== 'object') return '';
       const sev = (typeof r.severity === 'string') ? r.severity.toLowerCase() : '';
       const sevCls = (sev === 'high' || sev === 'medium' || sev === 'low') ? ' sev-' + sev : '';
@@ -3460,7 +3550,8 @@ body.split-mode #module-drawer .drawer-body {
         (r.root_cause ? '<div class="rx-field"><span class="rx-k">' + escapeHtml(t('health.rx_root_cause')) + '</span>' + escapeHtml(r.root_cause) + '</div>' : '') +
         (r.fix ? '<div class="rx-field"><span class="rx-k">' + escapeHtml(t('health.rx_fix')) + '</span>' + escapeHtml(r.fix) + '</div>' : '') +
         (anchors.length ? '<div class="rx-anchors">' + anchors.map(a => '<code>' + escapeHtml(a) + '</code>').join('') + '</div>' : '') +
-        '<div class="rx-foot"></div>' +   // H-Task 5 · Copy-prompt CTA 挂载位 · 本版留空
+        '<div class="rx-foot"><button type="button" class="rx-copy" data-rx-i="' + i + '">' +
+          escapeHtml(t('health.copy_rx')) + '</button></div>' +
       '</div>';
     }).join('');
     // module 反链:关本 drawer → 复用既有 module 打开入口(navigateTo · modal / split 双兼容)
@@ -3471,6 +3562,15 @@ body.split-mode #module-drawer .drawer-body {
         navigateTo('module', id);
       });
     });
+    // Copy-prompt CTA:单条按 items 下标闭包直取(不从 DOM 回读字段)+ 桶级一颗
+    list.querySelectorAll('.rx-copy[data-rx-i]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const r = items[Number(btn.dataset.rxI)];
+        if (r) _copyRxPrompt([r], false);
+      });
+    });
+    const bulkBtn = list.querySelector('.rx-copy-bucket');
+    if (bulkBtn) bulkBtn.addEventListener('click', () => _copyRxPrompt(items, true));
   }
 
   // ── Module Drawer ────────────────────────────────────

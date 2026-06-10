@@ -276,6 +276,25 @@ class TestHealthPanelWithReport:
         ):
             assert health_html.count("'" + key + "'") >= 2, key
 
+    def test_copy_rx_i18n_keys_registered_in_both_locales(self, health_html):
+        # H-Task 5:Copy-prompt CTA 的新 key 在 EN / 中 两本字典成对注册
+        for key in (
+            "health.copy_rx",
+            "health.copy_bucket",
+            "health.rx_prompt_head",
+            "health.rx_prompt_bucket_head",
+            "health.rx_prompt_tail",
+            "toast.health_rx_copied",
+        ):
+            assert health_html.count("'" + key + "'") >= 2, key
+
+    def test_rx_prompt_builder_and_buttons_present(self, health_html):
+        # H-Task 5:拼接函数 + 单条/桶级按钮机件都在产物 JS 里
+        assert "_buildRxPromptText" in health_html
+        assert "_rxPromptBlock" in health_html
+        assert 'class="rx-copy"' in health_html
+        assert "rx-copy-bucket" in health_html
+
 
 class TestHealthPanelBackwardCompat:
     """无 HEALTH.md:health 显式 null + 静态产物永不含徽章 DOM 节点(老项目零变化)。"""
