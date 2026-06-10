@@ -61,7 +61,7 @@ system_docs:
   - id: ref-frontmatter
     title: Frontmatter Conventions
     path: "{repo}/references/frontmatter_conventions.md"
-    desc: frontmatter 治理 · 引用 docs-cockpit-author 规范
+    desc: frontmatter 治理 · 字段规范 SSOT 见 references/schema.md
     icon: doc
 
   - id: ref-design-tokens

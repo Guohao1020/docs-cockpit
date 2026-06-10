@@ -1,4 +1,4 @@
-<!-- 规范 SSOT · 原 docs-cockpit-author §1-§4/§16.2 · Stage B 后 author 删除，本文成唯一来源 -->
+<!-- 规范 SSOT · 自 v1.0 起本文是唯一字段规范来源（原 docs-cockpit-author 已删 · 其活规范节已并入本文） -->
 
 # docs-cockpit · frontmatter & anchor 字段规范
 
@@ -15,6 +15,8 @@ build / rebuild skill 共享的字段规范 SSOT。
 7. [doc anchor 格式](#doc-anchor-格式)
 8. [文件命名约定](#文件命名约定)
 9. [subtask title 4 法则](#subtask-title-4-法则)
+10. [per-subtask plan MD](#per-subtask-plan-md)
+11. [sprint-plan schema](#sprint-plan-schema)
 
 ---
 
@@ -99,6 +101,15 @@ status=in-progress → progress in [5, 95]   (5 = some commit landed · 95 = nee
 ```
 
 When out of range, either move `status` forward or bring `progress` back to the band. Pick whichever describes reality.
+
+### status × subtasks 一致性
+
+module 级 `status` 要跟 subtasks 的实际完成比例对得上（validator cross-field 校验 · warn 级）：
+
+- `status: done` 但 subtasks 未全 done → warn「数据不一致」· 把剩余 subtask 勾完 · 或把 module status 调回 `in-progress`
+- `status: not-started` 但已有 subtask done → warn · bump status 到 `in-progress`
+
+经验法则：9 done + 1 not-started · module status 该是 `in-progress` 不是 `done`。用户坚持 `done` 但 subtask 未完 · 先质疑（多半是 status 标错）· 不要默默放行。
 
 ### doc type enum
 
@@ -195,7 +206,7 @@ subtasks:
   - "worker pulls next state from queue"
 ```
 
-The validator emits a `hint` on string form and points to `docs-cockpit migrate-subtasks` (one-shot upgrade：`docs-cockpit migrate-subtasks <file>` dry-run 打印 diff · 加 `--apply` 写回并生成 .bak · 自动把 string 转 {id, title, done, status} 且不动已有 object 条目).
+v0.10 string 形式是 legacy——解析层继续兼容（bare string 视作 `{title: <string>}` · 其余字段自动生成）。新写一律用 object 形式（Form A）；要升级老文件时 agent 用 Edit 直接把 string 重写为 object 即可 · 不再有 CLI 迁移工具。
 
 **Form C · body section with inline annotations (v0.11.0-alpha.2 · diff-friendly · what this repo uses for its own modules):**
 ```markdown
@@ -284,7 +295,7 @@ The drawer surfaces a `vscode://file/<abs>:<line>` deep-link button on each anch
 | `vscode_url` | str | `vscode://file/<abs>:<line>` deep link | "Open in VS Code" button |
 | `warning` | str | "" if ok · else stale / out-of-range / binary message | render `⚠` badge |
 
-**Template rule of thumb**: use `{{ ca.path_only }}{% if ca.lines %}:{{ ca.lines }}{% endif %}` instead of `{{ ca.path }}:{{ ca.lines }}` — `path` already contains `:lines` if user wrote them, so double-appending produces `worker/x.py:42-89:42-89`. The 4 built-in `prompts/*.md.j2` and `suggest/bundle-recommendation.md.j2` templates do this since 0.14.3.
+**Template rule of thumb**: use `{{ ca.path_only }}{% if ca.lines %}:{{ ca.lines }}{% endif %}` instead of `{{ ca.path }}:{{ ca.lines }}` — `path` already contains `:lines` if user wrote them, so double-appending produces `worker/x.py:42-89:42-89`. The built-in `prompts/*.md.j2` templates do this since 0.14.3.
 
 ---
 
@@ -386,4 +397,119 @@ These belong in `code_anchors[]` / `doc_anchors[]`, NEVER in title:
 ❌ 「在 index.html.tmpl 加 `<select id='backlog-filter-sprint'>` 渲染 sprint 选项」  ← 实施细节
 ```
 
-实施细节属于 per-subtask plan MD body · 不是 title。
+实施细节属于 per-subtask plan MD body（见下节）· 不是 title。
+
+---
+
+## per-subtask plan MD
+
+复杂 subtask 必须有独立 plan MD（0.16.0 引入 · 原 author skill §16.3 回收至此）。
+
+**Trigger** — 任何 subtask 满足以下任一 · MUST 写独立 plan MD：
+
+- 实施需要 2 步以上(不是 1 行 edit · 也不是 trivial)
+- 跨 2+ 文件 / 模块
+- 含设计 / approach 选择(2 种以上做法可比较)
+- 含 acceptance criteria 多于 1 条
+
+Trivial 单步(改一个常量 · 跑一个命令)可省。
+
+**File location**:
+
+```
+docs/plans/
+  M<NN>/                            ← module dir · 跟 module file 同名零 pad 2 位
+    S<NN>-<slug>.md                 ← subtask plan · S 前缀 · 零 pad 2 位 · kebab-case slug
+```
+
+**Frontmatter**:
+
+```yaml
+---
+type: subtask-plan
+parent_module: M07
+parent_subtask: M07-S1            # 序号形式 · 跟 module body checklist 顺序一致
+                                  # 或 sha1 形式 "M07-f75501" · 跟 frontmatter 显式 id 同
+title: "实现 MCP server 的 stdio 接入"     # 跟 subtask title 一致(单语 · 无 anchor)
+status: not-started               # 跟 module 内 subtask.status 保持一致(手动同步)
+desc: "一句话讲用户得到什么"
+---
+```
+
+**Body 4 节(标准结构)**:
+
+```markdown
+## 用户得到什么
+(一段话 · 用户需求语言 · 不讲代码细节 · 不超过 100 字)
+
+## 范围
+(从哪到哪 · 边界清晰 · 跟其它 subtask 的分工)
+
+## 实施 approach
+(这里可以放 §N.M / 文件名 / 函数名 / 行号 · 这是 plan body 不是 title)
+(给 2-3 种 approach 比较 · 标 chosen)
+
+## 验证
+(acceptance criteria 1-3 条 · 可测试 · "跑 X 命令 / 看 Y 输出 / 文件 Z 存在")
+```
+
+**Dashboard 接线**：`type: subtask-plan` 是合法 doc type（`validate_meta` 不报 unknown）。把 plan MD 挂回 subtask 的方式是在 module body checklist 行显式写 `@docs:docs/plans/M07/S01-<slug>.md` anchor。（原 author skill 声称 build 会按 `parent_subtask` 自动反查注入 `doc_anchors[]`——该自动接线从未落地 · 显式写 anchor 才是接通方式。）
+
+不变式：1 个 file = 1 个 subtask（1:1）· `parent_subtask` 的 id 形式（序号 / sha1）整个 module 锁一种 · plan body 讲思路 · 不复制粘贴 `code_anchors[].preview` 代码段。
+
+---
+
+## sprint-plan schema
+
+sprint 一等公民 doc（0.19.0 引入 · 原 author skill §17.1-§17.3 回收至此）· 答「这 1-4 周交付什么 user-visible 产物」· 把 PRD/RFC → sprint → subtask 串成闭环。
+
+### 三层模型(release · sprint · subtask)
+
+| 层 | 粒度 | doc type | filename 约定 | 答的问题 |
+|---|---|---|---|---|
+| release plan | 跨多 sprint · 一个产品大方向 | `plan` | `docs/plans/P-v<release>-<slug>.md` | 这个 release 要解决什么大问题 |
+| **sprint plan**(0.19 新)| 1-4 周 · 一个 sprint | `sprint-plan` | `docs/plans/V<x.y>[-<slug>].md` | 这 1-4 周交付什么 user-visible 产物 |
+| module spec | 多 sprint 渐进 | `module` | `docs/spec/module/M<NN>-<slug>.md` | 这个模块累计 ship 哪些能力 |
+| subtask plan(0.16 新)| 单 subtask · 几小时-几天 | `subtask-plan` | `docs/plans/M<NN>/S<NN>-<slug>.md` | 这条 subtask 具体怎么做 |
+
+### sprint-plan 必填字段
+
+```yaml
+---
+id: V0.19                            # 必填 · 跟 module.sprint 字段值对齐("0.19" ↔ "V0.19" 自动规整)
+type: sprint-plan                    # 必填 · 新 doc type
+title: "Sprint 0.19 · ..."           # 必填
+status: planned | in-progress | done | blocked
+window: "2026-05-21 → 2026-06-04"    # 必填 · ISO date range
+goals:                               # 必填 · 至少 1 条 · user-visible 产物
+  - "..."
+in_scope:                            # 必填 · sprint backlog · 列哪些 module / subtask
+  - module: M07
+    subtasks: [M07-f75501, M07-53a63a]   # 留空 = 整个 module
+out_of_scope: ["..."]                # 显式 NOT in sprint · 防 scope creep
+prd_refs:                            # 需求对齐 · DoR check #1 · 至少 1 条
+  - { section: "§6.3", title: "...", path: "docs/PRD/Sourcery_PRD_V1.0.docx" }
+dor: ["..."]                         # Definition of Ready · sprint 开干前条件
+dod: ["..."]                         # Definition of Done · sprint 结束的验收
+retro:                               # sprint 结束后填
+  what_worked: ""
+  what_didnt: ""
+  carryover: []                      # 没做完滚到下个 sprint 的 subtask id list
+---
+```
+
+`schema.py::validate_sprint_plan` 按本表校验（缺必填 error · 缺推荐 warn · `goals[]` 写实现细节也该自省——要写 user-visible 体验）。
+
+### DoR(Definition of Ready)· 两条不让放过
+
+「每个版本开始前都需要校验是否有了**充分的需求对齐**和**大模型参考文档**」· lint 自动校验：
+
+| DoR | 谁来检查 | lint category |
+|---|---|---|
+| **需求对齐** · 每个 in_scope subtask 能 trace 到 prd_refs 任一条(走 prd_ref 字段 或 @docs anchor) | `lint_sprint_readiness` | `sprint-readiness` |
+| **大模型参考文档** · 每个 in_scope subtask 有 @code 或 @docs anchor(LLM 拿得到上下文) | `lint_sprint_readiness` | `sprint-readiness` |
+| 引用的 PRD/RFC 文件存在 + 可读 | `lint_sprint_readiness` | `sprint-readiness` |
+| in_scope.module / subtask id 在 state.json 找得到 | `lint_sprint_readiness` | `sprint-readiness` |
+| 复杂 subtask 有独立 plan MD(见上节 per-subtask plan MD)| 手工 self-check | (尚未自动 lint)|
+
+不满足 DoR · `docs-cockpit lint` / `docs-cockpit render` 报 warn（lint 加 `--strict-warn` / render 加 `--strict` 可升级为阻断）。
