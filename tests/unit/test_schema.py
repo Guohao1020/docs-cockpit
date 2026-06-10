@@ -645,3 +645,244 @@ class TestSectionRegex_v0_14_3:
         docs = extract_docs_from_body(body)
         assert len(docs) == 1, f"failed for heading: {docs_heading!r}"
         assert docs[0]["path"] == "path/to/doc.md"
+
+
+# ── apply_to_md / compute_diff(v1.0 从 test_apply_patch.py 搬入 ·
+#    backend 随认知 CLI 删除从 apply_patch.py 收编进 schema.py)────────
+
+
+class TestApplyToMdFrontmatterPath:
+    def test_merge_status(self):
+        from docs_cockpit.schema import apply_to_md
+
+        md = """---
+id: M01
+title: Demo
+subtasks:
+  - id: M01-S1
+    title: foo
+    status: not-started
+---
+body
+"""
+        patch = {"subtasks": [{"id": "M01-S1", "status": "done"}], "_warnings": []}
+        new_text, applied, conflicts = apply_to_md(patch, md)
+        assert "M01-S1" in applied
+        assert conflicts == []
+        assert "status: done" in new_text
+        assert "status: not-started" not in new_text
+
+    def test_merge_code_and_docs(self):
+        from docs_cockpit.schema import apply_to_md
+
+        md = """---
+id: M01
+subtasks:
+  - id: M01-S1
+    title: foo
+    status: not-started
+---
+"""
+        patch = {
+            "subtasks": [
+                {
+                    "id": "M01-S1",
+                    "code": ["sourcery/x.py:42-89"],
+                    "docs": ["plan.md#§1"],
+                }
+            ],
+            "_warnings": [],
+        }
+        new_text, applied, _ = apply_to_md(patch, md)
+        assert "M01-S1" in applied
+        assert "sourcery/x.py:42-89" in new_text
+        assert "plan.md#§1" in new_text
+
+    def test_unknown_id_conflict(self):
+        from docs_cockpit.schema import apply_to_md
+
+        md = """---
+id: M01
+subtasks:
+  - id: M01-S1
+    title: foo
+---
+"""
+        patch = {"subtasks": [{"id": "M01-NOPE", "status": "done"}], "_warnings": []}
+        _, applied, conflicts = apply_to_md(patch, md)
+        assert applied == []
+        assert any("M01-NOPE" in c for c in conflicts)
+
+
+class TestApplyToMdBodyChecklistPath:
+    def test_tick_checkbox(self):
+        # id derivation 走 _subtask_id_for(module_id, title)
+        from docs_cockpit.schema import _subtask_id_for, apply_to_md
+
+        sid = _subtask_id_for("M09", "Lane A")
+        md = """---
+id: M09
+---
+
+## 3 · 待办
+
+- [ ] Lane A
+- [ ] Lane B
+"""
+        patch = {"subtasks": [{"id": sid, "status": "done"}], "_warnings": []}
+        new_text, applied, conflicts = apply_to_md(patch, md)
+        assert applied == [sid]
+        assert conflicts == []
+        assert "- [x] Lane A" in new_text
+        assert "- [ ] Lane B" in new_text  # 不动其它
+
+    def test_append_code_and_docs_annotations(self):
+        from docs_cockpit.schema import _subtask_id_for, apply_to_md
+
+        sid = _subtask_id_for("M09", "Lane A")
+        md = """---
+id: M09
+---
+
+## 待办
+
+- [ ] Lane A
+"""
+        patch = {
+            "subtasks": [
+                {
+                    "id": sid,
+                    "code": ["worker/a.py:10-30"],
+                    "docs": ["plan.md#§2"],
+                }
+            ],
+            "_warnings": [],
+        }
+        new_text, applied, _ = apply_to_md(patch, md)
+        assert applied == [sid]
+        assert "@code:worker/a.py:10-30" in new_text
+        assert "@docs:plan.md#§2" in new_text
+
+    def test_dedupe_existing_annotation(self):
+        from docs_cockpit.schema import _subtask_id_for, apply_to_md
+
+        sid = _subtask_id_for("M09", "Lane A")
+        md = """---
+id: M09
+---
+
+## 待办
+
+- [ ] Lane A @code:existing.py:1-10
+"""
+        patch = {
+            "subtasks": [{"id": sid, "code": ["existing.py:1-10", "new.py:5-9"]}],
+            "_warnings": [],
+        }
+        new_text, _, _ = apply_to_md(patch, md)
+        # existing.py 只能出现 1 次 · new.py 加进来
+        assert new_text.count("@code:existing.py:1-10") == 1
+        assert "@code:new.py:5-9" in new_text
+
+    def test_no_section_conflict(self):
+        from docs_cockpit.schema import apply_to_md
+
+        # MD 没 `## 待办` section 也没 frontmatter subtasks → 全部 conflict
+        md = """---
+id: M09
+---
+
+无 待办 section · 也无 frontmatter subtasks
+"""
+        patch = {"subtasks": [{"id": "M09-xxx", "status": "done"}], "_warnings": []}
+        _, applied, conflicts = apply_to_md(patch, md)
+        assert applied == []
+        assert any("M09-xxx" in c for c in conflicts)
+
+    def test_title_changed_conflict(self):
+        from docs_cockpit.schema import _subtask_id_for, apply_to_md
+
+        # 用户改了 title · id 不再 derive 自原 title · 反查失败
+        md = """---
+id: M09
+---
+
+## 待办
+
+- [ ] Lane A NEW NAME
+"""
+        sid_old = _subtask_id_for("M09", "Lane A")
+        patch = {"subtasks": [{"id": sid_old, "status": "done"}], "_warnings": []}
+        _, applied, conflicts = apply_to_md(patch, md)
+        assert applied == []
+        assert any(sid_old in c for c in conflicts)
+
+
+class TestComputeDiff:
+    def test_no_change_empty_diff(self):
+        from docs_cockpit.schema import compute_diff
+
+        assert compute_diff("abc\n", "abc\n") == ""
+
+    def test_simple_change_present(self):
+        from docs_cockpit.schema import compute_diff
+
+        diff = compute_diff("foo\n", "bar\n", label="test.md")
+        assert "test.md" in diff
+        assert "-foo" in diff
+        assert "+bar" in diff
+
+
+# ── load_sprint_plans(v1.0 从 sprint.py 收编 · 删 CLI 时首次补测试)──
+
+
+class TestLoadSprintPlans:
+    def _write_plan(self, repo: pathlib.Path, name: str, text: str) -> None:
+        plans = repo / "docs" / "plans"
+        plans.mkdir(parents=True, exist_ok=True)
+        (plans / name).write_text(text, encoding="utf-8")
+
+    def test_no_plans_dir_returns_empty(self, tmp_path: pathlib.Path):
+        from docs_cockpit.schema import load_sprint_plans
+
+        assert load_sprint_plans(tmp_path) == []
+
+    def test_loads_sprint_plan_with_meta_and_body(self, tmp_path: pathlib.Path):
+        from docs_cockpit.schema import load_sprint_plans
+
+        self._write_plan(tmp_path, "V0.19-test.md", """---
+type: sprint-plan
+id: V0.19
+title: "Sprint 0.19"
+status: planned
+---
+
+# goal
+""")
+        plans = load_sprint_plans(tmp_path)
+        assert len(plans) == 1
+        assert plans[0]["meta"]["id"] == "V0.19"
+        assert "# goal" in plans[0]["body"]
+        assert "_validate_issues" in plans[0]
+
+    def test_skips_non_sprint_plan_type(self, tmp_path: pathlib.Path):
+        from docs_cockpit.schema import load_sprint_plans
+
+        self._write_plan(tmp_path, "V1.0-ordinary.md", """---
+type: plan
+id: P-x
+---
+
+普通 plan · 不是 sprint-plan · 跳过
+""")
+        assert load_sprint_plans(tmp_path) == []
+
+    def test_skips_files_not_matching_glob(self, tmp_path: pathlib.Path):
+        from docs_cockpit.schema import load_sprint_plans
+
+        self._write_plan(tmp_path, "P-not-a-version.md", """---
+type: sprint-plan
+id: V9.9
+---
+""")
+        assert load_sprint_plans(tmp_path) == []

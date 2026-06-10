@@ -26,10 +26,11 @@ override invalidation:
   | done               | subtask 不存在      | warn + skip    |
   +--------------------+---------------------+----------------+
 
-(MVP 简化:复用 M08 apply-patch backend · localStorage `done=true` → 走 patch · `done=false`
+(MVP 简化:复用 apply_to_md merge backend · localStorage `done=true` → 走 patch · `done=false`
 不强 force-untick · 用户取消勾选时如果 MD 里是 done · 默认信 MD · 见 §3 表第二行。)
 
-实施:走 M08 apply_patch 复用 · 不重复造 frontmatter / body checklist merge 轮子。
+实施:复用 schema.apply_to_md(v1.0 起从已删的 apply_patch.py 收编到 schema.py)·
+不重复造 frontmatter / body checklist merge 轮子。
 """
 
 from __future__ import annotations
@@ -41,7 +42,7 @@ import re
 import sys
 from typing import Any
 
-from .apply_patch import (
+from .schema import (
     PatchFormatError,
     apply_to_md,
     compute_diff,
@@ -112,7 +113,7 @@ def merge_to_md(
     sub_overrides: dict[str, bool],
     md_path: pathlib.Path,
 ) -> dict[str, Any]:
-    """Merge 单 module 的 subtask overrides 到对应 MD · 走 M08 apply_patch backend.
+    """Merge 单 module 的 subtask overrides 到对应 MD · 走 schema.apply_to_md backend.
 
     优先级规则(MVP):
     - localStorage `done=true` → patch `status: done` · 走 apply_to_md
@@ -215,7 +216,7 @@ def sync_to_repo(
     """
     overrides = parse_overrides(json_text)
 
-    # 通过 state.json 拿 module path · 跟 mcp_server.cockpit_apply_patch 一致
+    # 通过 state.json 拿 module path
     state_path = config_path.parent / "docs" / "state.json"
     if not state_path.exists():
         raise SyncStatusError(

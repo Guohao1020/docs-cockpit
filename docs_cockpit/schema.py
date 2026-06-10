@@ -8,11 +8,16 @@ subtask schema 演进(plan §6.1)。
 本模块只对已读入内存的 meta dict 和 body string 做校验和提取。
 
 0.11.0-alpha.1:从 build.py 拆出(plan-eng-review 1A)。
+v1.0 例外:认知 CLI 层删除时 · 两组渲染期仍需要的 helper 收编进来——
+  - load_sprint_plans(原 sprint.py · 扫 docs/plans/V*.md · 有 glob/read IO)
+  - apply_to_md / compute_diff / PatchFormatError(原 apply_patch.py ·
+    sync-status 反向同步的 merge backend · 纯内存操作)
 """
 
 from __future__ import annotations
 
 import datetime as _dt
+import difflib
 import hashlib
 import pathlib
 import re
@@ -390,8 +395,7 @@ def lint_subtask_anchors(modules: list[dict] | None) -> list[Issue]:
                             f"LLM 跟用户都拉不到上下文 · title={title_snippet!r}"
                         ),
                         suggestion=(
-                            f"在 body checklist 行末加 @code:path/file.py:N-M 跟 / 或 @docs:path.md#§N.M · "
-                            f"或跑 `docs-cockpit verify {mid}` 让 LLM 帮你诊断 + 建议补什么 anchor"
+                            "在 body checklist 行末加 @code:path/file.py:N-M 跟 / 或 @docs:path.md#§N.M"
                         ),
                         reference="docs-cockpit-author · §16.6 anchor 完整性 SOP + LLM verify",
                         category="subtask-missing-anchors",
@@ -650,7 +654,7 @@ def lint_sprint_readiness(
                             f"sprint {sprint_id} 引用的 module `{mid}` 在 state.json 找不到 · "
                             f"是不是 module id typo · 或者还没 build?"
                         ),
-                        suggestion="跑 `docs-cockpit build` 后再 `docs-cockpit sprint check`",
+                        suggestion="跑 `docs-cockpit render` 重建 state.json 后再 lint",
                         reference="docs-cockpit-author · §17 sprint-readiness",
                         category="sprint-readiness",
                     )
@@ -678,8 +682,8 @@ def lint_sprint_readiness(
                                     f"module `{mid}` 找不到 · title 改了导致 id 漂移?"
                                 ),
                                 suggestion=(
-                                    f"看 `docs-cockpit prompt {mid}` 列出 module 内所有 "
-                                    f"subtask · 找对应 id 修正本 sprint-plan"
+                                    f"对照 module `{mid}` MD 的 subtask 清单"
+                                    f"(id = <module-id>-<sha1(title)[:6]>)修正本 sprint-plan"
                                 ),
                                 reference="docs-cockpit-author · §17 sprint-readiness",
                                 category="sprint-readiness",
@@ -706,8 +710,8 @@ def lint_sprint_readiness(
                                 f"既无 @code 也无 @docs · LLM 开干时拿不到上下文 · DoR 未满足"
                             ),
                             suggestion=(
-                                f"给 subtask 加 @code:path/file.py:N-M 跟 / 或 "
-                                f"@docs:path.md#§N · 或跑 `docs-cockpit verify {mid}`"
+                                "给 subtask 加 @code:path/file.py:N-M 跟 / 或 "
+                                "@docs:path.md#§N"
                             ),
                             reference="docs-cockpit-author · §17 sprint-readiness (大模型参考文档)",
                             category="sprint-readiness",
@@ -811,7 +815,10 @@ def lint_sprint_readiness(
                         f"module 引用 sprint `{ms}` · 但 docs/plans/ 找不到 "
                         f"对应 sprint-plan(enforce_sprint_plans=true)"
                     ),
-                    suggestion=f"跑 `docs-cockpit sprint init {ms}` scaffold 一份",
+                    suggestion=(
+                        f"在 docs/plans/ 手写一份 V{ms}.md sprint-plan"
+                        f"(frontmatter `type: sprint-plan` + `id: V{ms}`)"
+                    ),
                     reference="docs-cockpit-author · §17 sprint-readiness (enforce)",
                     category="sprint-readiness",
                 )
@@ -1238,3 +1245,246 @@ def validate_subtask_schema(
             ))
 
     return issues
+
+
+# ── sprint-plan 扫描(v1.0 · 原 sprint.py 唯一存活 helper)─────────────
+# build / lint 的 sprint-readiness lint 需要先把 docs/plans/V*.md 读进来。
+# 这是渲染期扫描行为(sprint-plan 文档进 payload / issue pipeline)· 不是
+# 认知 CLI · 所以在删 sprint.py(init/check/list 子命令)时收编到这里。
+
+SPRINT_PLAN_DIR = "docs/plans"
+SPRINT_PLAN_GLOB = "V*.md"
+
+
+def load_sprint_plans(repo_root: pathlib.Path) -> list[dict]:
+    """扫 docs/plans/V*.md · 返 [{path, meta, body, _validate_issues}, ...].
+
+    每个 sprint-plan 文件:
+    - frontmatter 必须有 type: sprint-plan(否则跳过 · 当成普通 plan)
+    - validate_sprint_plan 跑一遍 · 结果挂在 _validate_issues 上
+    """
+    plans_dir = repo_root / SPRINT_PLAN_DIR
+    if not plans_dir.exists():
+        return []
+    out: list[dict] = []
+    for p in sorted(plans_dir.glob(SPRINT_PLAN_GLOB)):
+        try:
+            text = p.read_text(encoding="utf-8")
+        except OSError:
+            continue
+        meta, body = split_frontmatter(text)
+        if not isinstance(meta, dict):
+            continue
+        if meta.get("type") != "sprint-plan":
+            continue
+        issues = validate_sprint_plan(p, meta)
+        out.append({
+            "path": str(p),
+            "meta": meta,
+            "body": body,
+            "_validate_issues": issues,
+        })
+    return out
+
+
+# ── YAML patch → MD merge(v1.0 · 原 apply_patch.py 存活内核)──────────
+# apply-patch / mcp-serve 认知 CLI 删除后 · sync-status(dashboard 勾选状态
+# 反向写回 MD)仍复用这套 frontmatter / body checklist merge backend ·
+# 纯内存操作 · 收编到 schema.py。
+
+
+class PatchFormatError(ValueError):
+    """Patch 解析或 schema 校验失败 · 调用方 catch 走 stderr 输出."""
+
+
+def _normalize_code_or_docs(value: Any) -> list[str]:
+    """patch 里 code/docs 可能是 string 或 list[string] · 统一到 list."""
+    if value is None:
+        return []
+    if isinstance(value, str):
+        return [value]
+    if isinstance(value, list):
+        return [str(v) for v in value if v]
+    return []
+
+
+def _apply_frontmatter_path(
+    meta: dict[str, Any], body: str, patch: dict[str, Any]
+) -> tuple[str, list[str], list[str]]:
+    """Path 1 · frontmatter subtasks (list[dict]) merge by id · 重序列化回 MD."""
+    applied: list[str] = []
+    conflicts: list[str] = []
+    fm_subs = meta.get("subtasks") or []
+    for psub in patch["subtasks"]:
+        target = next(
+            (s for s in fm_subs if isinstance(s, dict) and s.get("id") == psub["id"]),
+            None,
+        )
+        if target is None:
+            conflicts.append(
+                f"subtask {psub['id']} not found in module frontmatter `subtasks:` (前提:Form A)"
+            )
+            continue
+        for k, v in psub.items():
+            if k == "id":
+                continue
+            target[k] = v
+        applied.append(psub["id"])
+    new_meta_yaml = yaml.safe_dump(
+        meta, allow_unicode=True, sort_keys=False, default_flow_style=False
+    )
+    new_text = f"---\n{new_meta_yaml}---\n{body}"
+    return new_text, applied, conflicts
+
+
+def _replace_body_in_text(orig_text: str, new_body: str) -> str:
+    """Body-only path · 保留原 frontmatter 块原样(quote / 缩进 / 注释 都不动)·
+    只换 body 区。避免 PyYAML 重序列化导致 frontmatter diff 炸眼."""
+    if not orig_text.startswith("---"):
+        # 没 frontmatter · 整文档就是 body
+        return new_body
+    lines = orig_text.split("\n")
+    # find second `---` (frontmatter close)
+    end_idx = None
+    for i in range(1, len(lines)):
+        if lines[i].rstrip() == "---":
+            end_idx = i
+            break
+    if end_idx is None:
+        return new_body
+    return "\n".join(lines[: end_idx + 1]) + "\n" + new_body
+
+
+def _apply_body_checklist_path(
+    orig_text: str,
+    meta: dict[str, Any],
+    body: str,
+    patch: dict[str, Any],
+    module_id: str,
+) -> tuple[str, list[str], list[str]]:
+    """Path 2 · body `## 待办` checklist · 反查 id · 改 [x] · 追 @code/@docs.
+
+    注意:本 path 不动 frontmatter · 用 _replace_body_in_text 保留原 quote 风格 ·
+    diff 只显改的 checklist 行 · 用户阅读友好。
+    """
+    applied: list[str] = []
+    conflicts: list[str] = []
+
+    lines = body.split("\n")
+    section_start = None
+    section_end = None
+    for i, line in enumerate(lines):
+        if section_start is None and _SUBTASK_SECTION_RE.match(line):
+            section_start = i
+            continue
+        if section_start is not None and i > section_start and _SECTION_BOUNDARY_RE.match(line):
+            section_end = i
+            break
+    if section_start is None:
+        for psub in patch["subtasks"]:
+            conflicts.append(
+                f"subtask {psub['id']} · MD has no `## 待办` / `## TODO` body section "
+                f"(也没有 frontmatter `subtasks:` Form A) · 跳过"
+            )
+        return orig_text, [], conflicts
+    if section_end is None:
+        section_end = len(lines)
+
+    for psub in patch["subtasks"]:
+        target_id = psub["id"]
+        match_idx = None
+        for i in range(section_start + 1, section_end):
+            m = _CHECKBOX_LINE_RE.match(lines[i])
+            if not m:
+                continue
+            text = m.group(2).strip()
+            cleaned = _INLINE_CODE_RE.sub("", text)
+            cleaned = _INLINE_DOCS_RE.sub("", cleaned)
+            base_title = " ".join(cleaned.split()).strip()
+            if not base_title:
+                continue
+            if _subtask_id_for(module_id, base_title) == target_id:
+                match_idx = i
+                break
+        if match_idx is None:
+            conflicts.append(
+                f"subtask {target_id} · body checklist 找不到 title 推导出该 id 的行 · "
+                f"(检查 title 是否变了?· title 变 → id 变 · 见 author skill §3.1.1)"
+            )
+            continue
+
+        new_line = lines[match_idx]
+
+        # status → checkbox
+        status = psub.get("status")
+        if status == "done":
+            new_line = re.sub(r"^(\s*[-*+]\s+)\[\s\]", r"\1[x]", new_line)
+        elif status in ("not-started", "in-progress", "blocked"):
+            new_line = re.sub(r"^(\s*[-*+]\s+)\[[xX]\]", r"\1[ ]", new_line)
+
+        # @code/@docs append · 去重(case-sensitive 原样)
+        existing_codes = set(_INLINE_CODE_RE.findall(new_line))
+        for c in _normalize_code_or_docs(psub.get("code")):
+            if c and c not in existing_codes:
+                new_line = new_line + " @code:" + c
+                existing_codes.add(c)
+        existing_docs = set(_INLINE_DOCS_RE.findall(new_line))
+        for d in _normalize_code_or_docs(psub.get("docs")):
+            if d and d not in existing_docs:
+                new_line = new_line + " @docs:" + d
+                existing_docs.add(d)
+
+        if new_line != lines[match_idx]:
+            lines[match_idx] = new_line
+            applied.append(target_id)
+        else:
+            # 没实际变化 · 视为 no-op · 不报 conflict
+            applied.append(target_id)
+
+    new_body = "\n".join(lines)
+    return _replace_body_in_text(orig_text, new_body), applied, conflicts
+
+
+def apply_to_md(
+    patch: dict[str, Any],
+    md_text: str,
+    module_id: str | None = None,
+) -> tuple[str, list[str], list[str]]:
+    """Top-level apply · 自动检测 Path 1 (frontmatter) vs Path 2 (body checklist).
+
+    优先级:frontmatter `subtasks:` 存在且非空 → Path 1 · 否则 Path 2。
+    跟 normalize_subtasks 的「frontmatter wins · 否则 body」语义一致。
+
+    Args:
+        patch: {"subtasks": [{"id": ..., "status"/"code"/"docs"/"desc": ...}]}
+        md_text: 完整 MD text
+        module_id: 显式 module id · 不传则从 frontmatter `id:` 字段读
+
+    Returns:
+        (new_md_text, applied_ids, conflicts)
+    """
+    meta, body = split_frontmatter(md_text)
+    mid = module_id or (meta.get("id") if isinstance(meta, dict) else "") or ""
+
+    fm_subs = meta.get("subtasks") if isinstance(meta, dict) else None
+    if (
+        isinstance(fm_subs, list)
+        and fm_subs
+        and any(isinstance(s, dict) for s in fm_subs)
+    ):
+        return _apply_frontmatter_path(meta, body, patch)
+    return _apply_body_checklist_path(md_text, meta or {}, body, patch, mid)
+
+
+def compute_diff(orig: str, patched: str, label: str = "md") -> str:
+    """git-style unified diff · for dry-run + log output."""
+    lines = list(
+        difflib.unified_diff(
+            orig.splitlines(keepends=True),
+            patched.splitlines(keepends=True),
+            fromfile=f"a/{label}",
+            tofile=f"b/{label}",
+            n=3,
+        )
+    )
+    return "".join(lines)

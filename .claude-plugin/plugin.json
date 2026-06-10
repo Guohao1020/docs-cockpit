@@ -20,14 +20,6 @@
     "status-tracking",
     "standup-report",
     "claude-skill",
-    "docs-preview",
-    "mcp-server"
-  ],
-  "//mcpServers": "0.12 M07-fdf16c · driver-seat mode 1 · Claude Code automatically registers this MCP server when the plugin is installed. Requires `pip install 'docs-cockpit[mcp]'` for the optional `mcp` SDK. Tools: cockpit_prompt / cockpit_apply_patch · Resource: cockpit://state.",
-  "mcpServers": {
-    "docs-cockpit": {
-      "command": "docs-cockpit",
-      "args": ["mcp-serve"]
-    }
-  }
+    "docs-preview"
+  ]
 }

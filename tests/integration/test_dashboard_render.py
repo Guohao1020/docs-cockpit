@@ -113,19 +113,17 @@ class TestTopbarEntries:
         assert 'id="open-docs"' in built_html
 
 
-# ─── Sidecar script tags · prompts.js / prompts-refine.js / bundle-meta.js ─
+# ─── Sidecar script tags · v1.0 起只剩 prompts.js(Copy prompt CTA 数据源)─
+# prompts-refine.js / bundle-meta.js 随认知 CLI 层删除 · 模板不得再引用(防 ghost 引用)
 
 
 class TestSidecarScripts:
     def test_prompts_js_script_tag(self, built_html):
         assert 'src="prompts.js"' in built_html
 
-    def test_prompts_refine_js_script_tag(self, built_html):
-        assert 'src="prompts-refine.js"' in built_html
-
-    def test_bundle_meta_js_script_tag(self, built_html):
-        # 0.14.0 M17 sidecar · 给 backlog UI cohesion verdict 用
-        assert 'src="bundle-meta.js"' in built_html
+    def test_removed_cognitive_sidecars_not_referenced(self, built_html):
+        assert 'src="prompts-refine.js"' not in built_html
+        assert 'src="bundle-meta.js"' not in built_html
 
 
 # ─── Backlog filter bar elements ────────────────────────────────────────
