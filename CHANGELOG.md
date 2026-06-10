@@ -2,6 +2,65 @@
 
 本项目遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/) · 版本号采用 [SemVer](https://semver.org/lang/zh-CN/)。
 
+## [1.0.0] · 2026-06-10
+
+**skill-first pivot** · 一刀重定义项目边界。v0.x 一路在 python 里堆认知功能——suggest / verify / refine / prompt / sprint / MCP server——每加一个都离北极星更远:LLM 时代的「认知」不该编译进 CLI。1.0 收口为三句话:**认知交 skill · python 只做确定性渲染 · 错 anchor 比缺 anchor 伤害大**。设计 spec:`docs/plans/P-skill-first-pivot.md`(三阶段实施 plan 同目录 `P-v1.0-stage-{a,b,c}-*.md`)。
+
+### Why · 用户原话
+
+> 「我们项目本质上是 skill · python 代码只是辅助 · 不能依赖 python 代码解决任务问题 · 应该尽可能用 skill 解决问题」
+
+### Breaking(每条带迁移指引)
+
+- **CLI `build` → `render`** · 语义对齐「机械渲染」。`build` 别名保留至 1.1 · 调用时打中文废弃警告。迁移:下游 pre-commit / CI 把 `docs-cockpit build` 改成 `docs-cockpit render`:
+
+  ```bash
+  docs-cockpit render -c docs-cockpit.yaml          # 原 build · 行为相同
+  ```
+
+- **删 8 个认知子命令** · `prompt`(含 `--bundle`)/ `suggest` / `verify` / `sprint`(init / check / list)/ `migrate-subtasks` / `apply-patch` / `apply-body-patch` / `mcp-serve` 全部移除。迁移:对应工作流全部并入 build / rebuild skill 流程——LLM 直接读 MD 推理改写 · 不再绕 CLI scaffold:
+
+  ```text
+  prompt / suggest / apply-patch / apply-body-patch → docs-cockpit-build skill(检索 → 推理 → 对话决策 → 落地)
+  verify / migrate-subtasks                         → docs-cockpit-rebuild skill(诊断漂移 → 最小 diff 刷新)
+  sprint init / check / list                        → 版本规划随 build skill 对话进行 · 不再走 scaffold 命令
+  mcp-serve                                         → 无替代 · skill 即 agent 接口(见下条)
+  ```
+
+- **删 MCP server** · `mcp_server.py` + plugin.json `mcpServers` + pyproject `[mcp]` extra 全删。v1.0 起 agent 接口就是 skill 本身——skill 内的对话流程取代 MCP tool 调用。
+
+- **删旧 4 skill → 新 3 skill** · docs-cockpit / docs-cockpit-author / docs-cockpit-standup / docs-cockpit-portfolio 全删(新 3 skill 见 Added)。字段规范 SSOT 从 author skill 移至 `references/schema.md` · validator issue 的 📚 see 引用已指向它。
+
+- **删 portfolio 多项目周报整链路** · CLI `portfolio` 子命令 + portfolio skill + `/docs-cockpit:weekly` 全删;`/docs-cockpit:status` 亦删——状态问答走 rebuild skill Phase 1「读现状」状态叙事。
+
+- **升级方式** · 插件用户跑 `docs-cockpit upgrade`(自动清 plugin cache + 原子重启提示)——直接重启 Claude Code 不清 cache · 会留 ghost state。
+
+瘦身后的 CLI 全集(只剩确定性操作):
+
+```bash
+docs-cockpit render | lint | init | migrate | browse | sync-status | upgrade
+```
+
+### Added · 3 个新 skill
+
+- `use-docs-cockpit` 入口/路由 skill + **SessionStart 条件注入**(`hooks/` · 仅含 `docs-cockpit.yaml` 的项目注入 · Claude Code / Cursor / Copilot 三路 JSON 协议 · `hooks-cursor.json`)
+- `docs-cockpit-build` · 7-phase 关联系统构建:确保 cockpit → 检索 → 推理 → 预演 → 高亮 → 对话决策 → 落地补文档 → render。Phase 0 含 AGENTS.md 幂等自愈锚块 · 给 Codex 类 agent 一个稳定入口
+- `docs-cockpit-rebuild` · 5-phase 漂移刷新:读现状(状态叙事)→ 诊断漂移 → 重推理 → 最小 diff 刷新 → render 验证
+
+### Added · references/ 知识层
+
+- `references/schema.md` · 字段规范 SSOT(原 author skill 规范收编)
+- `references/association-method.md` · 检索 / 推理 / 预演 / 高亮 4 原子方法
+- `references/operations.md` · bootstrap / config / upgrade / troubleshooting
+
+### Changed
+
+- dashboard「Copy bundle prompt」改输出自然语言 prompt(不再输出 CLI 命令——命令已删)· Refine 死代码清除
+- 模板 / README / CLAUDE.md / site 营销页全部叙事对齐 v1.0「skill-first」
+- 本仓 module 文档历史化 · 已删特性的 anchor 改指 CHANGELOG 历史节(历史节本身一字不动)
+
+升级:`docs-cockpit upgrade` · skill 层全换 · 必须清 plugin cache + 重启。
+
 ## [0.19.0] · 2026-05-20
 
 兑现 Sourcery dogfood 反馈:24 个 module 都填了 `sprint: "0.7"` / `M1.5.a` 字段 · 但没有任何文档描述「这个 sprint 到底要做什么 / 做完算什么」· 版本视角缺失。v0.19 引入 **sprint-plan 一等公民 + DoR/DoD 校验门** · 把 PRD/RFC → sprint → subtask 闭环成 docs-cockpit 工具链 native。
