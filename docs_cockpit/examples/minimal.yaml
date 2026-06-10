@@ -4,11 +4,12 @@
 # 浏览器 file:// 直接打开 docs/index.html · 含模块 Kanban + Sprint Timeline + KPI bar。
 #
 # 跑:
-#   python -m docs_cockpit build --config docs-cockpit.yaml
+#   docs-cockpit render --config docs-cockpit.yaml
+#   python -m docs_cockpit render --config docs-cockpit.yaml
 #
 # 输出:
 #   docs/index.html  · 人看的 dashboard
-#   docs/state.json  · 机器读的结构化数据(给 docs-cockpit-status skill)
+#   docs/state.json  · 机器读的结构化数据(给 docs-cockpit-rebuild skill 状态叙事)
 
 project:
   name: MyProject
