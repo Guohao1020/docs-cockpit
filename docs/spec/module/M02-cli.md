@@ -47,7 +47,7 @@ docs-cockpit <subcommand> [args]
 ## 3 · 待办
 
 - [x] v0.10 build / lint / init / migrate / browse / portfolio / upgrade 全部上线 @code:docs_cockpit/cli.py @code:docs_cockpit/build.py @code:docs_cockpit/migrate.py @code:docs_cockpit/browse.py @code:docs_cockpit/portfolio.py @code:docs_cockpit/upgrade.py
-- [x] First-build bootstrap · plugin 检测 CLI 缺失自动走 uv tool / pipx / pip --user 三档兜底装 @code:skills/docs-cockpit/SKILL.md @docs:skills/docs-cockpit/SKILL.md
+- [x] First-build bootstrap · plugin 检测 CLI 缺失自动走 uv tool / pipx / pip --user 三档兜底装 @docs:references/operations.md <!-- 原 anchor 指向主 skill · v1.0 删除 · bootstrap 知识已迁运维参考 -->
 - [x] 把 CLI 入口从 build 引擎拆出 · 独立 dispatcher @code:docs_cockpit/cli.py @code:docs_cockpit/build.py
 - [x] 让用户从命令行直接拿到任意 subtask 的可执行 prompt @code:docs_cockpit/cli.py:88-112 @docs:docs/plans/P-v0.11-driver-seat.md
 - [x] prompt 复制到剪贴板免去用户手动选中 · 没装剪贴板库时给清晰兜底提示 @code:docs_cockpit/cli.py:103-106 @code:docs_cockpit/build.py:780-874

@@ -107,7 +107,7 @@ Skills are written following the conventions of the `anthropic-skills:skill-crea
 
 ### The bootstrap pattern (plugin without CLI pre-installed)
 
-The plugin is markdown-only — Claude Code's plugin system can't pip-install Python packages on install. So the main skill (`skills/docs-cockpit/SKILL.md`) has a **first-build bootstrap** section: before running any `docs-cockpit <subcommand>`, the skill checks `docs-cockpit --version` and, if missing, runs `uv tool install` / `pipx install` / `pip install --user` in priority order.
+The plugin is markdown-only — Claude Code's plugin system can't pip-install Python packages on install. So `references/operations.md` (read by `docs-cockpit-build` Phase 0) carries the **first-build bootstrap** section: before running any `docs-cockpit <subcommand>`, the skill checks `docs-cockpit --version` and, if missing, runs `uv tool install` / `pipx install` / `pip install --user` in priority order.
 
 Tell the user transparently when this happens ("Installing the docs-cockpit Python toolkit via uv (one-time setup)…") — don't bury the bootstrap in silence.
 
