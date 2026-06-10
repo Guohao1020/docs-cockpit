@@ -107,7 +107,7 @@ Field formats and frontmatter schema: `references/schema.md` in the docs-cockpit
 
 - **Goal** — the user has ruled on every proposal: accept / adjust / skip. Nothing lands without a ruling.
 - **Actions** — present Phase 4's proposals one by one (or in small batches for a long list — group by module). For each, show the anchor, the highlighted evidence, the verdict, and ask for a decision. Apply user adjustments back through a quick Phase 3 re-verify before accepting. Decision granularity rule: ≤3 proposals → present individually, one turn per proposal. 4-8 → group by module (one turn per module). >8 → present an overview table first, then ask the user: module-by-module, or bulk accept-with-exceptions. Never dump every proposal in a single turn without grouping.
-- **Atomic method** — none (this phase is pure dialogue).
+- **Atomic method** — none (this phase is dialogue-driven; the only edits are user-approved now-bucket treatments).
 - **Output** — decision ledger: each proposal → accepted / adjusted-to-what / skipped-why.
 
 **Never silently fix.** Anything the validator rates `error`-level (a missing `id`, a placeholder id, a status×progress conflict) or any project-specific choice (id naming, sprint assignment, which doc kind a file should be) is the **user's** call — propose, explain, wait. You may auto-apply only mechanical, semantics-free fixes the user already approved as a class (e.g. "fix all whitespace-only issues").

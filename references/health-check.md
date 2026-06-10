@@ -240,7 +240,7 @@ build / rebuild 升格为「项目体检」的方法论 SSOT —— 查什么（
 
 | 桶 | 处方 | 落地动作 |
 |---|---|---|
-| 立即修 | RX-003 | 当场治(Phase 5-6 对话决策 + Edit) |
+| 立即修 | RX-003 | 当场治（对话决策 phase 当场 Edit · build=Phase 5 · rebuild=Phase 4） |
 | 本 sprint | RX-001 | →subtask 带 @code 挂 {module} · 同步 sprint-plan in_scope |
 | backlog | RX-002 | 起草 docs/plans/P-{slug}.md |
 | 观察 | RX-004 | 记复查清单 · 下次体检重点核 |
@@ -273,7 +273,7 @@ frontmatter 字段 schema 见 `references/schema.md · health-report schema` 节
 
 | 桶 | 判定规则 | 落地动作 |
 |---|---|---|
-| **立即修** `now` | 一行级改动 · 零风险（改错可秒回滚）· 不牵连其它文件 | 当场治：Phase 5-6 对话决策 + Edit · 改后 `docs-cockpit render` 验证 |
+| **立即修** `now` | 一行级改动 · 零风险（改错可秒回滚）· 不牵连其它文件 | 当场治（对话决策 phase 当场 Edit · build=Phase 5 · rebuild=Phase 4）· 改后 `docs-cockpit render` 验证 |
 | **本 sprint** `sprint` | 中等工作量 · 有明确归属 module · 本 sprint 容量装得下 | 处方转 subtask（title 按 4 法则 · 带 `@code:` anchor 指向问题位置）挂该 module · 同步 sprint-plan `in_scope` |
 | **backlog** `backlog` | 大项：跨 module / 需设计决策 / 工作量超一个 sprint | 起草 plan 文档 `docs/plans/P-{slug}.md`（frontmatter 合规 → 自动进看板）· 处方 anchor 进 plan 的「证据」节 |
 | **观察** `watch` | 低置信（深检的低/中置信嫌疑）· 或根因未明只有「进一步检查单」 | 记入复查跟踪清单（HEALTH.md prescriptions 里 `bucket: watch`）· 下次体检的②③科优先核这些 |

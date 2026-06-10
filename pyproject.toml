@@ -66,7 +66,7 @@ python_functions = ["test_*"]
 addopts = "-ra --strict-markers"
 markers = [
   "slow: marks tests as slow (deselect with '-m \"not slow\"')",
-  "integration: end-to-end tests · run a full docs-cockpit build against fixture project",
+  "integration: end-to-end tests · run a full docs-cockpit render against fixture project",
 ]
 
 [project.urls]
