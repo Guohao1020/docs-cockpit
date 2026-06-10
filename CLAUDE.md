@@ -77,7 +77,7 @@ Two 1.0-era rules:
 | `skills/docs-cockpit-build/` | 7-phase first-association build: Phase 0 ensure cockpit + AGENTS.md idempotent anchor block (three-state self-heal) → discovery → reasoning → dry-run → highlight → dialogue decisions → write anchors + draft missing docs → render. Phases 1–4 follow the 4 atomic methods in `references/association-method.md` |
 | `skills/docs-cockpit-rebuild/` | 5-phase refresh of an existing cockpit: read current state (incl. status narrative — a pure status query ends here) → diagnose drift → re-infer → minimal-diff refresh → render + verify |
 
-The SessionStart hook (`hooks/session-start`, wired by `hooks/hooks.json`) injects the router skill's body **conditionally**: it probes up to 6 directory levels for `docs-cockpit.yaml` and silently exits in non-cockpit projects. Output uses the `hookSpecificOutput` JSON protocol for Claude Code; `hooks/hooks-cursor.json` adapts the same script for Cursor (`additional_context` snake_case variant).
+The SessionStart hook (`hooks/session-start`, wired by `hooks/hooks.json`) injects the router skill's body **conditionally**: it probes up to 6 directory levels for `docs-cockpit.yaml` and silently exits in non-cockpit projects. The script emits one of three JSON shapes depending on the detected platform: Claude Code → `{"hookSpecificOutput": {"hookEventName": "SessionStart", "additionalContext": "..."}}` (nested); Cursor → `{"additional_context": "..."}` (snake_case top-level); Copilot CLI and unknown platforms → `{"additionalContext": "..."}` (SDK-standard top-level). `hooks/hooks-cursor.json` wires the same script under the Cursor hook protocol.
 
 `references/` is the knowledge layer the skills read on demand:
 
@@ -94,7 +94,7 @@ The SessionStart hook (`hooks/session-start`, wired by `hooks/hooks.json`) injec
 
 ### Render pipeline (CLI)
 
-The dispatcher is `main()` in `docs_cockpit/cli.py` (`build.py` re-exports it so the `build:main` entry point keeps working). Subcommands: `render` (+ deprecated `build` alias) / `lint` / `init` / `migrate` / `browse` / `sync-status` / `upgrade`. New subcommands are added by writing a module + calling its `add_<name>_parser(sub)` from `cli.py::main()`. The v0.x cognition-side subcommands (`prompt` / `suggest` / `verify` / `sprint` / `migrate-subtasks` / `apply-patch` / `apply-body-patch` / `mcp-serve` + the MCP server) are gone — their judgment moved into the skills.
+The dispatcher is `main()` in `docs_cockpit/cli.py` (`build.py` re-exports it so the `build:main` entry point keeps working). Subcommands: `render` (+ deprecated `build` alias) / `lint` / `init` / `migrate` / `browse` / `sync-status` / `upgrade`. New subcommands are added by writing a `cmd_<name>(args)` function in a new module + wiring an inline `sub.add_parser(...)` block with `set_defaults(func=cmd_<name>)` in `cli.py::main()` — there is no `add_<name>_parser()` convention in this codebase. The v0.x cognition-side subcommands (`prompt` / `suggest` / `verify` / `sprint` / `migrate-subtasks` / `apply-patch` / `apply-body-patch` / `mcp-serve` + the MCP server) are gone — their judgment moved into the skills.
 
 `docs-cockpit render` end-to-end:
 
@@ -133,7 +133,7 @@ This repo follows the global `~/.claude/CLAUDE.md` language layering with one sp
 
 - **`hooks/*` must be LF** — `hooks/session-start` is a bash script; CRLF makes it die with `$'\r': command not found`. `.gitattributes` locks `hooks/* text eol=lf` — don't remove that line, and don't let an editor re-save these files with CRLF.
 - **SessionStart injection is conditional** — no `docs-cockpit.yaml` within 6 parent levels → the hook silently exits. If injection "doesn't work" in a test project, check for the yaml before debugging the hook.
-- **HTML template tokens**: `templates/index.html.tmpl` has exactly one placeholder, `__DOCS_JSON__`. Any JS string literal that happens to contain `__DOCS_JSON__` will be silently replaced on render. Avoid that string in template content other than as the intended placeholder.
+- **HTML template tokens**: `templates/index.html.tmpl` has exactly one placeholder, `__DOCS_JSON__`. `render_html` calls `str.replace(..., count=1)`, so only the **first** occurrence is substituted — if the same literal appears earlier in the template (e.g. in a JS comment or string), it hijacks the replacement and the real placeholder is left verbatim. Avoid `__DOCS_JSON__` anywhere in template content other than the single intended placeholder.
 - **`references/schema.md` ↔ `schema.py::validate_meta()` pairing**: any change to the schema spec MUST be paired with a matching validator update (and vice versa). They drift apart silently — users get warned about things the spec says are fine, or the reverse.
 - **Frontmatter validator severity routing**: a `severity: error` means "the dashboard literally won't render this doc". Don't downgrade an error to warn without checking the build still produces something meaningful — errors are read by CI via `--strict` to fail builds.
 - **HTML comments count toward subtask-title anchor detection** — `schema.py::extract_subtasks_from_body()` does not strip `<!-- … -->` from checklist lines, so comment text lands in the subtask title and is scanned by the anchor-ref lint. Don't write `.md` / `§N` / line-number tokens inside comments on checklist lines.
@@ -152,7 +152,7 @@ This repo follows the global `~/.claude/CLAUDE.md` language layering with one sp
 | Hook injection behavior | `hooks/session-start` (+ `hooks/hooks.json` for Claude Code, `hooks/hooks-cursor.json` for Cursor) |
 | New slash command | `commands/<name>.md` |
 | New frontmatter field | `docs_cockpit/build.py::_build_card()` + `docs_cockpit/schema.py::validate_meta()` + `references/schema.md` |
-| HTML / drawer / dashboard UI | `docs_cockpit/templates/index.html.tmpl` (~2000 lines · most of the work is CSS + the JS at the bottom) |
+| HTML / drawer / dashboard UI | `docs_cockpit/templates/index.html.tmpl` (~4700 lines · most of the work is CSS + the JS at the bottom) |
 | Tree-sidebar reader UI | `docs_cockpit/templates/browse.html.tmpl` |
 | Schema spec / authoring conventions | `references/schema.md` (the canonical source) |
 | Association reasoning rules | `references/association-method.md` |
