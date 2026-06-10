@@ -4,14 +4,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this repo is
 
-`docs-cockpit` is an **open-source MIT-licensed** project that turns YAML-frontmatter-driven markdown into a single-file project Kanban dashboard. It ships as **two artifacts from the same repo**:
+`docs-cockpit` is an **open-source MIT-licensed**, **skill-first** project Kanban: YAML-frontmatter-driven markdown rendered into a single-file dashboard. Since v1.0 the product is a **Claude Code plugin** — one entry/router skill + two workflow skills + a mechanical render CLI:
 
-1. **A Python CLI** (`docs-cockpit` console script · `pyproject.toml::project.scripts`) installable via pip / uv tool / pipx
-2. **A Claude Code plugin** (`.claude-plugin/plugin.json` + `skills/` + `commands/`) installable via `/plugin install docs-cockpit@docs-cockpit`
+- **Skills carry the cognition** — discovery, reasoning about module↔doc associations, dialogue decisions all live in `skills/*/SKILL.md`
+- **Python only renders** — the CLI (`docs-cockpit` console script · `pyproject.toml::project.scripts` → `docs_cockpit.build:main`) does deterministic MD → HTML and validation, nothing "smart"
+- **North star**: a wrong anchor hurts more than a missing anchor — the build skill prefers asking the user over guessing associations
 
-The plugin's skills reach into the CLI for the actual MD → HTML build — they're not duplicates of each other. The CLI is the runtime; the plugin is the interface layer for AI agents.
+The full pivot rationale lives in `docs/plans/P-skill-first-pivot.md`. The v0.x four skills (`docs-cockpit` / `docs-cockpit-author` / `docs-cockpit-standup` / `docs-cockpit-portfolio`) and the cognition-side CLI subcommands were **deleted in v1.0** — if you see them referenced anywhere, that reference is stale.
 
-Because the project is open-source and used in production on multiple downstream projects (e.g. `D:/harvey_work/Sourcery`, `D:/shulex_work/bastion`), changes here surface as user-visible plugin updates. Treat any change to `skills/*/SKILL.md`, the validator, or the HTML template as a release event — bump the version per the SemVer convention below.
+The project is used in production on downstream projects (e.g. `D:/harvey_work/Sourcery`, `D:/shulex_work/bastion`), so changes here surface as user-visible plugin updates. Treat any change to `skills/*/SKILL.md`, the validator, or the HTML template as a release event — bump the version per the SemVer convention below.
 
 ## Common commands
 
@@ -20,20 +21,21 @@ Because the project is open-source and used in production on multiple downstream
 ```bash
 pip install -e .                                          # editable install (Python 3.10+)
 docs-cockpit init                                         # scaffold a docs-cockpit.yaml
-docs-cockpit build -c docs-cockpit.yaml --debug           # build + verbose
-docs-cockpit lint                                         # validate frontmatter (no build)
-docs-cockpit portfolio list                               # show user-level multi-project registry
+docs-cockpit render -c docs-cockpit.yaml --debug          # render dashboard + verbose
+docs-cockpit lint                                         # validate frontmatter (no render)
 ```
 
-### Smoke testing from source (no install needed)
+`render` was named `build` in v0.x — `docs-cockpit build` still works as a deprecated alias (prints a warning, removal scheduled for 1.1). New docs and skills must say `render`.
 
-The project has no formal pytest suite. Smoke tests are run by injecting the source directory into `sys.path` and invoking `main()` directly — Python 3.10+ required (system Python 3.9 will fail on type unions):
+### Tests
+
+The repo has a real pytest suite — `tests/unit/` + `tests/integration/`, 253 tests:
 
 ```bash
-py -3.13 -c "import sys; sys.path.insert(0, r'D:\harvey_work\docs-cockpit'); from docs_cockpit.build import main; main(['build', '--config', 'docs-cockpit.yaml'])"
+py -3.13 -m pytest tests/ -q      # Python 3.10+ required (3.9 fails on type unions)
 ```
 
-The two reference projects used for end-to-end smoke testing are `D:/harvey_work/Sourcery` (24 modules, 11 concepts) and `D:/shulex_work/bastion` (49 modules). Build them after substantive `build.py` / template changes to verify nothing regressed.
+After substantive `build.py` / template changes, also smoke-render the two downstream reference projects: `D:/harvey_work/Sourcery` (24 modules) and `D:/shulex_work/bastion` (49 modules).
 
 ### "Lint" in this project
 
@@ -50,80 +52,70 @@ docs_cockpit/__init__.py          # __version__ = "X.Y.Z"
 CHANGELOG.md                      # add ## [X.Y.Z] · YYYY-MM-DD section above prior entry
 ```
 
-After commit + push, users on the plugin can pull the update via `docs-cockpit upgrade` (handles plugin-cache clear + atomic restart prompt).
+After commit + push, users on the plugin pull the update via `docs-cockpit upgrade` (handles plugin-cache clear + atomic restart prompt).
 
 ## SemVer convention
 
 This project deviates from strict SemVer to encode the user-visible blast radius:
 
-- **patch** (`0.7.1`, `0.7.2`) — CLI-only / template-only fix. No SKILL.md changes. Plugin can be updated without restarting Claude Code (just the CLI).
-- **minor** (`0.8.0`, `0.9.0`, `0.10.0`) — new feature, new schema field, new CLI subcommand, new skill, or any SKILL.md change. Plugin cache MUST be cleared + Claude Code restarted (the `upgrade` CLI handles this atomically).
-- **major** — config schema break (`docs-cockpit.yaml` shape changes incompatibly). None yet.
+- **patch** — CLI-only / template-only fix. No SKILL.md changes. Plugin can be updated without restarting Claude Code (just the CLI).
+- **minor** — new feature, new schema field, new CLI subcommand, new skill, or any SKILL.md change. Plugin cache MUST be cleared + Claude Code restarted (the `upgrade` CLI handles this atomically).
+- **major** — config schema break (`docs-cockpit.yaml` shape changes incompatibly). v1.0 is the first: it removed skills and CLI subcommands wholesale.
 
-A change to `skills/*/SKILL.md` is by definition at least minor — those files are loaded into Claude's context, and stale ones cause hard-to-debug routing bugs.
+Two 1.0-era rules:
+
+- A SKILL.md frontmatter `description` is **machine routing** — Claude matches user requests against it. Any change to a description is at least minor, and users must run `docs-cockpit upgrade` (stale cached descriptions cause hard-to-debug routing bugs).
+- The deprecated `build` alias is removed in 1.1 — don't add new call sites.
 
 ## Architecture · the big picture
 
-### Build pipeline (build.py)
+### Skill topology (the product)
 
-`docs-cockpit build` does this end-to-end:
+| Skill | Role |
+|---|---|
+| `skills/use-docs-cockpit/` | Entry router · 29 lines · injected at SessionStart in docs-cockpit projects, routes to build / rebuild / direct CLI |
+| `skills/docs-cockpit-build/` | 7-phase first-association build: Phase 0 ensure cockpit + AGENTS.md idempotent anchor block (three-state self-heal) → discovery → reasoning → dry-run → highlight → dialogue decisions → write anchors + draft missing docs → render. Phases 1–4 follow the 4 atomic methods in `references/association-method.md` |
+| `skills/docs-cockpit-rebuild/` | 5-phase refresh of an existing cockpit: read current state (incl. status narrative — a pure status query ends here) → diagnose drift → re-infer → minimal-diff refresh → render + verify |
+
+The SessionStart hook (`hooks/session-start`, wired by `hooks/hooks.json`) injects the router skill's body **conditionally**: it probes up to 6 directory levels for `docs-cockpit.yaml` and silently exits in non-cockpit projects. Output uses the `hookSpecificOutput` JSON protocol for Claude Code; `hooks/hooks-cursor.json` adapts the same script for Cursor (`additional_context` snake_case variant).
+
+`references/` is the knowledge layer the skills read on demand:
+
+- `schema.md` — **the frontmatter field-spec SSOT** · validator `Issue.reference` points at its sections · do not duplicate the schema anywhere else
+- `association-method.md` — the 4 atomic association methods used by build Phases 1–4
+- `operations.md` — bootstrap / config / upgrade / troubleshooting (read by build Phase 0)
+- `config_reference.md` / `design_tokens.md` / `frontmatter_conventions.md` / `sync_status_workflow.md`
+
+### Skill design conventions
+
+- **Frontmatter `description` is pushy** — over-triggers rather than under-triggers · includes positive trigger phrases AND a discriminator naming the sibling skill that handles the negative case (build vs rebuild)
+- **Skill body explains the WHY** — not just rote `MUST`s · `skills/docs-cockpit-build/SKILL.md`'s "## Why this skill exists" is the canonical example
+- **Skill names ≠ slash command names** — check `commands/` before naming a new skill (a 0.9.0 rename was forced by exactly this collision; both parties of that collision are deleted now, the rule survives)
+
+### Render pipeline (CLI)
+
+The dispatcher is `main()` in `docs_cockpit/cli.py` (`build.py` re-exports it so the `build:main` entry point keeps working). Subcommands: `render` (+ deprecated `build` alias) / `lint` / `init` / `migrate` / `browse` / `sync-status` / `upgrade`. New subcommands are added by writing a module + calling its `add_<name>_parser(sub)` from `cli.py::main()`. The v0.x cognition-side subcommands (`prompt` / `suggest` / `verify` / `sprint` / `migrate-subtasks` / `apply-patch` / `apply-body-patch` / `mcp-serve` + the MCP server) are gone — their judgment moved into the skills.
+
+`docs-cockpit render` end-to-end:
 
 1. Load `docs-cockpit.yaml` from CWD or `--config` path
 2. `_build_vars()` resolves `{repo}` / `{home}` / `{env:X}` / `{main_repo}` path variables
 3. `_resolve_group_files()` walks `modules:` / `concepts:` config (supports `files:` / `scan:` / `glob:`)
-4. For each MD: `read_md()` → `split_frontmatter()` → `_build_card()`
-   - `_build_card()` also calls `_resolve_and_embed_docs()` which reads each linked doc's MD content into the payload (so the drawer can render inline · added 0.7.1) and `extract_subtasks_from_body()` / `extract_docs_from_body()` for body-section fallback (added 0.4.0)
-5. `validate_meta()` emits structured `Issue` objects with `severity / field / message / suggestion / reference` (the reference points to a section of `references/schema.md`)
-6. `build_payload()` returns `(payload, issues)` · payload is the JSON structure embedded in HTML; issues are surfaced both to stdout (three-section formatted) and to `state.json::issues[]`
-7. `render_html()` does a single `template.replace("__DOCS_JSON__", json)` — the template (`docs_cockpit/templates/index.html.tmpl`) is otherwise static; all rendering is client-side JS
-8. Writes `docs/index.html` + `docs/state.json` side-by-side
+4. For each MD: `read_md()` → `split_frontmatter()` → `_build_card()` (build.py) — which calls `paths.py::_resolve_and_embed_docs()` (inlines linked-doc content for the drawer) and `schema.py::extract_subtasks_from_body()` / `extract_docs_from_body()` for body-section fallback
+5. `schema.py::validate_meta()` emits structured `Issue` objects with `severity / field / message / suggestion / reference` (reference points to a `references/schema.md` section)
+6. `build_payload()` returns `(payload, issues)` · issues surface to stdout and `state.json::issues[]`
+7. `render_html()` does a single `template.replace("__DOCS_JSON__", json)` — `templates/index.html.tmpl` is otherwise static; all rendering is client-side JS
+8. Writes `docs/index.html` + `docs/state.json` side-by-side · `state.json` is the machine-readable sidecar for the rebuild skill's status reading and any CI invariant checks
 
-The `state.json` is the **machine-readable sidecar** consumed by:
-- `docs-cockpit-standup` skill (single-project narrative)
-- `docs-cockpit-portfolio` skill (cross-project weekly + week-over-week diff via snapshots)
-- Any CI / external tool that wants invariant checks
+Module placement facts that differ from where you'd guess:
 
-The CLI dispatcher is `main()` in `build.py`. It wires subparsers for: `build`, `init`, `migrate` (from `migrate.py`), `browse` (from `browse.py`), `upgrade` (from `upgrade.py`), `portfolio` (from `portfolio.py`), `lint`. New subcommands are added by writing a module + calling its `add_<name>_parser(sub)` from `main()`.
-
-### The four skills · scope discriminators
-
-The four skills in `skills/` form a deliberate division — each has a description that includes a discriminator paragraph stating when to defer to a sibling:
-
-| Skill | Scope | Reads | Writes |
-|---|---|---|---|
-| `docs-cockpit` | One cockpit · setup + maintain + upgrade docs-cockpit itself | `docs-cockpit.yaml` | `docs-cockpit.yaml` + HTML + runs CLI |
-| `docs-cockpit-standup` | One project · narrative status | `docs/state.json` | nothing |
-| `docs-cockpit-portfolio` | Multiple projects · weekly reports + diffs | `~/.docs-cockpit/projects.yaml` + each project's `state.json` + snapshots | `~/.docs-cockpit/snapshots/<name>/<date>.json` (via `portfolio snapshot` CLI) |
-
-`references/schema.md` is the **single source of truth** for the frontmatter schema, body section conventions, file naming, and cross-doc reference rules (it absorbed the former author skill in v1.0). The validator's `Issue.reference` field points at sections of this file (e.g. `📚 references/schema.md · frontmatter schema`). **Do not duplicate the schema elsewhere** — every skill, README section, and CLI message should reference it for canonical definitions.
-
-### Skill design conventions (from skill-creator)
-
-Skills are written following the conventions of the `anthropic-skills:skill-creator` skill that this repo uses for guidance:
-
-- **Frontmatter `description` is pushy** — over-triggers rather than under-triggers · includes both positive trigger phrases ("when the user says…") AND a `Do NOT trigger for…` discriminator paragraph naming the sibling skill that handles the negative case
-- **Skill body explains the WHY** — not just rote `MUST`s · `skills/docs-cockpit-build/SKILL.md`'s "## Why this skill exists" paragraph is the canonical example
-- **Skill names ≠ slash command names** — in 0.9.0 we renamed `docs-cockpit-status` → `docs-cockpit-standup` precisely because the `/docs-cockpit:status` slash command looked like a duplicate. If you add a new skill, check `commands/` and pick a non-colliding name.
+- `extract_subtasks_from_body` / `lint_sprint_readiness` / `load_sprint_plans` / the md-merge functions (`apply_to_md`, `compute_diff`) all live in **`schema.py`** (consolidated there in v1.0 · a post-1.0 split into `md_merge.py` is planned)
+- `_resolve_doc_path` / `_resolve_and_embed_docs` live in **`paths.py`**
+- `prompt.py` survives in trimmed form: it only produces the `docs/prompts.js` sidecar (data source for the dashboard's Copy-prompt CTA) — this is why the `jinja2` dependency is still in `pyproject.toml`
 
 ### The bootstrap pattern (plugin without CLI pre-installed)
 
-The plugin is markdown-only — Claude Code's plugin system can't pip-install Python packages on install. So `references/operations.md` (read by `docs-cockpit-build` Phase 0) carries the **first-build bootstrap** section: before running any `docs-cockpit <subcommand>`, the skill checks `docs-cockpit --version` and, if missing, runs `uv tool install` / `pipx install` / `pip install --user` in priority order.
-
-Tell the user transparently when this happens ("Installing the docs-cockpit Python toolkit via uv (one-time setup)…") — don't bury the bootstrap in silence.
-
-### Portfolio (multi-project) layout
-
-User-level registry + snapshots live under `~/.docs-cockpit/`:
-
-```
-~/.docs-cockpit/
-├── projects.yaml                    # registry · managed by `docs-cockpit portfolio` CLI
-└── snapshots/
-    └── <project-name>/
-        └── <YYYY-MM-DD>.json        # weekly state.json copy · for week-over-week diff
-```
-
-Path handling uses `pathlib.Path.home()` for cross-platform (Windows `C:\Users\<name>\` · POSIX `/home/<name>/`). Always write the registry via the CLI (`portfolio add/list/remove/tag`) not by hand-editing — the CLI normalizes paths and uses `yaml.safe_dump` for consistent formatting.
+The plugin is markdown-only — Claude Code's plugin system can't pip-install Python packages on install. So `references/operations.md` (read by `docs-cockpit-build` Phase 0) carries the **first-build bootstrap**: before running any `docs-cockpit <subcommand>`, check `docs-cockpit --version` and, if missing, run `uv tool install` / `pipx install` / `pip install --user` in priority order. Tell the user transparently when this happens — don't bury the bootstrap in silence.
 
 ## Language conventions in this repo
 
@@ -139,32 +131,39 @@ This repo follows the global `~/.claude/CLAUDE.md` language layering with one sp
 
 ## Easy-to-break things (project-specific gotchas)
 
-- **HTML template tokens**: `templates/index.html.tmpl` has exactly one placeholder, `__DOCS_JSON__`. Any JS string literal that happens to contain `__DOCS_JSON__` will be silently replaced on build. Avoid that string in template content other than as the intended placeholder.
-- **Frontmatter validator severity routing**: A `severity: error` means "the dashboard literally won't render this doc". Don't downgrade an error to warn without thinking about whether the build still produces something meaningful — error issues are read by CI scripts via `--strict` to fail builds.
-- **`references/schema.md` schema changes**: any change to the frontmatter schema section MUST be paired with a matching update to `docs_cockpit/schema.py::validate_meta()`. The validator and the spec drift apart silently if you forget — users get warned about things the spec says are fine, or vice versa.
-- **State.json schema**: stable since 0.2.0 (only added fields, never removed). External tools depend on `modules[*]` having stable fields. The 0.9.0 `issues[]` addition is opt-in; `warnings[]` was retained for backward compat.
-- **`docs:` path resolution**: implemented in `_resolve_doc_path()` with three-step fallback (absolute → relative to source MD → relative to repo root). Don't simplify this — the three-step fallback exists specifically to fix a real bug from 0.7.0 (`docs/docs/foo.md` doubling).
-- **Plugin marketplace cache + ghost state**: changing a SKILL.md and pushing alone is not enough — users must run `docs-cockpit upgrade` (which clears the cache atomically). Don't tell users to just "restart Claude Code" — that doesn't clear the cache and produces ghost state.
-- **Windows path separators in tests**: when smoke-testing on Windows, paths print with backslashes; in `state.json` they're stored as-is (so `D:\\harvey_work\\...`). Templates and JS handle both via `replace(/\\/g, '/')` at the use site — don't normalize at the build layer.
+- **`hooks/*` must be LF** — `hooks/session-start` is a bash script; CRLF makes it die with `$'\r': command not found`. `.gitattributes` locks `hooks/* text eol=lf` — don't remove that line, and don't let an editor re-save these files with CRLF.
+- **SessionStart injection is conditional** — no `docs-cockpit.yaml` within 6 parent levels → the hook silently exits. If injection "doesn't work" in a test project, check for the yaml before debugging the hook.
+- **HTML template tokens**: `templates/index.html.tmpl` has exactly one placeholder, `__DOCS_JSON__`. Any JS string literal that happens to contain `__DOCS_JSON__` will be silently replaced on render. Avoid that string in template content other than as the intended placeholder.
+- **`references/schema.md` ↔ `schema.py::validate_meta()` pairing**: any change to the schema spec MUST be paired with a matching validator update (and vice versa). They drift apart silently — users get warned about things the spec says are fine, or the reverse.
+- **Frontmatter validator severity routing**: a `severity: error` means "the dashboard literally won't render this doc". Don't downgrade an error to warn without checking the build still produces something meaningful — errors are read by CI via `--strict` to fail builds.
+- **HTML comments count toward subtask-title anchor detection** — `schema.py::extract_subtasks_from_body()` does not strip `<!-- … -->` from checklist lines, so comment text lands in the subtask title and is scanned by the anchor-ref lint. Don't write `.md` / `§N` / line-number tokens inside comments on checklist lines.
+- **State.json schema**: additive-only since 0.2.0 (fields added, never removed). External tools depend on `modules[*]` having stable fields; `warnings[]` is retained for backward compat alongside `issues[]`.
+- **`docs:` path resolution**: `paths.py::_resolve_doc_path()` uses a three-step fallback (absolute → relative to source MD → relative to repo root). Don't simplify — the fallback exists to fix a real 0.7.0 bug (`docs/docs/foo.md` doubling).
+- **Plugin marketplace cache + ghost state**: changing a SKILL.md and pushing is not enough — users must run `docs-cockpit upgrade` (clears the cache atomically). Don't tell users to just "restart Claude Code" — that doesn't clear the cache and produces ghost state.
+- **Windows path separators**: in `state.json` paths are stored as-is (`D:\\harvey_work\\...`). Templates and JS handle both via `replace(/\\/g, '/')` at the use site — don't normalize at the build layer.
 
 ## Where to look first when working on a change
 
 | Change kind | Start here |
 |---|---|
-| New CLI subcommand | `docs_cockpit/build.py::main()` (argparse wiring) + new module if substantial |
-| New build feature | `docs_cockpit/build.py::cmd_build` and `build_payload` |
-| New skill | `skills/<name>/SKILL.md` + update sibling skills' "Scope" sections to mention the new one |
+| New CLI subcommand | `docs_cockpit/cli.py::main()` (argparse wiring) + new module if substantial |
+| New render feature | `docs_cockpit/build.py::cmd_build` and `build_payload` |
+| Skill workflow change | `skills/<name>/SKILL.md` — remember: frontmatter `description` = routing, body = workflow; description changes are at least minor |
+| Hook injection behavior | `hooks/session-start` (+ `hooks/hooks.json` for Claude Code, `hooks/hooks-cursor.json` for Cursor) |
 | New slash command | `commands/<name>.md` |
-| New frontmatter field | `docs_cockpit/build.py::_build_card()` + `validate_meta()` + `references/schema.md` |
+| New frontmatter field | `docs_cockpit/build.py::_build_card()` + `docs_cockpit/schema.py::validate_meta()` + `references/schema.md` |
 | HTML / drawer / dashboard UI | `docs_cockpit/templates/index.html.tmpl` (~2000 lines · most of the work is CSS + the JS at the bottom) |
 | Tree-sidebar reader UI | `docs_cockpit/templates/browse.html.tmpl` |
-| Multi-project / portfolio | `docs_cockpit/portfolio.py` + `skills/docs-cockpit-portfolio/SKILL.md` |
 | Schema spec / authoring conventions | `references/schema.md` (the canonical source) |
+| Association reasoning rules | `references/association-method.md` |
 
 ## References (in-repo)
 
-- `references/config_reference.md` — full `docs-cockpit.yaml` field reference
+- `docs/plans/P-skill-first-pivot.md` — the v1.0 pivot spec (why skill-first · what was deleted and why)
 - `references/schema.md` — frontmatter & anchor field spec (the canonical SSOT)
+- `references/association-method.md` — the 4 atomic module↔doc association methods
+- `references/operations.md` — bootstrap / config / upgrade / troubleshooting runbook
+- `references/config_reference.md` — full `docs-cockpit.yaml` field reference
 - `references/frontmatter_conventions.md` — frontmatter governance (supplements `references/schema.md`)
 - `references/design_tokens.md` — HTML template design system
 - `CHANGELOG.md` — every release entry has a "Why" section explaining the user-visible motivation; read it before changing related code
