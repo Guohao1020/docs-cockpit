@@ -26,6 +26,7 @@ docs:
 - `apply-patch` / `apply-body-patch` **删除**——专为「浏览器 LLM 无 Edit 工具」模式 B 而生，用户已明确「无需支持不依赖 claude/codex 的场景」
 - `migrate`（state.json 迁移）/ `init` / `browse` / `lint` / `upgrade` **保留**（机械/运维）
 - 旧 4 skill 全删，`commands/*.md` 清理留给 Stage C（同一 release 内，无中间破窗）
+- **执行期偏离（T3 spec review 裁定 · 终审确认）**：`prompt.py`（裁剪为 206 行）+ `templates/prompts/*.j2`（4 件）+ pyproject 的 jinja2 依赖与 prompts package-data **存活**——File Structure 表与 Task 3 原文把它们列入删除，但 `docs/prompts.js` sidecar 是 dashboard「Copy prompt」CTA 的数据源（`build.py::cmd_build → render_all_subtask_prompts`），属渲染层数据而非认知 CLI。
 
 ---
 
@@ -361,4 +362,10 @@ B-Task 11 全量回归后跑残留 grep（patterns：`mcp-serve / docs-cockpit p
 | `docs_cockpit/build.py`（py 注释 · 扩展面） | L263 注释「standup / portfolio 可消费」· L652 注释「给 docs-cockpit-standup skill 读」（两 skill 已删） | 注释改为「给 rebuild skill / CI 读」类现状措辞（一行 polish） |
 | `docs_cockpit/cli.py` L4 · `docs_cockpit/prompt.py` L7 · `docs_cockpit/schema.py` L1293 | 「已随认知层删除」类有意历史注 | 保留 · 无动作 |
 
+| `docs_cockpit/templates/index.html.tmpl` L2234/L2543/L4519 | `toast.prompt_missing` 三处让用户跑 `docs-cockpit build`（deprecated 名） | Stage C 动作：措辞改 `render` |
+| `tests/unit/test_aliases.py` L10 | docstring 引已删 standup/portfolio skill | 动作：一行 docstring 改写 |
+| `tests/integration/test_dashboard_render.py` L8/L11 | 文件头 docstring 仍把 bundle-meta.js 写成正向覆盖项（实为反向断言） | 动作：一行校正 |
+
 已确认干净（无残留命中）：`.claude-plugin/plugin.json` · `.claude-plugin/marketplace.json` · `docs-cockpit.yaml` · `skills/`（3 个 SKILL.md）· `hooks/` · `references/` 其余 5 文件。
+
+**合并约束：Stage C 完成（版本 bump + commands/README 清理）前，本分支不得 merge 进 main、不得让 marketplace 指向本分支——否则用户拿到 0.19.0 版本号 + 1.0 内容的 ghost 状态。**
