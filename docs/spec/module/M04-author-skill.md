@@ -40,5 +40,5 @@ validator 输出的 `Issue.reference` 字段直接指向规范章节(`📚 refer
 - [x] 把 subtask 升为对象 schema · 让每条子任务能独立追踪 @code:docs_cockpit/schema.py:421-475 @docs:references/schema.md
 - [x] 给 subtask id 加稳定生成算法 · 重命名 title 时讲清 trade-off @code:docs_cockpit/schema.py:398-419 @docs:references/schema.md
 - [x] 加 prompt template 规范章节 · 四种内置 template 各自适用场景写清 @code:docs_cockpit/prompt.py:130-237
-- [x] 给 prompt context 变量定 stability contract · 让自定义 template 升级时不破 @code:docs_cockpit/prompt.py:239-310
+- [x] 给 prompt context 变量定 stability contract · 让自定义 template 升级时不破 @code:docs_cockpit/prompt.py
 - [x] body 内联 anchor 语法文档化 · 让 AI 在 checklist 里就能挂代码跟文档锚 @code:docs_cockpit/schema.py:185-223 @docs:references/schema.md

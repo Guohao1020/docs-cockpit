@@ -67,4 +67,4 @@ docs-cockpit.yaml + MD files
 - [x] 把 module 数据安全嵌进 HTML 模板 · 避免脚本提前结束 @code:docs_cockpit/build.py:483-498
 - [x] 输出独立 sidecar JS 文件给 dashboard 按需加载 @code:docs_cockpit/build.py:512-535
 - [x] 模板特殊串 `</script>` 转义 · 防 script 标签被内容截断 @code:docs_cockpit/build.py:483-490
-- [x] 立 pytest 测试地基 · 给所有后续 schema 改动护栏 @code:tests/unit/ @code:tests/integration/
+- [x] 立 pytest 测试地基 · 给所有后续 schema 改动护栏 @code:tests/unit/test_schema.py @code:tests/integration/test_dashboard_render.py
