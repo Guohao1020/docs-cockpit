@@ -1,11 +1,11 @@
 ---
 name: docs-cockpit-rebuild
 description: |
-  Refresh / repair an EXISTING docs-cockpit association system that has drifted — anchors gone stale after a refactor, specs evolved, links outdated, or status questions about current state. Reads state.json + MD, diagnoses drift (lint + dry-run-verify every anchor's 4-tier verdict), re-infers correct anchors, and refreshes ONLY the broken ones (keeping valid links intact). Also answers narrative status questions (what's blocked / sprint progress / which modules stalled) as its Phase 1 read-current-state.
+  Refresh / repair an EXISTING docs-cockpit association system that has drifted — anchors gone stale after a refactor, specs evolved, links outdated, or status questions about current state. Reads state.json + MD, diagnoses drift (lint + dry-run-verify every anchor's 4-tier verdict), re-infers correct anchors, and refreshes ONLY the broken ones (keeping valid links intact). Also answers narrative status questions (what's blocked / sprint progress / which modules stalled) as its Phase 1 read-current-state. Also owns the project health checkup（体检）of an existing cockpit: Phase 1–2 produce the nine-department report → docs/HEALTH.md → dashboard health panel.
 
-  TRIGGER when the user says: 「关联乱了重新梳理」「重构后 anchor 失效了」「spec 改了同步关联」「这个 module 关联还准不准」「项目进度怎么样」「哪些卡了」「sprint 进度」 / "anchors are stale", "re-sync after refactor", "is this module's linkage still right", "what's blocked", "sprint progress", "weekly status".
+  TRIGGER when the user says: 「关联乱了重新梳理」「重构后 anchor 失效了」「spec 改了同步关联」「这个 module 关联还准不准」「项目进度怎么样」「哪些卡了」「sprint 进度」 / "anchors are stale", "re-sync after refactor", "is this module's linkage still right", "what's blocked", "sprint progress", "weekly status". Checkup phrasings: 「体检一下」「健康检查」「全面体检」 / "health check", "checkup", "run a health check".
 
-  Do NOT trigger for: building association from scratch / whole-project planning (→ docs-cockpit-build); pure HTML re-render (→ CLI `docs-cockpit render`). Discriminator: rebuild = an association ALREADY EXISTS and we diagnose+refresh it (or just read its state); build = create it 0→1.
+  Do NOT trigger for: building association from scratch / whole-project planning (→ docs-cockpit-build); pure HTML re-render (→ CLI `docs-cockpit render`). Discriminator: rebuild = an association ALREADY EXISTS and we diagnose+refresh it (or just read its state); build = create it 0→1. Health checkups of an existing cockpit land HERE — build only runs the 0→1 admission baseline.
 ---
 
 # docs-cockpit-rebuild
@@ -25,6 +25,10 @@ Both skills share the same four atomic methods in `references/association-method
 
 If no association exists at all (no `docs:` / `subtasks` anchors anywhere), stop and hand off to `docs-cockpit-build` — diagnosing an empty system is not a rebuild.
 
+## Checkup runs（体检触发）
+
+「体检一下」「全面体检」「健康检查」 / "health check" / "checkup" trigger a **checkup run**: execute Phase 1–2, present the three-part report, and STOP — the report IS the deliverable, with the same endpoint semantics as pure status queries ending at Phase 1. Treatment (Phase 3–4) starts only if the user then confirms buckets. Mode selection: the request contains 「深度」/「全面」/ "deep" / "full" → deep mode (all nine departments, full anchor-verdict pass); otherwise quick mode. Methodology, thresholds, and templates: `references/health-check.md`.
+
 ## How this skill is layered
 
 This skill is the **orchestration layer** — it tells you which phase to run when. The details live in references (do not restate them; read them when the phase needs them):
@@ -33,6 +37,7 @@ This skill is the **orchestration layer** — it tells you which phase to run wh
 |---|---|---|
 | `references/association-method.md` | the 4 atomic methods (discovery / reasoning / dry-run / highlight) | Phase 2–3 |
 | `references/schema.md` | frontmatter fields · subtask forms · code/doc anchor formats | Phase 4 |
+| `references/health-check.md` | nine-department checkup methodology · three-part report template · five-bucket triage · HEALTH.md writing rules | Phase 2 (checkup report), 3–4 (bucket landing) |
 | `docs/state.json` | machine-readable current state (input, not a doc to edit) | Phase 1 |
 
 Default scope is **all existing anchors in the project**. The user can narrow it ("only M07", "only docs touched by this refactor"); say so explicitly in Phase 2's verdict table if scoped down.
@@ -75,6 +80,12 @@ Verdict presentation format (example):
   处理       : → Phase 3 重推理（候选 §3.4）
 ```
 
+**End of phase · checkup consolidation（复查呈报）.** Phase 1–2 are this skill's recheck（复查）: consolidate their diagnostic output per `references/health-check.md` into a checkup report before any treatment:
+
+1. Write or update `docs/HEALTH.md` — frontmatter per `references/schema.md · health-report schema`. RX ids are stable and monotonic: resolved prescriptions are removed (their numbers never reused), unresolved ones keep their original id, new ones continue from the last max.
+2. Present the three-part report（诊断 / 处方 / 行动规划）per health-check.md's template.
+3. Walk the five buckets for the user's ruling. On a checkup run the flow ENDS here; otherwise confirmed treatment items proceed to Phase 3–4, where the bucket landing rules live.
+
 ## Phase 3 · Re-infer
 
 - **Goal** — a verified replacement candidate for every non-accurate anchor.
@@ -95,6 +106,14 @@ What "minimal diff" looks like (the only changed bytes are the drifted anchor):
 - - [ ] drawer 内联渲染 linked docs @docs:docs/plans/2026-04-12-m03-render-plan.md#§3.1
 + - [ ] drawer 内联渲染 linked docs @docs:docs/plans/2026-04-12-m03-render-plan.md#§3.4
 ```
+
+**Checkup prescription landing（处方→subtask 闭环）.** Bucket decisions confirmed at the end of Phase 2 land here, with the same rules as build Phase 6:
+
+- **`sprint`** — write the prescription as a subtask (title per schema.md's 4 rules) carrying a `@code:` anchor at the problem location, under the module named by the prescription's `module` field; no owning module → ask the user before creating a dedicated health-debt module（「健康债」）. Sync the sprint-plan `in_scope`.
+- **`backlog`** — draft a plan doc（file naming per `references/schema.md · 文件命名约定`）with the prescription's anchors in its evidence section.
+- **`accepted`** — record in `docs/HEALTH.md` `accepted_debts`（item / reason / review date — ledger rules per health-check.md）.
+- **`watch`** — stays in `docs/HEALTH.md` `prescriptions` with `bucket: watch`; the next checkup verifies these first.
+- **`now`** — treat on the spot in this phase（edit + `docs-cockpit render` verify）.
 
 ## Phase 5 · Render + verify
 

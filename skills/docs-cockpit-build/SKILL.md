@@ -3,9 +3,9 @@ name: docs-cockpit-build
 description: |
   Build a docs-cockpit project's documentation-association system from scratch or fill its gaps — scan ALL project docs, infer which module/subtask should link to which spec/plan/rfc section, dry-run-verify the anchors, then write them. Defaults to planning the WHOLE project (every module's spec/plan), deciding each linkage WITH the user in dialogue. Produces module↔subtask↔doc anchors + drafts missing spec/plan docs, then renders the dashboard. Also owns cockpit setup itself: creating/extending docs-cockpit.yaml, wiring scan dirs, and debugging build issues (0 modules / yaml errors) — its Phase 0.
 
-  TRIGGER when the user wants to: 「把项目文档体系建起来」「关联模块和任务/文档」「规划整个项目的 spec/plan」「给所有 module 补 anchor」「这些 subtask 该关联哪个文档」 / "build the doc association", "wire modules to specs", "plan the whole project's docs", "add anchors to every module". Setup/debug phrasings: 「把项目做成 dashboard / 项目看板」「搭一个 docs-cockpit」「扩展 config 扫描新目录」「为什么扫出来 0 个 module」 / "set up a docs-cockpit", "extend the config to scan new dirs", "debug build issues".
+  TRIGGER when the user wants to: 「把项目文档体系建起来」「关联模块和任务/文档」「规划整个项目的 spec/plan」「给所有 module 补 anchor」「这些 subtask 该关联哪个文档」 / "build the doc association", "wire modules to specs", "plan the whole project's docs", "add anchors to every module". Setup/debug phrasings: 「把项目做成 dashboard / 项目看板」「搭一个 docs-cockpit」「扩展 config 扫描新目录」「为什么扫出来 0 个 module」 / "set up a docs-cockpit", "extend the config to scan new dirs", "debug build issues". Checkup phrasings — 0→1 scenarios ONLY: 「把项目搭起来顺便体检」「新项目建看板 + 入院体检」 / "set up the cockpit and run a baseline checkup".
 
-  Do NOT trigger for: an EXISTING association that drifted / needs refresh after refactor (→ docs-cockpit-rebuild); just re-rendering the HTML with no association work (→ CLI `docs-cockpit render`); reading status narratives (→ docs-cockpit-rebuild Phase 1); upgrading docs-cockpit itself (→ CLI `docs-cockpit upgrade`, see references/operations.md · upgrade). Discriminator: this skill is 0→1 / whole-project association BUILDING; rebuild is refreshing an existing one.
+  Do NOT trigger for: an EXISTING association that drifted / needs refresh after refactor (→ docs-cockpit-rebuild); just re-rendering the HTML with no association work (→ CLI `docs-cockpit render`); reading status narratives (→ docs-cockpit-rebuild Phase 1); a health check / checkup of an EXISTING cockpit — 「体检一下」「健康检查」 "health check" "checkup" (→ docs-cockpit-rebuild); upgrading docs-cockpit itself (→ CLI `docs-cockpit upgrade`, see references/operations.md · upgrade). Discriminator: this skill is 0→1 / whole-project association BUILDING; rebuild is refreshing an existing one.
 ---
 
 # docs-cockpit-build
@@ -27,6 +27,7 @@ This skill is the **orchestration layer** — it tells you which phase to run wh
 | `references/schema.md` | frontmatter fields · subtask forms · code/doc anchor formats · file naming | Phase 3, 6 |
 | `references/association-method.md` | the 4 atomic methods (discovery / reasoning / dry-run / highlight) | Phase 1–4 |
 | `references/operations.md` | CLI bootstrap · config skeleton · upgrade | Phase 0 |
+| `references/health-check.md` | nine-department checkup methodology · three-part report template · five-bucket triage · HEALTH.md writing rules | Phase 5 (admission checkup), 6 (bucket landing) |
 
 Default scope is the **whole project** — every module's spec/plan, every subtask's anchors. The user can narrow it ("only M07", "only the new sprint"); say so explicitly in Phase 1's output if scoped down.
 
@@ -97,6 +98,13 @@ Field formats and frontmatter schema: `references/schema.md` in the docs-cockpit
 
 ## Phase 5 · Dialogue decisions（对话决策）
 
+**Entry step · admission baseline checkup（入院体检）.** Before presenting any association proposal, consolidate the findings Phases 1–3 already produced (lint issues, anchor verdicts, coverage gaps) into an admission checkup per `references/health-check.md` — quick mode, reusing what those phases measured rather than re-running checks:
+
+1. Write `docs/HEALTH.md` — frontmatter per `references/schema.md · health-report schema`; writing rules (stable `RX-NNN` ids, real module ids only, anchors pre-verified by Method 3, checkup-day `date`) per health-check.md's HEALTH.md 写入规范 section.
+2. Present the three-part report（诊断 / 处方 / 行动规划）using health-check.md's template.
+3. Walk the five buckets one by one for the user's ruling（五桶逐桶确认）— triage criteria per health-check.md.
+4. Confirmed items merge into this phase's existing decision flow below; their on-disk landing rules live in Phase 6.
+
 - **Goal** — the user has ruled on every proposal: accept / adjust / skip. Nothing lands without a ruling.
 - **Actions** — present Phase 4's proposals one by one (or in small batches for a long list — group by module). For each, show the anchor, the highlighted evidence, the verdict, and ask for a decision. Apply user adjustments back through a quick Phase 3 re-verify before accepting. Decision granularity rule: ≤3 proposals → present individually, one turn per proposal. 4-8 → group by module (one turn per module). >8 → present an overview table first, then ask the user: module-by-module, or bulk accept-with-exceptions. Never dump every proposal in a single turn without grouping.
 - **Atomic method** — none (this phase is pure dialogue).
@@ -120,6 +128,14 @@ Proposal presentation format (example):
 - **Actions** — write each accepted anchor in the form the target doc already uses (frontmatter `subtasks:` object array vs body `@code:`/`@docs:` inline — exact syntax per `references/schema.md`; remember frontmatter wins over body, so don't mix forms in one doc (if the target doc already has both forms, frontmatter takes precedence — write only to the frontmatter form and leave the body section as is)). For each Phase 2 gap the user approved: draft the missing spec/plan with conforming frontmatter and file naming (both per `references/schema.md`), then link it from the owning module's `docs:`.
 - **Reference** — `references/schema.md` (subtask forms · anchor formats · frontmatter schema · file naming).
 - **Output** — edited module MDs + new spec/plan drafts + their `docs:` linkage.
+
+**Checkup prescription landing（处方→subtask 闭环）.** Bucket decisions confirmed in Phase 5's checkup land here, alongside the anchor decisions:
+
+- **`sprint`** — write the prescription as a subtask (title per schema.md's 4 rules) carrying a `@code:` anchor at the problem location, under the module named by the prescription's `module` field; no owning module → ask the user before creating a dedicated health-debt module（「健康债」）to hold it. Sync the sprint-plan `in_scope`.
+- **`backlog`** — draft a plan doc（file naming per `references/schema.md · 文件命名约定`）; the prescription's anchors go into its evidence section, and conforming frontmatter puts it on the dashboard automatically.
+- **`accepted`** — record in `docs/HEALTH.md` `accepted_debts`（item / reason / review date — ledger rules per health-check.md）.
+- **`watch`** — stays in `docs/HEALTH.md` `prescriptions` with `bucket: watch`; the next checkup verifies these first.
+- **`now`** — already treated during Phase 5's dialogue（edit + re-render）; nothing further lands here.
 
 ## Phase 7 · Render（渲染）
 

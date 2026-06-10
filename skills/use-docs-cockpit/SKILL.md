@@ -1,7 +1,7 @@
 ---
 name: use-docs-cockpit
 description: |
-  Entry/router for the docs-cockpit skill ecosystem. Loaded by default in any project that has a docs-cockpit.yaml. Tells the agent: this project uses docs-cockpit; cognition lives in skills, python only renders; route to docs-cockpit-build (create/extend association), docs-cockpit-rebuild (refresh/diagnose/read-status), or CLI docs-cockpit render (just regenerate HTML).
+  Entry/router for the docs-cockpit skill ecosystem. Loaded by default in any project that has a docs-cockpit.yaml. Tells the agent: this project uses docs-cockpit; cognition lives in skills, python only renders; route to docs-cockpit-build (create/extend association), docs-cockpit-rebuild (refresh/diagnose/read-status/health checkup), or CLI docs-cockpit render (just regenerate HTML).
 ---
 
 # use-docs-cockpit
@@ -20,6 +20,7 @@ This file is a router only. Each routed skill carries its own complete workflow 
 | Refresh an EXISTING association that drifted — anchors stale after refactor, spec evolved and links need re-sync | `docs-cockpit-rebuild` skill | 「关联乱了重新梳理」「anchor 失效了」 |
 | Just regenerate the dashboard HTML, no association work | CLI `docs-cockpit render` | 「重新生成 dashboard」 |
 | Read status / progress / blockers, no file changes | `docs-cockpit-rebuild` Phase 1 (pure status queries end there) | 「项目进度怎么样」「哪些卡了」 |
+| Run a project health checkup / 健康检查 (existing cockpit — the report feeds the dashboard health panel) | `docs-cockpit-rebuild` skill | 「体检一下」 "run a health check" |
 | Upgrade docs-cockpit itself | CLI `docs-cockpit upgrade` (see `references/operations.md` · upgrade) | 「升级 docs-cockpit」 "update docs-cockpit" |
 
 Discriminator between the two skills: **build = the association does not exist yet (or whole-project planning); rebuild = it already exists and needs diagnosis / refresh (or just reading).**
