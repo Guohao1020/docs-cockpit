@@ -952,7 +952,7 @@ def validate_health_report(
 
     # mode enum
     mode = meta.get("mode")
-    if mode and mode not in _HEALTH_MODES:
+    if mode is not None and mode not in _HEALTH_MODES:
         _issue(
             "error", "mode",
             f"mode={mode!r} invalid · must be one of {sorted(_HEALTH_MODES)}",
@@ -961,7 +961,7 @@ def validate_health_report(
 
     # grade · A/B/C/D 可带 +/- 后缀
     grade = meta.get("grade")
-    if grade and not (isinstance(grade, str) and _HEALTH_GRADE_RE.match(grade.strip())):
+    if grade is not None and not (isinstance(grade, str) and _HEALTH_GRADE_RE.match(grade.strip())):
         _issue(
             "error", "grade",
             f"grade={grade!r} invalid · must match A/B/C/D with optional +/- suffix (e.g. B+)",
@@ -991,7 +991,7 @@ def validate_health_report(
                         "each department needs id / name / verdict / summary",
                     )
             verdict = dept.get("verdict")
-            if verdict and verdict not in _HEALTH_VERDICTS:
+            if verdict is not None and verdict not in _HEALTH_VERDICTS:
                 _issue(
                     "error", f"departments[{i}].verdict",
                     f"verdict={verdict!r} invalid · must be one of {sorted(_HEALTH_VERDICTS)}",
@@ -1032,14 +1032,14 @@ def validate_health_report(
                             "each prescription needs id / severity / bucket / title / root_cause / fix",
                         )
             sev = rx.get("severity")
-            if sev and sev not in _HEALTH_RX_SEVERITIES:
+            if sev is not None and sev not in _HEALTH_RX_SEVERITIES:
                 _issue(
                     "warn", f"prescriptions[{i}].severity",
                     f"prescription `{rx_label}` severity={sev!r} invalid · "
                     f"must be one of {sorted(_HEALTH_RX_SEVERITIES)}",
                 )
             bucket = rx.get("bucket")
-            if bucket and bucket not in _HEALTH_RX_BUCKETS:
+            if bucket is not None and bucket not in _HEALTH_RX_BUCKETS:
                 _issue(
                     "warn", f"prescriptions[{i}].bucket",
                     f"prescription `{rx_label}` bucket={bucket!r} invalid · "
@@ -1047,7 +1047,14 @@ def validate_health_report(
                     "五桶分诊:now(立即修)/ sprint(本 sprint)/ backlog / watch(观察)/ accepted(台账)",
                 )
             anchors = rx.get("anchors")
-            if anchors is not None and not isinstance(anchors, list):
+            if anchors is None:
+                # Iron Law:根因+anchor 定位 · 覆盖类处方天然无 code anchor 可豁免
+                _issue(
+                    "hint", f"prescriptions[{i}].anchors",
+                    f"prescription `{rx_label}` has no `anchors` field",
+                    "处方建议带 anchors 定位（文件/行号或文档节）· 覆盖类处方可豁免",
+                )
+            elif not isinstance(anchors, list):
                 _issue(
                     "warn", f"prescriptions[{i}].anchors",
                     f"prescription `{rx_label}` anchors must be a list of code-anchor strings",

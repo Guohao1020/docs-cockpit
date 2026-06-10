@@ -1024,3 +1024,34 @@ class TestValidateHealthReport:
     # health-report 是合法 doc type(validate_meta 不报 unknown)
     def test_health_report_in_valid_doc_types(self):
         assert "health-report" in VALID_DOC_TYPES
+
+    # ── Memo 1 · truthiness 漏洞修复验证 ──
+
+    # 9 · mode: False(YAML `no` 解析值)→ 不被 falsy 短路 · 应报 error
+    def test_falsy_mode_false_is_error(self):
+        meta = self._valid_meta()
+        meta["mode"] = False  # YAML `mode: no` 解析为 Python False
+        issues = validate_health_report(meta, known_module_ids={"M07"})
+        assert any(i.field == "mode" and i.severity == "error" for i in issues)
+
+    # 10 · grade: 0(YAML 整数 0)→ 不被 falsy 短路 · 应报 error
+    def test_falsy_grade_zero_is_error(self):
+        meta = self._valid_meta()
+        meta["grade"] = 0  # falsy 值不是合法 grade
+        issues = validate_health_report(meta, known_module_ids={"M07"})
+        assert any(i.field == "grade" and i.severity == "error" for i in issues)
+
+    # ── Memo 2 · Iron Law anchors hint ──
+
+    # 11 · 处方无 anchors 字段 → hint(Iron Law 提醒 · 覆盖类可豁免)
+    def test_prescription_missing_anchors_is_hint(self):
+        meta = self._valid_meta()
+        del meta["prescriptions"][0]["anchors"]
+        issues = validate_health_report(meta, known_module_ids={"M07"})
+        hints = [
+            i for i in issues
+            if "anchors" in i.field and i.severity == "hint"
+        ]
+        assert len(hints) == 1
+        assert hints[0].category == "health-report"
+        assert "覆盖类处方可豁免" in hints[0].suggestion
