@@ -2,7 +2,7 @@
 id: P-V1.0-STAGE-A
 type: plan
 title: "v1.0 Stage A · 新建 use-docs-cockpit + build + rebuild skill + references + hooks"
-status: planned
+status: done
 sprint: "1.0"
 desc: "skill-first pivot 第一刀：零破坏新建 1 入口+2 流程 skill、3 个 references、SessionStart 条件注入 hooks"
 owner: harvey

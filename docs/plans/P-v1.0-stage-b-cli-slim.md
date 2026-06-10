@@ -2,7 +2,7 @@
 id: P-V1.0-STAGE-B
 type: plan
 title: "v1.0 Stage B · CLI 瘦身 + skill 归并（breaking）"
-status: planned
+status: done
 sprint: "1.0"
 desc: "skill-first pivot 第二刀：CLI build→render + 删认知子命令/MCP/portfolio + 删旧 4 skill + 触发路由唯一化"
 owner: harvey

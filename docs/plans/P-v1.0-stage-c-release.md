@@ -2,7 +2,7 @@
 id: P-V1.0-STAGE-C
 type: plan
 title: "v1.0 Stage C · 文档重写 + 发布收尾（1.0.0）"
-status: planned
+status: done
 sprint: "1.0"
 desc: "skill-first pivot 最后一棒：commands/ 清理 + 模板死文案 + CLAUDE.md/README/site 重写 + CHANGELOG + 1.0.0 bump + 发布回归"
 owner: harvey
