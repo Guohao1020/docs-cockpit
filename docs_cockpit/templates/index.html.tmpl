@@ -282,7 +282,7 @@ body.split-mode .sysdoc-list .sysdoc-row.active .sd-title {
 body.split-mode #module-drawer .drawer-head .refine-btn { display: none !important; }
 
 /* 0.11.3 · 「同步 source」按钮 · 主动清当前 module 的 subtask override
-   secondary tier · outline 而非 filled · 不抢 Refine 主行为 */
+   secondary tier · outline 而非 filled */
 body.split-mode #module-drawer .drawer-head .reset-overrides-btn {
   display: inline-flex;
   align-items: center;
@@ -4292,7 +4292,7 @@ body.split-mode #module-drawer .drawer-body {
         _moveModuleDrawerToSplitNav();
         // 复用 openModuleDrawer 的渲染 + 事件绑定(CSS 在 split-mode override modal 样式)
         try { openModuleDrawer(_currentRoute.id); } catch (e) { console.error(e); }
-        // 0.14.4 · Refine 按钮已干掉 · build 自动写 docs/refine/<module>.md · 见 CHANGELOG
+        // 0.14.4 · Refine 按钮已移除 · refine 流程 v1.0 起走 rebuild skill · 见 CHANGELOG
         // 0.11.3 · 加「同步 source」按钮 · 主动清 module subtask override
         try { _injectResetOverridesButton(_currentRoute.id); } catch (e) {}
       } else if (_currentRoute.kind === 'sysdoc' && _currentRoute.id) {

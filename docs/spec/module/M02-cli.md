@@ -51,9 +51,9 @@ docs-cockpit <subcommand> [args]
 - [x] v0.10 build / lint / init / migrate / browse / portfolio / upgrade 全部上线 @code:docs_cockpit/cli.py @code:docs_cockpit/build.py @code:docs_cockpit/migrate.py @code:docs_cockpit/browse.py @docs:CHANGELOG.md#0.10.0 @code:docs_cockpit/upgrade.py
 - [x] First-build bootstrap · plugin 检测 CLI 缺失自动走 uv tool / pipx / pip --user 三档兜底装 @docs:references/operations.md <!-- 原 anchor 指向主 skill · v1.0 删除 · bootstrap 知识已迁运维参考 -->
 - [x] 把 CLI 入口从 build 引擎拆出 · 独立 dispatcher @code:docs_cockpit/cli.py @code:docs_cockpit/build.py
-- [x] 让用户从命令行直接拿到任意 subtask 的可执行 prompt @code:docs_cockpit/cli.py:88-112 @docs:docs/plans/P-v0.11-driver-seat.md
-- [x] prompt 复制到剪贴板免去用户手动选中 · 没装剪贴板库时给清晰兜底提示 @code:docs_cockpit/cli.py:103-106 @code:docs_cockpit/build.py:780-874
-- [x] 列出内置 prompt template 名让用户挑 @code:docs_cockpit/cli.py:107-110
-- [x] 把老 string 子任务一键升级到新 object schema · dry-run 先看 diff 再 apply @code:docs_cockpit/build.py:712-779
-- [x] lint 加入 prompt template 校验 · 让 CI 能挡住 Jinja2 语法错 @code:docs_cockpit/build.py:587-694
+- [x] 让用户从命令行直接拿到任意 subtask 的可执行 prompt @docs:CHANGELOG.md#[0.11.0] @docs:docs/plans/P-v0.11-driver-seat.md
+- [x] prompt 复制到剪贴板免去用户手动选中 · 没装剪贴板库时给清晰兜底提示 @docs:CHANGELOG.md#[0.11.0]
+- [x] 列出内置 prompt template 名让用户挑 @docs:CHANGELOG.md#[0.11.0]
+- [x] 把老 string 子任务一键升级到新 object schema · dry-run 先看 diff 再 apply @docs:CHANGELOG.md#[0.11.0]
+- [x] lint 加入 prompt template 校验 · 让 CI 能挡住 Jinja2 语法错 @docs:CHANGELOG.md#[0.11.0]
 - [x] CLI 子命令端到端集成测试 · CliRunner 跑通整条 pipeline @docs:CHANGELOG.md#[0.11.0]

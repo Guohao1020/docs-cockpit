@@ -8,7 +8,7 @@ JS · 这层只验静态 HTML 含必需元素 + CSS rules · 行为留 pytest-pl
 - backlog page / split page / bundle bar 三个新容器 default 状态 = hidden
 - 各 hidden 元素都有显式 `[hidden] { display: none }` CSS override
 - topbar 含 Backlog / Export 按钮
-- bundle-meta.js sidecar script tag
+- 反向断言：bundle-meta.js / prompts-refine.js 不得再被引用（防 ghost 引用）
 """
 
 from __future__ import annotations

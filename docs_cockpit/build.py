@@ -260,7 +260,7 @@ def _build_aliases(
             "content": "",
             "mtime": None,
             "exists": False,
-            # 0.15.0 · alias 专属元数据 · standup / portfolio 可消费
+            # 0.15.0 · alias 专属元数据 · 给 rebuild skill / CI 等 state.json 消费者读
             "alias": True,
             "canonical_type": entry.get("canonical_type", "doc"),
             "source_path": raw_source,
@@ -649,7 +649,7 @@ def cmd_build(args: argparse.Namespace) -> int:
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(html, encoding="utf-8")
 
-    # ── sidecar state.json · 给 docs-cockpit-standup skill 读 ──
+    # ── sidecar state.json · 给 docs-cockpit-rebuild skill（Phase 1 状态叙事）读 ──
     # 0.9.0:warnings 字段保留(老 status skill 兼容)· issues 字段是新的
     # 结构化版本 · 含 severity / suggestion / reference · IDE 与 CI 消费
     state_path = output.parent / "state.json"

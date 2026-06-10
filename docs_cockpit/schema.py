@@ -4,7 +4,7 @@
 和函数 / frontmatter parsing)提到独立模块 · 便于 unit test 和 v0.11 W1
 subtask schema 演进(plan §6.1)。
 
-无 fs 依赖(除了 pathlib.Path 类型签名)· 所有 IO 由 build.py / paths.py 完成 ·
+除 v1.0 搬入的 load_sprint_plans / md-merge 函数外无 fs 依赖 · 其余 IO 由 build.py / paths.py 完成 ·
 本模块只对已读入内存的 meta dict 和 body string 做校验和提取。
 
 0.11.0-alpha.1:从 build.py 拆出(plan-eng-review 1A)。

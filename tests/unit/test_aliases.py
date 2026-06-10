@@ -7,7 +7,7 @@
 - 不存在的 source 仍 emit entry(exists=False)· 不抛
 - canonical_type → icon 默认映射
 - 跟 system_docs 并排融合到 systemDocs[]
-- alias 字段被标 alias=True · 给 standup / portfolio skill 区分
+- alias 字段被标 alias=True · 给 rebuild skill 等 state.json 消费者区分 alias 条目
 """
 
 from __future__ import annotations
