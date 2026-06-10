@@ -4,7 +4,7 @@ description: Update docs-cockpit (CLI + plugin) · delegates to `docs-cockpit up
 
 Explicit invocation of the docs-cockpit upgrade workflow. **0.7.0+ recommendation**: just run `docs-cockpit upgrade` — the CLI handles everything (backend detection, version comparison, plugin cache decision, atomic restart).
 
-The upgrade trigger phrases are now handled inside the **main `docs-cockpit` skill** (0.9.0 cleanup — the old standalone `docs-cockpit-update` skill was redundant; `docs-cockpit upgrade` CLI is the source of truth). This slash command remains as the explicit invocation surface.
+The upgrade trigger phrases are routed by the **`use-docs-cockpit` entry skill** which dispatches to CLI `docs-cockpit upgrade` (see `references/operations.md · upgrade`). This slash command remains as the explicit invocation surface.
 
 ## Primary path · 0.7.0+
 

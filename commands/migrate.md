@@ -7,8 +7,8 @@ Explicit invocation of `docs-cockpit migrate` — for projects that **don't alre
 ## When to use
 
 - User says: "迁移这个项目到 docs-cockpit / 帮我用 docs-cockpit 跑起来 / set up dashboard for this legacy project"
-- `docs-cockpit build` reports `[WARN] 0 items` because the project layout doesn't match defaults
-- The `docs-cockpit` skill's bootstrap workflow detects a non-canonical layout (e.g. `docs/plans/` + `docs/adrs/` instead of `docs/spec/module/`)
+- `docs-cockpit render` reports `[WARN] 0 items` because the project layout doesn't match defaults
+- The `docs-cockpit-build` skill's bootstrap workflow detects a non-canonical layout (e.g. `docs/plans/` + `docs/adrs/` instead of `docs/spec/module/`)
 
 ## What it does
 
@@ -34,7 +34,7 @@ Explicit invocation of `docs-cockpit migrate` — for projects that **don't alre
    - Whether `docs-cockpit.yaml` will be overwritten
 2. **Wait for explicit user confirmation.** Don't auto-apply. The migration physically moves files.
 3. **On confirmation, run with `--apply`** (or `--apply --keep-originals` if user prefers to keep originals).
-4. **After apply succeeds, run `docs-cockpit build`** automatically to verify the dashboard generates correctly.
+4. **After apply succeeds, run `docs-cockpit render`** automatically to verify the dashboard generates correctly.
 5. **Report:** counts of files moved + dashboard render status + any warnings.
 
 ## Flags
@@ -57,6 +57,6 @@ Explicit invocation of `docs-cockpit migrate` — for projects that **don't alre
 
 - User opens `docs/index.html` → sees dashboard with N modules (all `not-started`, `progress: 0` initially)
 - User edits MD frontmatter to update statuses, fills in `desc` / `subtasks` / `docs` per module
-- Re-runs `docs-cockpit build` to update dashboard
+- Re-runs `docs-cockpit render` to update dashboard
 
-This skill ends after a successful migration. Further work (frontmatter filling, design tweaks, kanban polish) handed off to the operational `docs-cockpit` skill.
+This command ends after a successful migration. Further work (frontmatter filling, design tweaks, kanban polish) handed off to the `docs-cockpit-build` skill.

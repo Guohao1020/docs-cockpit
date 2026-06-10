@@ -8,7 +8,7 @@ Explicit invocation of `docs-cockpit browse` — for when the user just wants to
 
 - User says: "我想浏览这个项目的所有文档 / give me an MD reader for this project / 把所有 md 汇总到一个 html 里"
 - User wants a sidebar-tree view of `docs/adrs/`, `docs/plans/`, etc.
-- The project's docs don't have frontmatter (so `docs-cockpit build` dashboard is empty) but user still wants something readable
+- The project's docs don't have frontmatter (so `docs-cockpit render` dashboard is empty) but user still wants something readable
 - User also wants their `~/.claude/plans/<project>/` notes accessible from the same HTML
 
 ## What it does
@@ -43,7 +43,7 @@ docs-cockpit browse --project "Bastion"
 
 ## Steps
 
-1. **Confirm the use case.** Browse mode is for READING. If user wants the project-progress dashboard (Kanban / KPI), redirect to `/docs-cockpit:build` instead.
+1. **Confirm the use case.** Browse mode is for READING. If user wants the project-progress dashboard (Kanban / KPI), redirect to `/docs-cockpit:render` instead.
 2. **Run dry first** (no `--dir`) to see what gets scanned by default:
    ```bash
    docs-cockpit browse --output /tmp/preview.html
@@ -58,6 +58,6 @@ docs-cockpit browse --project "Bastion"
 ## Don't do these
 
 - **Don't run on huge repos** (>1000 MD files) without `--dir` narrowing — payload bloats. The browse HTML embeds all MD content inline.
-- **Don't conflate with `/docs-cockpit:build`** — build is for the kanban dashboard with frontmatter cards; browse is for raw MD reading. They produce DIFFERENT HTML files at different paths.
-- **Don't auto-overwrite `docs/index.html`** — that's reserved for `docs-cockpit build` (the dashboard). Default browse output is `docs/browse.html`, intentionally different.
+- **Don't conflate with `/docs-cockpit:render`** — render is for the kanban dashboard with frontmatter cards; browse is for raw MD reading. They produce DIFFERENT HTML files at different paths.
+- **Don't auto-overwrite `docs/index.html`** — that's reserved for `docs-cockpit render` (the dashboard). Default browse output is `docs/browse.html`, intentionally different.
 - **Don't try to make this a live MD editor**. It's read-only. For editing, user opens MDs in their IDE / editor.
