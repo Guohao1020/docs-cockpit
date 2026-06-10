@@ -37,7 +37,7 @@ The two reference projects used for end-to-end smoke testing are `D:/harvey_work
 
 ### "Lint" in this project
 
-`docs-cockpit lint` is **frontmatter validation against the canonical schema in `docs-cockpit-author`** — NOT Python code linting. There is no ruff / mypy / black configured for this repo's own Python source. If you want code-level linting, add it and document it.
+`docs-cockpit lint` is **frontmatter validation against the canonical schema in `references/schema.md`** — NOT Python code linting. There is no ruff / mypy / black configured for this repo's own Python source. If you want code-level linting, add it and document it.
 
 ### Release / version bump
 
@@ -73,7 +73,7 @@ A change to `skills/*/SKILL.md` is by definition at least minor — those files 
 3. `_resolve_group_files()` walks `modules:` / `concepts:` config (supports `files:` / `scan:` / `glob:`)
 4. For each MD: `read_md()` → `split_frontmatter()` → `_build_card()`
    - `_build_card()` also calls `_resolve_and_embed_docs()` which reads each linked doc's MD content into the payload (so the drawer can render inline · added 0.7.1) and `extract_subtasks_from_body()` / `extract_docs_from_body()` for body-section fallback (added 0.4.0)
-5. `validate_meta()` emits structured `Issue` objects with `severity / field / message / suggestion / reference` (the reference points to a section of the `docs-cockpit-author` skill)
+5. `validate_meta()` emits structured `Issue` objects with `severity / field / message / suggestion / reference` (the reference points to a section of `references/schema.md`)
 6. `build_payload()` returns `(payload, issues)` · payload is the JSON structure embedded in HTML; issues are surfaced both to stdout (three-section formatted) and to `state.json::issues[]`
 7. `render_html()` does a single `template.replace("__DOCS_JSON__", json)` — the template (`docs_cockpit/templates/index.html.tmpl`) is otherwise static; all rendering is client-side JS
 8. Writes `docs/index.html` + `docs/state.json` side-by-side
@@ -94,9 +94,8 @@ The four skills in `skills/` form a deliberate division — each has a descripti
 | `docs-cockpit` | One cockpit · setup + maintain + upgrade docs-cockpit itself | `docs-cockpit.yaml` | `docs-cockpit.yaml` + HTML + runs CLI |
 | `docs-cockpit-standup` | One project · narrative status | `docs/state.json` | nothing |
 | `docs-cockpit-portfolio` | Multiple projects · weekly reports + diffs | `~/.docs-cockpit/projects.yaml` + each project's `state.json` + snapshots | `~/.docs-cockpit/snapshots/<name>/<date>.json` (via `portfolio snapshot` CLI) |
-| `docs-cockpit-author` | Authoring a single doc per the canonical schema | the existing repo (to figure out next RFC number etc) | a single new MD file at `docs/{plans,RFC,spec}/...` + an update to the source module's `docs:` linkage |
 
-`docs-cockpit-author/SKILL.md` is the **single source of truth** for the frontmatter schema, body section conventions, file naming, and cross-doc reference rules. The validator's `Issue.reference` field points at sections of this skill (e.g. `📚 see: docs-cockpit-author · §2.1`). **Do not duplicate the schema elsewhere** — every other skill, README section, and CLI message should reference the author skill for canonical definitions.
+`references/schema.md` is the **single source of truth** for the frontmatter schema, body section conventions, file naming, and cross-doc reference rules (it absorbed the former author skill in v1.0). The validator's `Issue.reference` field points at sections of this file (e.g. `📚 references/schema.md · frontmatter schema`). **Do not duplicate the schema elsewhere** — every skill, README section, and CLI message should reference it for canonical definitions.
 
 ### Skill design conventions (from skill-creator)
 
@@ -142,7 +141,7 @@ This repo follows the global `~/.claude/CLAUDE.md` language layering with one sp
 
 - **HTML template tokens**: `templates/index.html.tmpl` has exactly one placeholder, `__DOCS_JSON__`. Any JS string literal that happens to contain `__DOCS_JSON__` will be silently replaced on build. Avoid that string in template content other than as the intended placeholder.
 - **Frontmatter validator severity routing**: A `severity: error` means "the dashboard literally won't render this doc". Don't downgrade an error to warn without thinking about whether the build still produces something meaningful — error issues are read by CI scripts via `--strict` to fail builds.
-- **`docs-cockpit-author` schema changes**: any change to `§2 frontmatter schema` MUST be paired with a matching update to `build.py::validate_meta()`. The validator and the spec drift apart silently if you forget — users get warned about things the spec says are fine, or vice versa.
+- **`references/schema.md` schema changes**: any change to the frontmatter schema section MUST be paired with a matching update to `docs_cockpit/schema.py::validate_meta()`. The validator and the spec drift apart silently if you forget — users get warned about things the spec says are fine, or vice versa.
 - **State.json schema**: stable since 0.2.0 (only added fields, never removed). External tools depend on `modules[*]` having stable fields. The 0.9.0 `issues[]` addition is opt-in; `warnings[]` was retained for backward compat.
 - **`docs:` path resolution**: implemented in `_resolve_doc_path()` with three-step fallback (absolute → relative to source MD → relative to repo root). Don't simplify this — the three-step fallback exists specifically to fix a real bug from 0.7.0 (`docs/docs/foo.md` doubling).
 - **Plugin marketplace cache + ghost state**: changing a SKILL.md and pushing alone is not enough — users must run `docs-cockpit upgrade` (which clears the cache atomically). Don't tell users to just "restart Claude Code" — that doesn't clear the cache and produces ghost state.
@@ -156,15 +155,16 @@ This repo follows the global `~/.claude/CLAUDE.md` language layering with one sp
 | New build feature | `docs_cockpit/build.py::cmd_build` and `build_payload` |
 | New skill | `skills/<name>/SKILL.md` + update sibling skills' "Scope" sections to mention the new one |
 | New slash command | `commands/<name>.md` |
-| New frontmatter field | `docs_cockpit/build.py::_build_card()` + `validate_meta()` + `skills/docs-cockpit-author/SKILL.md::§2` |
+| New frontmatter field | `docs_cockpit/build.py::_build_card()` + `validate_meta()` + `references/schema.md` |
 | HTML / drawer / dashboard UI | `docs_cockpit/templates/index.html.tmpl` (~2000 lines · most of the work is CSS + the JS at the bottom) |
 | Tree-sidebar reader UI | `docs_cockpit/templates/browse.html.tmpl` |
 | Multi-project / portfolio | `docs_cockpit/portfolio.py` + `skills/docs-cockpit-portfolio/SKILL.md` |
-| Schema spec / authoring conventions | `skills/docs-cockpit-author/SKILL.md` (the canonical source · §1-§9) |
+| Schema spec / authoring conventions | `references/schema.md` (the canonical source) |
 
 ## References (in-repo)
 
 - `references/config_reference.md` — full `docs-cockpit.yaml` field reference
-- `references/frontmatter_conventions.md` — frontmatter governance (referenced by `docs-cockpit-author`)
+- `references/schema.md` — frontmatter & anchor field spec (the canonical SSOT)
+- `references/frontmatter_conventions.md` — frontmatter governance (supplements `references/schema.md`)
 - `references/design_tokens.md` — HTML template design system
 - `CHANGELOG.md` — every release entry has a "Why" section explaining the user-visible motivation; read it before changing related code

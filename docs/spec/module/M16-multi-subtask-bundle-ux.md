@@ -11,7 +11,7 @@ prd_ref: "v0.14 plan §5.2"
 docs:
   - { title: "v0.14 plan · §5.2",       path: "docs/plans/P-v0.14-batch-driver.md" }
   - { title: "M15 backlog view",        path: "docs/spec/module/M15-backlog-view-filters.md" }
-  - { title: "Author skill · §3.1",     path: "skills/docs-cockpit-author/SKILL.md" }
+  - { title: "subtask 格式(原 author §3.1)",     path: "references/schema.md" }
 depends_on: [M15]
 blocks: [M17]
 ---

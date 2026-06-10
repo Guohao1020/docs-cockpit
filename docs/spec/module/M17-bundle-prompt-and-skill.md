@@ -10,7 +10,7 @@ owner: harvey
 prd_ref: "v0.14 plan §5.3"
 docs:
   - { title: "v0.14 plan · §5.3",            path: "docs/plans/P-v0.14-batch-driver.md" }
-  - { title: "Author skill · §11 / §13",     path: "skills/docs-cockpit-author/SKILL.md" }
+  - { title: "关联方法论(原 author §11)",     path: "references/association-method.md" }
   - { title: "M16 multi-select UX",          path: "docs/spec/module/M16-multi-subtask-bundle-ux.md" }
   - { title: "M10 suggest module",           path: "docs/spec/module/M10-llm-doc-optimizer.md" }
 depends_on: [M15, M16]
@@ -37,7 +37,7 @@ blocks: []
 | `docs_cockpit/templates/suggest/bundle-recommendation.md.j2` · **NEW** | suggest template · LLM 检查 module bundle 候选 |
 | `docs_cockpit/cli.py` · `prompt` subcommand 加 `--bundle <ids>` | CLI 入口 |
 | `docs_cockpit/build.py::cmd_build` · 写 `docs/prompts-bundle.js` sidecar | build-time precompute |
-| `skills/docs-cockpit-author/SKILL.md` · §14 「Bundle heuristics」 | LLM 指南 |
+| 原 author SKILL §14 「Bundle heuristics」(v1.0 已随 bundle 删除) | LLM 指南 |
 | `tests/unit/test_bundle.py` · **NEW** | render_bundle_prompt + cohesion scoring 单测 |
 
 ## §3 · Bundle prompt 结构
@@ -111,5 +111,5 @@ blocks: []
 - [x] suggest 视角的 bundle 候选模板 · 让 LLM 自动挑哪些 subtask 适合一起打包 @code:docs_cockpit/templates/suggest/bundle-recommendation.md.j2
 - [x] CLI 加批量 prompt 入口 · 用户传一串 subtask id 就拿到聚合 prompt @code:docs_cockpit/cli.py @code:docs_cockpit/bundle.py:325-370
 - [x] build 阶段把 pairwise cohesion / conflict 预算成 sidecar · 给驾驶舱多选 UI 即时 verdict @code:docs_cockpit/build.py @code:docs_cockpit/bundle.py:298-322
-- [x] author skill 加 bundle 启发式章节 · 讲清 4 维 cohesion + 4 维 conflict + 推荐顺序 + 反例 @code:skills/docs-cockpit-author/SKILL.md
+- [x] author skill 加 bundle 启发式章节 · 讲清 4 维 cohesion + 4 维 conflict + 推荐顺序 + 反例(该章节随 v1.0 bundle 删除) @docs:docs/plans/P-v0.14-batch-driver.md
 - [x] 单元测试覆盖 bundle 引擎全部能力 · cohesion / conflict / 顺序 / 渲染 / sidecar @code:tests/unit/test_bundle.py

@@ -37,7 +37,7 @@ blocks: []
 ## 3 · 待办
 
 - [x] 起 MCP 服务端骨架 · 走 stdio 通道 · 选官方 SDK 做底层 @code:docs_cockpit/mcp_server.py:1-243 @code:pyproject.toml:60-66 @docs:docs/plans/P-v0.11-driver-seat.md:40 @docs:docs/plans/P-v0.11-driver-seat.md:81 @docs:docs/plans/P-v0.11-ai-augmented-precision-alpha7-2026-05-18.md:20-32
-- [x] 给 MCP 客户端一个直接拉 subtask prompt 的 tool · 复用现有渲染器 @code:docs_cockpit/mcp_server.py:152-218 @code:docs_cockpit/prompt.py:130-191 @docs:docs/plans/P-v0.11-driver-seat.md#§6.2 @docs:skills/docs-cockpit-author/SKILL.md:437-481
+- [x] 给 MCP 客户端一个直接拉 subtask prompt 的 tool · 复用现有渲染器 @code:docs_cockpit/mcp_server.py:152-218 @code:docs_cockpit/prompt.py:130-191 @docs:docs/plans/P-v0.11-driver-seat.md#§6.2
 - [x] 把整个项目状态作为 JSON 资源暴露给 MCP 客户端读 @code:docs_cockpit/mcp_server.py:289-309 @code:docs_cockpit/build.py:486-498 @docs:CLAUDE.md:146
 - [x] 让 MCP 客户端能把 LLM 输出的 YAML patch 直接回写 MD · 返回 diff 概要 @code:docs_cockpit/mcp_server.py:222-286 @code:docs_cockpit/apply_patch.py:248-273 @docs:docs/spec/module/M08-apply-patch.md @docs:docs/plans/P-v0.11-ai-augmented-precision-alpha7-2026-05-18.md:133-148
 - [x] 让用户从命令行一键启 MCP 服务 · 接通到主 CLI dispatcher @code:docs_cockpit/cli.py:200-215 @code:docs_cockpit/mcp_server.py:336-352 @docs:docs/spec/module/M07-mcp-server.md#§1
