@@ -158,3 +158,135 @@ class TestBundleBarControls:
 
     def test_bb_count_span_present(self, built_html):
         assert 'id="bb-count"' in built_html
+
+
+# ─── v1.1 · Health badge + panel(H-Task 4)─────────────────────────────
+# 模板是静态的(render_html 只换 __DOCS_JSON__)· 徽章/面板 DOM 由 JS 在
+# RAW.health 非空时动态创建(el.id 属性赋值 · 不走 innerHTML 字面量)。
+# 所以这层的断言锚点是:payload JSON(产物里唯一随 health 变化的部分)
+# + JS 机件字面量 + i18n key 注册 —— 而「老项目零变化」的硬约束
+# 翻译成静态断言就是:`id="health-badge"` 节点字面量永远不许出现在产物里。
+
+VALID_HEALTH_MD = """\
+---
+type: health-report
+date: 2026-06-10
+mode: quick
+grade: B+
+departments:
+  - id: dept-tests
+    name: 测试
+    verdict: pass
+    summary: 全绿
+  - id: dept-deps
+    name: 依赖
+    verdict: warn
+    summary: 1 个过期依赖
+    detail: requests 锁在 2.28 · 上游已 2.32
+prescriptions:
+  - id: RX-001
+    severity: high
+    bucket: now
+    title: 修复依赖锁
+    root_cause: lockfile 未跟随升级
+    fix: 重新生成 lockfile
+    anchors:
+      - "pyproject.toml:1-20"
+    module: M01
+accepted_debts:
+  - item: 老版本 yaml 解析器
+    reason: 升级成本高于收益
+    review: "2026-09-01"
+next_checkup: "本 sprint 收尾快检 · 30 天深检"
+---
+
+# 体检报告正文
+
+各科详情见上方 frontmatter。
+"""
+
+
+def _render_project_html(tmp_path: pathlib.Path, with_health: bool) -> str:
+    """tmp 项目(1 个 module · 可选 HEALTH.md)→ build_payload → render_html 产物."""
+    from docs_cockpit.build import TEMPLATE_PATH, build_payload, render_html
+
+    mod_dir = tmp_path / "modules"
+    mod_dir.mkdir(parents=True, exist_ok=True)
+    (mod_dir / "M01.md").write_text(
+        "---\nid: M01\ntitle: Module One\nstatus: in-progress\nprogress: 50\n"
+        "sprint: S1\ndesc: test module\n---\n\n# M01\n",
+        encoding="utf-8",
+    )
+    if with_health:
+        docs = tmp_path / "docs"
+        docs.mkdir(parents=True, exist_ok=True)
+        (docs / "HEALTH.md").write_text(VALID_HEALTH_MD, encoding="utf-8")
+    config = {
+        "project": {"name": "health-ui-test", "mark": "H"},
+        "modules": {"files": [{"title": "M01", "path": str(mod_dir / "M01.md")}]},
+    }
+    payload, _ = build_payload(config, {"repo": str(tmp_path)}, "2026-06-11 00:00")
+    return render_html(TEMPLATE_PATH.read_text(encoding="utf-8"), payload)
+
+
+@pytest.fixture()
+def health_html(tmp_path) -> str:
+    return _render_project_html(tmp_path, with_health=True)
+
+
+@pytest.fixture()
+def no_health_html(tmp_path) -> str:
+    return _render_project_html(tmp_path, with_health=False)
+
+
+class TestHealthPanelWithReport:
+    """有 HEALTH.md:payload 注入 health 数据 + 模板带齐徽章/面板机件 + i18n 注册。"""
+
+    def test_health_payload_embedded(self, health_html):
+        # render_html 用 separators=(",", ":") · JSON 无空格
+        assert '"health":{' in health_html
+        assert '"grade":"B+"' in health_html
+
+    def test_badge_and_drawer_machinery_present(self, health_html):
+        # JS 侧创建徽章 / 面板 drawer 的 hook 字面量(el.id 属性赋值 + openDrawer 调用)
+        assert "'health-badge'" in health_html
+        assert "'health-drawer'" in health_html
+
+    def test_rx_card_container_present(self, health_html):
+        # 处方卡容器 + 卡片 class + H-Task 5 Copy 按钮挂载位
+        assert 'id="hd-rx-list"' in health_html
+        assert "rx-card" in health_html
+        assert "rx-foot" in health_html
+
+    def test_i18n_keys_registered_in_both_locales(self, health_html):
+        # 每个 key 在 EN / 中 两本字典各注册一次 → 至少出现 2 次
+        for key in (
+            "health.badge_label",
+            "health.dept_title",
+            "health.rx_title",
+            "health.bucket_all",
+            "health.bucket_now",
+            "health.bucket_sprint",
+            "health.bucket_backlog",
+            "health.bucket_watch",
+            "health.bucket_accepted",
+            "health.debts_title",
+            "health.next_checkup",
+            "health.full_report",
+        ):
+            assert health_html.count("'" + key + "'") >= 2, key
+
+
+class TestHealthPanelBackwardCompat:
+    """无 HEALTH.md:health 显式 null + 静态产物永不含徽章 DOM 节点(老项目零变化)。"""
+
+    def test_health_null_in_payload(self, no_health_html):
+        assert '"health":null' in no_health_html
+
+    def test_no_static_badge_dom(self, no_health_html):
+        assert 'id="health-badge"' not in no_health_html
+
+    def test_badge_dom_never_static_even_with_health(self, health_html):
+        # 防回归:徽章必须保持 JS 动态创建 · 不许有人塞静态节点进模板
+        # (静态节点会让 health=null 的老项目长出死 DOM)
+        assert 'id="health-badge"' not in health_html

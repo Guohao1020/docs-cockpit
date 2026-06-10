@@ -880,6 +880,143 @@ body.split-mode #module-drawer .drawer-body {
   .kpi-cell:nth-child(-n+2) { border-top: none; }
 }
 
+/* ───── health badge + panel · 1.1 ──────────────── */
+/* 徽章 + 面板 DOM 全部由 JS 动态创建(RAW.health 为 null 时整组不渲染 ·
+   老项目看板零变化)· 这里只放样式。色板复用既有 status token:
+   A=绿(--s-done) B=蓝(--s-progress) C=橙(--s-deferred) D=红(--s-blocked) */
+.hb-grade {
+  min-width: 26px; height: 22px;
+  padding: 0 6px;
+  display: inline-grid; place-items: center;
+  border-radius: var(--r-pill);
+  font-family: var(--f-mono); font-size: 12px; font-weight: 700;
+  color: var(--c-on-ink);
+  background: var(--s-todo);   /* grade 缺失 / 不识别 → 灰 */
+}
+.hb-grade.hg-a { background: var(--s-done); }
+.hb-grade.hg-b { background: var(--s-progress); }
+.hb-grade.hg-c { background: var(--s-deferred); }
+.hb-grade.hg-d { background: var(--s-blocked); }
+.health-badge {
+  display: inline-flex; align-items: center; gap: 9px;
+  margin-left: 14px; margin-right: auto;   /* 紧贴 section title · .meta 仍靠右 */
+  align-self: center;
+  padding: 3px 11px 3px 4px;
+  background: var(--c-paper);
+  border: 1px solid var(--c-hairline);
+  border-radius: var(--r-pill);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+.health-badge:hover { border-color: var(--c-steel); background: var(--c-tint); }
+.health-badge .hb-label { font-size: 12px; font-weight: 600; color: var(--c-ink); }
+.health-badge .hb-sub { font-family: var(--f-mono); font-size: 10.5px; color: var(--c-graphite); }
+.hd-grade-chip { margin-left: 8px; vertical-align: 2px; }
+
+/* 面板 (a) · 九科 verdict 行 · pass 绿 / warn 橙 / fail 红 */
+.hd-dept-list { border: 1px solid var(--c-hairline); border-radius: var(--r-md); overflow: hidden; }
+.hd-dept + .hd-dept { border-top: 1px solid var(--c-hairline); }
+.hd-dept-row {
+  width: 100%; display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px;
+  background: var(--c-paper); border: none; text-align: left;
+  font-size: 13px; cursor: default;
+}
+.hd-dept.has-detail .hd-dept-row { cursor: pointer; }
+.hd-dept.has-detail .hd-dept-row:hover { background: var(--c-tint); }
+.hd-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; background: var(--s-todo); }
+.hd-dot.v-pass { background: var(--s-done); }
+.hd-dot.v-warn { background: var(--s-deferred); }
+.hd-dot.v-fail { background: var(--s-blocked); }
+.hd-dept-name { font-weight: 600; color: var(--c-ink); white-space: nowrap; }
+.hd-dept-summary { color: var(--c-graphite); flex: 1; min-width: 0; }
+.hd-chevron { width: 12px; height: 12px; color: var(--c-steel); transition: transform 0.15s; flex-shrink: 0; }
+.hd-dept.expanded .hd-chevron { transform: rotate(90deg); }
+.hd-dept-detail {
+  padding: 8px 12px 12px 30px;
+  font-size: 12.5px; color: var(--c-charcoal); line-height: 1.6;
+  background: var(--c-tint);
+  border-top: 1px dashed var(--c-hairline);
+  white-space: pre-wrap;
+}
+
+/* 面板 (b) · bucket tabs + 处方卡(severity 左色条) */
+.hd-tabs { display: flex; gap: 4px; flex-wrap: wrap; border-bottom: 1px solid var(--c-hairline); margin-bottom: 12px; }
+.hd-tabs button {
+  background: transparent; border: none;
+  border-bottom: 2px solid transparent; margin-bottom: -1px;
+  font-size: 12px; font-weight: 500; color: var(--c-graphite);
+  padding: 7px 10px 8px; cursor: pointer;
+}
+.hd-tabs button:hover { color: var(--c-ink); background: var(--c-cloud); }
+.hd-tabs button.active { color: var(--c-ink); font-weight: 600; border-bottom-color: var(--c-primary); }
+.hd-tabs button .hd-tab-n { font-family: var(--f-mono); font-size: 10px; color: var(--c-steel); margin-left: 4px; }
+.hd-rx-list { display: flex; flex-direction: column; gap: 10px; }
+.rx-card {
+  border: 1px solid var(--c-hairline);
+  border-left: 3px solid var(--c-steel);
+  border-radius: var(--r-md);
+  padding: 12px 14px;
+  background: var(--c-paper);
+}
+.rx-card.sev-high   { border-left-color: var(--s-blocked); }
+.rx-card.sev-medium { border-left-color: var(--s-deferred); }
+.rx-card.sev-low    { border-left-color: var(--c-steel); }
+.rx-card .rx-head {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  font-family: var(--f-mono); font-size: 10.5px; color: var(--c-graphite);
+  margin-bottom: 6px;
+}
+.rx-card .rx-sev { text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600; }
+.rx-card.sev-high .rx-sev { color: var(--s-blocked); }
+.rx-card.sev-medium .rx-sev { color: var(--s-deferred); }
+.rx-card .rx-bucket { background: var(--c-cloud); border-radius: var(--r-pill); padding: 1px 7px; font-size: 10px; }
+.rx-card .rx-module-link {
+  margin-left: auto;
+  background: transparent; border: 1px solid var(--c-hairline); border-radius: var(--r-pill);
+  font-family: var(--f-mono); font-size: 10.5px; color: var(--c-primary);
+  padding: 2px 8px; cursor: pointer;
+}
+.rx-card .rx-module-link:hover { border-color: var(--c-primary); background: var(--c-primary-soft); }
+.rx-card .rx-module-link.is-ghost { color: var(--c-graphite); cursor: default; }
+.rx-card .rx-title { font-size: 13.5px; font-weight: 600; color: var(--c-ink); margin-bottom: 6px; }
+.rx-card .rx-field { font-size: 12.5px; color: var(--c-charcoal); line-height: 1.55; margin: 3px 0; }
+.rx-card .rx-field .rx-k {
+  font-family: var(--f-mono); font-size: 10px; text-transform: uppercase;
+  letter-spacing: 0.06em; color: var(--c-graphite); margin-right: 6px;
+}
+.rx-card .rx-anchors { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 7px; }
+.rx-card .rx-anchors code {
+  font-family: var(--f-mono); font-size: 10.5px;
+  background: var(--c-cloud); border-radius: 3px; padding: 1px 6px;
+  color: var(--c-charcoal);
+}
+/* H-Task 5 · Copy-prompt CTA 挂载位 · 本版留空 · 空时折叠不占高 */
+.rx-card .rx-foot { margin-top: 8px; display: flex; justify-content: flex-end; gap: 6px; }
+.rx-card .rx-foot:empty { display: none; margin: 0; }
+.hd-empty { font-size: 12.5px; color: var(--c-graphite); font-style: italic; padding: 8px 0; }
+
+/* 面板 (c)(d) · 行动区 + 折叠块(accepted debts 表 / 完整报告) */
+.hd-next {
+  font-size: 13px; color: var(--c-charcoal); line-height: 1.6;
+  padding: 10px 12px;
+  background: var(--c-tint); border: 1px solid var(--c-hairline); border-radius: var(--r-md);
+}
+.hd-fold { border: 1px solid var(--c-hairline); border-radius: var(--r-md); margin-top: 10px; }
+.hd-fold > summary {
+  cursor: pointer; padding: 9px 12px;
+  font-size: 12px; font-weight: 600; color: var(--c-charcoal);
+  list-style: none; display: flex; align-items: center; gap: 8px;
+}
+.hd-fold > summary::-webkit-details-marker { display: none; }
+.hd-fold > summary::before { content: "▸"; color: var(--c-steel); font-size: 10px; }
+.hd-fold[open] > summary::before { content: "▾"; }
+.hd-fold > summary .right { margin-left: auto; font-family: var(--f-mono); font-size: 10px; color: var(--c-graphite); font-weight: 500; }
+.hd-fold .hd-fold-body { padding: 0 12px 12px; }
+.hd-debt-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.hd-debt-table th, .hd-debt-table td { border: 1px solid var(--c-hairline); padding: 6px 8px; text-align: left; vertical-align: top; }
+.hd-debt-table th { background: var(--c-cloud); font-weight: 600; color: var(--c-charcoal); }
+
 /* ───── kanban ──────────────────────────────────── */
 .kanban {
   display: grid;
@@ -2266,6 +2403,33 @@ body.split-mode #module-drawer .drawer-body {
       'backlog.quick.notstarted_title': 'Add all not-started visible rows to selection',
       'backlog.quick.inprogress': '+ in-progress',
       'backlog.quick.clearvisible': '× clear visible',
+      // 1.1 health check badge + panel
+      'health.badge_label': 'Health',
+      'health.badge_title': 'Open health report',
+      'health.mode_quick': 'Quick',
+      'health.mode_deep': 'Deep',
+      'health.eyebrow': 'PROJECT HEALTH CHECK',
+      'health.title': 'Health Report',
+      'health.dept_title': 'Departments',
+      'health.dept_empty': 'No department data',
+      'health.rx_title': 'Prescriptions',
+      'health.rx_empty': 'No prescriptions in this bucket',
+      'health.rx_root_cause': 'Root cause',
+      'health.rx_fix': 'Fix',
+      'health.rx_anchors': 'Anchors',
+      'health.rx_module_title': 'Open module {id}',
+      'health.bucket_all': 'All',
+      'health.bucket_now': 'Now',
+      'health.bucket_sprint': 'Sprint',
+      'health.bucket_backlog': 'Backlog',
+      'health.bucket_watch': 'Watch',
+      'health.bucket_accepted': 'Accepted',
+      'health.next_checkup': 'Next checkup',
+      'health.debts_title': 'Accepted debts',
+      'health.debt_item': 'Item',
+      'health.debt_reason': 'Reason',
+      'health.debt_review': 'Review',
+      'health.full_report': 'Full report',
       'hero.eyebrow': 'PROJECT DASHBOARD · MODULE PROGRESS',
       'hero.title': 'Project progress overview',
       'hero.tagline': 'Module status · sprint progress · core concepts · one-stop visualization with fine-grained progress control.',
@@ -2572,6 +2736,33 @@ body.split-mode #module-drawer .drawer-body {
       'backlog.quick.notstarted_title': '把当前筛选的未启动行加进选区',
       'backlog.quick.inprogress': '+ 进行中',
       'backlog.quick.clearvisible': '× 清当前',
+      // 1.1 health check badge + panel
+      'health.badge_label': '健康',
+      'health.badge_title': '打开体检报告',
+      'health.mode_quick': '快检',
+      'health.mode_deep': '深检',
+      'health.eyebrow': '项目体检 · HEALTH CHECK',
+      'health.title': '体检报告',
+      'health.dept_title': '各科检查',
+      'health.dept_empty': '无各科数据',
+      'health.rx_title': '处方',
+      'health.rx_empty': '该桶下没有处方',
+      'health.rx_root_cause': '病因',
+      'health.rx_fix': '处置',
+      'health.rx_anchors': '锚点',
+      'health.rx_module_title': '打开 module {id}',
+      'health.bucket_all': '全部',
+      'health.bucket_now': '立刻',
+      'health.bucket_sprint': '本 sprint',
+      'health.bucket_backlog': '排期池',
+      'health.bucket_watch': '观察',
+      'health.bucket_accepted': '已接受',
+      'health.next_checkup': '下次体检',
+      'health.debts_title': '已接受的债',
+      'health.debt_item': '事项',
+      'health.debt_reason': '理由',
+      'health.debt_review': '复查时间',
+      'health.full_report': '完整报告',
       'topbar.sysdocs_title': '系统文档 (D)',
       'hero.eyebrow': '通用项目看板 · 模块进度',
       'hero.title': '项目进度概览',
@@ -3028,6 +3219,258 @@ body.split-mode #module-drawer .drawer-body {
       'not-started': 'var(--s-todo)',
       'deferred': 'var(--s-deferred)'
     }[s] || 'var(--c-ink)';
+  }
+
+  // ── 1.1 · Health badge + panel ───────────────────────
+  // 数据契约(H-Task 3 · state.json 顶层 key):无 docs/HEALTH.md → RAW.health === null。
+  // 向后兼容硬约束:health 为 null/undefined 时下面整组 DOM 完全不创建 · 老项目零变化。
+  // 注意:徽章 / drawer 的 id 用 property 赋值(el.id = '…')而非 innerHTML 字面量 ·
+  // 让静态 HTML 产物里永远不出现徽章的 `id="…"` 节点字面量 —— 集成测试以此断言
+  // 「无体检报告 → 无健康 DOM」(模板是静态的 · 只有 JS 运行时才知道 health 是否存在)。
+  let _healthBucket = 'all';
+  const HEALTH_BUCKETS = ['now', 'sprint', 'backlog', 'watch', 'accepted'];
+
+  function _gradeClass(grade) {
+    const g = String(grade == null ? '' : grade).trim().charAt(0).toUpperCase();
+    return { A: 'hg-a', B: 'hg-b', C: 'hg-c', D: 'hg-d' }[g] || '';
+  }
+  function _healthModeLabel(mode) {
+    if (mode === 'quick') return t('health.mode_quick');
+    if (mode === 'deep') return t('health.mode_deep');
+    return mode ? String(mode) : '';   // 不识别的 mode 原样展示 · 缺失给空
+  }
+  function _healthBucketLabel(bucket) {
+    if (!bucket) return '';
+    return HEALTH_BUCKETS.indexOf(bucket) >= 0
+      ? t('health.bucket_' + bucket)
+      : String(bucket);   // 不识别的 bucket 原样展示 · 不让 t() 漏 key 字符串
+  }
+
+  function renderHealth() {
+    // 重渲染(语言切换走 renderAll)时先清旧 DOM · 保留 drawer 打开状态
+    const oldBadge = document.getElementById('health-badge');
+    if (oldBadge) oldBadge.remove();
+    const oldDrawer = document.getElementById('health-drawer');
+    const wasOpen = !!(oldDrawer && oldDrawer.classList.contains('open'));
+    if (oldDrawer) oldDrawer.remove();
+
+    const h = RAW.health;
+    if (!h || typeof h !== 'object') return;   // null / undefined → 整组不渲染
+
+    // ── 徽章 · KPI section head(紧贴 title · CSS margin-right:auto 把 meta 推回右侧)──
+    const head = document.querySelector('#kpi-section .section-head');
+    if (!head) return;
+    const modeLabel = _healthModeLabel(h.mode);
+    const dateStr = (h.date == null) ? '' : String(h.date).trim();   // 判空兼 null 和 ""
+    const subParts = [];
+    if (modeLabel) subParts.push(modeLabel);
+    if (dateStr) subParts.push(dateStr);
+
+    const badge = document.createElement('button');
+    badge.type = 'button';
+    badge.id = 'health-badge';
+    badge.className = 'health-badge';
+    badge.title = t('health.badge_title');
+    badge.innerHTML =
+      '<span class="hb-grade ' + _gradeClass(h.grade) + '">' + escapeHtml(h.grade || '—') + '</span>' +
+      '<span class="hb-label">' + escapeHtml(t('health.badge_label')) + '</span>' +
+      (subParts.length ? '<span class="hb-sub">' + escapeHtml(subParts.join(' · ')) + '</span>' : '');
+    head.insertBefore(badge, head.querySelector('.meta'));
+    badge.addEventListener('click', () => openDrawer('health-drawer'));
+
+    // ── 面板 drawer · 复用既有 .drawer 机制(openDrawer / closeDrawer / scrim / Esc 全兼容)──
+    const drawer = document.createElement('aside');
+    drawer.id = 'health-drawer';
+    drawer.className = 'drawer';
+    drawer.setAttribute('role', 'dialog');
+    drawer.setAttribute('aria-modal', 'true');
+
+    const eyebrow = t('health.eyebrow') + (subParts.length ? ' · ' + subParts.join(' · ') : '');
+    drawer.innerHTML =
+      '<div class="drawer-head">' +
+        '<div>' +
+          '<div class="h-meta">' + escapeHtml(eyebrow) + '</div>' +
+          '<h2>' + escapeHtml(t('health.title')) +
+            (h.grade ? ' <span class="hb-grade hd-grade-chip ' + _gradeClass(h.grade) + '">' + escapeHtml(h.grade) + '</span>' : '') +
+          '</h2>' +
+        '</div>' +
+        '<button class="h-close" id="hd-close" type="button" aria-label="' + escapeHtml(t('drawer.close')) + '">' +
+          '<svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M2 2l10 10M12 2L2 12"/></svg>' +
+        '</button>' +
+      '</div>' +
+      '<div class="drawer-body" id="hd-body"></div>';
+
+    const body = drawer.querySelector('#hd-body');
+    let html = '';
+
+    // (a) 九科行 · verdict 三色点 + summary · 有 detail 的可展开
+    const depts = Array.isArray(h.departments) ? h.departments : [];
+    html += '<div class="d-section"><div class="d-label"><span>' + escapeHtml(t('health.dept_title')) + '</span>' +
+            (depts.length ? '<span class="right">' + depts.length + '</span>' : '') + '</div>';
+    if (!depts.length) {
+      html += '<div class="hd-empty">' + escapeHtml(t('health.dept_empty')) + '</div>';
+    } else {
+      html += '<div class="hd-dept-list">' + depts.map(d => {
+        if (!d || typeof d !== 'object') return '';
+        const v = (typeof d.verdict === 'string') ? d.verdict.toLowerCase() : '';
+        const vCls = (v === 'pass' || v === 'warn' || v === 'fail') ? 'v-' + v : '';
+        const hasDetail = !!d.detail;
+        return '<div class="hd-dept' + (hasDetail ? ' has-detail' : '') + '">' +
+          '<button type="button" class="hd-dept-row"' + (hasDetail ? '' : ' tabindex="-1"') + '>' +
+            '<span class="hd-dot ' + vCls + '"></span>' +
+            '<span class="hd-dept-name">' + escapeHtml(d.name || d.id || '—') + '</span>' +
+            '<span class="hd-dept-summary">' + escapeHtml(d.summary || '') + '</span>' +
+            (hasDetail ? '<svg class="hd-chevron" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 2.5L8 6l-4 3.5"/></svg>' : '') +
+          '</button>' +
+          (hasDetail ? '<div class="hd-dept-detail" hidden>' + escapeHtml(d.detail) + '</div>' : '') +
+        '</div>';
+      }).join('') + '</div>';
+    }
+    html += '</div>';
+
+    // (b) 处方卡 · bucket tab 过滤(全部/now/sprint/backlog/watch/accepted)
+    const rxAll = Array.isArray(h.prescriptions) ? h.prescriptions : [];
+    html += '<div class="d-section"><div class="d-label"><span>' + escapeHtml(t('health.rx_title')) + '</span>' +
+            (rxAll.length ? '<span class="right">' + rxAll.length + '</span>' : '') + '</div>';
+    if (rxAll.length) {
+      html += '<div class="hd-tabs" role="tablist">' + ['all'].concat(HEALTH_BUCKETS).map(b => {
+        const n = (b === 'all') ? rxAll.length : rxAll.filter(r => r && r.bucket === b).length;
+        return '<button type="button" data-bucket="' + b + '" role="tab">' +
+          escapeHtml(t('health.bucket_' + b)) + '<span class="hd-tab-n">' + n + '</span></button>';
+      }).join('') + '</div>';
+    }
+    html += '<div class="hd-rx-list" id="hd-rx-list"></div></div>';
+
+    // (c) 行动区 · next_checkup 文本 + accepted_debts 折叠表
+    const nextCheckup = (h.next_checkup == null) ? '' : String(h.next_checkup).trim();
+    const debts = Array.isArray(h.accepted_debts) ? h.accepted_debts : [];
+    if (nextCheckup || debts.length) {
+      html += '<div class="d-section"><div class="d-label"><span>' + escapeHtml(t('health.next_checkup')) + '</span></div>';
+      if (nextCheckup) html += '<div class="hd-next">' + escapeHtml(nextCheckup) + '</div>';
+      if (debts.length) {
+        html += '<details class="hd-fold"><summary>' + escapeHtml(t('health.debts_title')) +
+                '<span class="right">' + debts.length + '</span></summary>' +
+                '<div class="hd-fold-body"><table class="hd-debt-table"><thead><tr>' +
+                  '<th>' + escapeHtml(t('health.debt_item')) + '</th>' +
+                  '<th>' + escapeHtml(t('health.debt_reason')) + '</th>' +
+                  '<th>' + escapeHtml(t('health.debt_review')) + '</th>' +
+                '</tr></thead><tbody>' +
+                debts.map(d => (d && typeof d === 'object')
+                  ? '<tr><td>' + escapeHtml(d.item || '—') + '</td><td>' + escapeHtml(d.reason || '') + '</td><td>' + escapeHtml(d.review || '') + '</td></tr>'
+                  : '').join('') +
+                '</tbody></table></div></details>';
+      }
+      html += '</div>';
+    }
+
+    // (d) 完整报告折叠区 · body 走跟 linked-docs 同款 marked 管线(无 marked → <pre>)
+    const bodyMd = (typeof h.body === 'string') ? h.body.trim() : '';
+    if (bodyMd) {
+      html += '<div class="d-section"><details class="hd-fold" id="hd-report">' +
+              '<summary>' + escapeHtml(t('health.full_report')) + '</summary>' +
+              '<div class="hd-fold-body doc-preview-body" id="hd-report-body"></div>' +
+              '</details></div>';
+    }
+
+    body.innerHTML = html;
+
+    // 绑:关闭 / 九科 detail 展开 / bucket tabs / 完整报告 lazy 渲染
+    drawer.querySelector('#hd-close').addEventListener('click', closeDrawer);
+    body.querySelectorAll('.hd-dept.has-detail .hd-dept-row').forEach(row => {
+      row.addEventListener('click', () => {
+        const wrap = row.parentElement;
+        const detail = wrap.querySelector('.hd-dept-detail');
+        if (!detail) return;
+        const show = detail.hasAttribute('hidden');
+        if (show) detail.removeAttribute('hidden'); else detail.setAttribute('hidden', '');
+        wrap.classList.toggle('expanded', show);
+      });
+    });
+    body.querySelectorAll('.hd-tabs button').forEach(btn => {
+      btn.addEventListener('click', () => {
+        _healthBucket = btn.dataset.bucket || 'all';
+        _renderHealthRx(body, rxAll);
+      });
+    });
+    const report = body.querySelector('#hd-report');
+    if (report) {
+      let renderedOnce = false;   // 首次展开才跑 marked · 大报告不拖累首屏
+      report.addEventListener('toggle', () => {
+        if (!report.open || renderedOnce) return;
+        renderedOnce = true;
+        const target = report.querySelector('#hd-report-body');
+        let rendered;
+        try {
+          rendered = (typeof marked !== 'undefined' && marked.parse)
+            ? marked.parse(bodyMd)
+            : '<pre>' + escapeHtml(bodyMd) + '</pre>';
+        } catch (e) {
+          rendered = '<pre>' + escapeHtml(bodyMd) + '</pre>';
+        }
+        target.innerHTML = rendered;
+        if (typeof hljs !== 'undefined' && hljs.highlightElement) {
+          target.querySelectorAll('pre code').forEach(b => {
+            try { hljs.highlightElement(b); } catch (e) {}
+          });
+        }
+      });
+    }
+
+    _renderHealthRx(body, rxAll);
+    document.body.appendChild(drawer);
+    if (wasOpen) openDrawer('health-drawer');   // 语言切换重渲染时保持打开
+  }
+
+  // 处方卡列表 · 按 _healthBucket 过滤渲染(tab 切换只重绘这一段)
+  function _renderHealthRx(scope, rxAll) {
+    const list = scope.querySelector('#hd-rx-list');
+    if (!list) return;
+    scope.querySelectorAll('.hd-tabs button').forEach(b => {
+      const on = (b.dataset.bucket === _healthBucket);
+      b.classList.toggle('active', on);
+      b.setAttribute('aria-selected', on ? 'true' : 'false');
+    });
+    const items = (_healthBucket === 'all')
+      ? rxAll
+      : rxAll.filter(r => r && r.bucket === _healthBucket);
+    if (!items.length) {
+      list.innerHTML = '<div class="hd-empty">' + escapeHtml(t('health.rx_empty')) + '</div>';
+      return;
+    }
+    list.innerHTML = items.map(r => {
+      if (!r || typeof r !== 'object') return '';
+      const sev = (typeof r.severity === 'string') ? r.severity.toLowerCase() : '';
+      const sevCls = (sev === 'high' || sev === 'medium' || sev === 'low') ? ' sev-' + sev : '';
+      const anchors = Array.isArray(r.anchors) ? r.anchors : [];
+      const modId = (typeof r.module === 'string' && r.module) ? r.module : null;
+      const known = !!(modId && (RAW.modules || []).some(m => m.id === modId));
+      return '<div class="rx-card' + sevCls + '">' +
+        '<div class="rx-head">' +
+          (r.id ? '<span class="rx-id">' + escapeHtml(r.id) + '</span>' : '') +
+          (sev ? '<span class="rx-sev">' + escapeHtml(sev) + '</span>' : '') +
+          (r.bucket ? '<span class="rx-bucket">' + escapeHtml(_healthBucketLabel(r.bucket)) + '</span>' : '') +
+          // module 反链:已知 module → 可点 button(关本 drawer 开 module)· 未知 → 灰文本
+          (modId
+            ? (known
+                ? '<button type="button" class="rx-module-link" data-module-id="' + escapeHtml(modId) + '" title="' + escapeHtml(t('health.rx_module_title', { id: modId })) + '">' + escapeHtml(modId) + ' →</button>'
+                : '<span class="rx-module-link is-ghost">' + escapeHtml(modId) + '</span>')
+            : '') +
+        '</div>' +
+        '<div class="rx-title">' + escapeHtml(r.title || r.id || '—') + '</div>' +
+        (r.root_cause ? '<div class="rx-field"><span class="rx-k">' + escapeHtml(t('health.rx_root_cause')) + '</span>' + escapeHtml(r.root_cause) + '</div>' : '') +
+        (r.fix ? '<div class="rx-field"><span class="rx-k">' + escapeHtml(t('health.rx_fix')) + '</span>' + escapeHtml(r.fix) + '</div>' : '') +
+        (anchors.length ? '<div class="rx-anchors">' + anchors.map(a => '<code>' + escapeHtml(a) + '</code>').join('') + '</div>' : '') +
+        '<div class="rx-foot"></div>' +   // H-Task 5 · Copy-prompt CTA 挂载位 · 本版留空
+      '</div>';
+    }).join('');
+    // module 反链:关本 drawer → 复用既有 module 打开入口(navigateTo · modal / split 双兼容)
+    list.querySelectorAll('.rx-module-link[data-module-id]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const id = btn.dataset.moduleId;
+        try { closeDrawer(); } catch (e) {}
+        navigateTo('module', id);
+      });
+    });
   }
 
   // ── Module Drawer ────────────────────────────────────
@@ -3656,6 +4099,7 @@ body.split-mode #module-drawer .drawer-body {
     renderKanban();
     renderSprints();
     renderConcepts();
+    renderHealth();   // 1.1 · health badge + panel(RAW.health 为 null 时零 DOM)
   }
 
   // ── 0.11.0-alpha.6 §4.b · hash router ─────────────────────
