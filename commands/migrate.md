@@ -49,7 +49,7 @@ Explicit invocation of `docs-cockpit migrate` — for projects that **don't alre
 ## Don't do these
 
 - **Never run `--apply` without showing the dry-run first.** Migration physically moves user files — they must see the plan.
-- **Don't migrate twice.** If the project already has `docs/spec/module/*.md` with frontmatter, the migration becomes a no-op (`dst.exists()` → skip). Tell the user "already migrated, run `docs-cockpit:build` directly".
+- **Don't migrate twice.** If the project already has `docs/spec/module/*.md` with frontmatter, the migration becomes a no-op (`dst.exists()` → skip). Tell the user "already migrated, run `docs-cockpit:render` directly".
 - **Don't run on dirty git repos** without warning. If `git status` shows uncommitted work, ask user to commit first — migration touches many files.
 - **Don't migrate INTO the docs-cockpit repo itself.** It's not the right shape (no `docs/plans/` etc.). Use `init` instead.
 
