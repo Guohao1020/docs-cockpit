@@ -25,8 +25,6 @@ Both skills share the same four atomic methods in `references/association-method
 
 If no association exists at all (no `docs:` / `subtasks` anchors anywhere), stop and hand off to `docs-cockpit-build` — diagnosing an empty system is not a rebuild.
 
-**Known transitional state (Stage A):** the legacy `docs-cockpit-standup` skill still exists and also triggers on status-narrative questions. That overlap with this skill's Phase 1 is **by design** during the v1.0 transition — standup is scheduled for deletion in Stage B, after which Phase 1 here is the only status-reading path. Don't try to "fix" the overlap by editing the old skill.
-
 ## How this skill is layered
 
 This skill is the **orchestration layer** — it tells you which phase to run when. The details live in references (do not restate them; read them when the phase needs them):
