@@ -23,7 +23,7 @@ One sentence drove the pivot: **cognition lives in skills, Python only renders.*
 | 4 auto-trigger skills with overlapping scopes | **1 entry router + 2 flow skills** — the router is auto-injected at session start |
 | Cognition-side CLI subcommands (prompt rendering, LLM suggestions, patch merging, …) | Removed — their judgment moved into the skill workflows |
 | MCP server as the agent interface | Removed — **the skill is the agent interface** |
-| `docs-cockpit build` | `docs-cockpit render` (the old name remains a deprecated alias until 1.1) |
+| `docs-cockpit build` | `docs-cockpit render` (the old name was kept as a deprecated alias through 1.0 and removed in 1.1) |
 
 Full rationale: [`docs/plans/P-skill-first-pivot.md`](docs/plans/P-skill-first-pivot.md) · full timeline: [CHANGELOG.md](CHANGELOG.md).
 
@@ -80,7 +80,6 @@ And these CLI subcommands (run from terminal):
 
 ```
 docs-cockpit render        # → docs/index.html (+ state.json, prompts.js)
-docs-cockpit build         # [deprecated] alias of render · removed in 1.1
 docs-cockpit lint          # frontmatter + body validation, no render · CI / pre-commit
 docs-cockpit init          # scaffold a minimal docs-cockpit.yaml
 docs-cockpit migrate       # scattered legacy MDs → canonical layout · dry-run first

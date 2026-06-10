@@ -4,7 +4,7 @@ description: Run docs-cockpit render — regenerates docs/index.html + docs/stat
 
 Explicit invocation of the docs-cockpit render pipeline. Use this when the user wants to force a render immediately without going through natural-language workflow detection.
 
-> **Note:** `docs-cockpit build` still works as a deprecated alias (removed in 1.1).
+> **Note:** `docs-cockpit build` (the pre-1.0 name) was removed in 1.1 — use `render`.
 
 ## Steps
 

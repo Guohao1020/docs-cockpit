@@ -141,5 +141,5 @@ Proposal presentation format (example):
 
 - **Goal** — a regenerated dashboard proving the association system is clean: 0 warnings.
 - **Actions** — run `docs-cockpit render` and read the issue output. Any `❌`/`⚠️` traced to this build's edits → fix (loop back to the relevant phase for that item) and re-render. Pre-existing unrelated warnings: surface to the user, don't block on them.
-- **Reference** — CLI. *(`docs-cockpit build` still works as a deprecated alias until 1.1)*
+- **Reference** — CLI.
 - **Output** — fresh `docs/index.html` + `docs/state.json`, 0 warnings from this build's changes.

@@ -23,7 +23,7 @@
 | 4 个职责交叠的自动触发 skill | **1 个入口路由 + 2 个流程 skill** —— 路由在会话启动时自动注入 |
 | 认知侧 CLI 子命令(prompt 渲染、LLM 建议、patch 合并等) | 已删除 —— 它们的判断职责搬进了 skill 工作流 |
 | MCP server 作为 agent 接口 | 已删除 —— **skill 本身就是 agent 接口** |
-| `docs-cockpit build` | `docs-cockpit render`(旧名保留为废弃别名至 1.1) |
+| `docs-cockpit build` | `docs-cockpit render`(旧名在 1.0 保留为废弃别名 · 1.1 已移除) |
 
 完整动机见 [`docs/plans/P-skill-first-pivot.md`](docs/plans/P-skill-first-pivot.md) · 完整时间线见 [CHANGELOG.md](CHANGELOG.md)。
 
@@ -80,7 +80,6 @@
 
 ```
 docs-cockpit render        # → docs/index.html (+ state.json, prompts.js)
-docs-cockpit build         # [已废弃] render 的别名 · 1.1 移除
 docs-cockpit lint          # frontmatter + body 校验 · 不渲染 · CI / pre-commit 用
 docs-cockpit init          # 生成最小可用 docs-cockpit.yaml
 docs-cockpit migrate       # 散落的老 MD → canonical 布局 · 默认 dry-run

@@ -25,7 +25,7 @@ docs-cockpit render -c docs-cockpit.yaml --debug          # render dashboard + v
 docs-cockpit lint                                         # validate frontmatter (no render)
 ```
 
-`render` was named `build` in v0.x — `docs-cockpit build` still works as a deprecated alias (prints a warning, removal scheduled for 1.1). New docs and skills must say `render`.
+`render` was named `build` in v0.x — the `build` alias was deprecated in 1.0 and removed in 1.1. All docs and skills say `render`.
 
 ### Tests
 
@@ -65,7 +65,7 @@ This project deviates from strict SemVer to encode the user-visible blast radius
 Two 1.0-era rules:
 
 - A SKILL.md frontmatter `description` is **machine routing** — Claude matches user requests against it. Any change to a description is at least minor, and users must run `docs-cockpit upgrade` (stale cached descriptions cause hard-to-debug routing bugs).
-- The deprecated `build` alias is removed in 1.1 — don't add new call sites.
+- The deprecated `build` alias was removed in 1.1 — don't reintroduce call sites.
 
 ## Architecture · the big picture
 
@@ -94,7 +94,7 @@ The SessionStart hook (`hooks/session-start`, wired by `hooks/hooks.json`) injec
 
 ### Render pipeline (CLI)
 
-The dispatcher is `main()` in `docs_cockpit/cli.py` (`build.py` re-exports it so the `build:main` entry point keeps working). Subcommands: `render` (+ deprecated `build` alias) / `lint` / `init` / `migrate` / `browse` / `sync-status` / `upgrade`. New subcommands are added by writing a `cmd_<name>(args)` function in a new module + wiring an inline `sub.add_parser(...)` block with `set_defaults(func=cmd_<name>)` in `cli.py::main()` — there is no `add_<name>_parser()` convention in this codebase. The v0.x cognition-side subcommands (`prompt` / `suggest` / `verify` / `sprint` / `migrate-subtasks` / `apply-patch` / `apply-body-patch` / `mcp-serve` + the MCP server) are gone — their judgment moved into the skills.
+The dispatcher is `main()` in `docs_cockpit/cli.py` (`build.py` re-exports it so the `build:main` entry point keeps working). Subcommands: `render` / `lint` / `init` / `migrate` / `browse` / `sync-status` / `upgrade` (the deprecated `build` alias was removed in 1.1). New subcommands are added by writing a `cmd_<name>(args)` function in a new module + wiring an inline `sub.add_parser(...)` block with `set_defaults(func=cmd_<name>)` in `cli.py::main()` — there is no `add_<name>_parser()` convention in this codebase. The v0.x cognition-side subcommands (`prompt` / `suggest` / `verify` / `sprint` / `migrate-subtasks` / `apply-patch` / `apply-body-patch` / `mcp-serve` + the MCP server) are gone — their judgment moved into the skills.
 
 `docs-cockpit render` end-to-end:
 

@@ -4,7 +4,7 @@ v1.0 起 CLI 只保留机械渲染核 · 认知子命令(prompt / suggest / veri
 sprint / apply-patch / apply-body-patch / migrate-subtasks / mcp-serve)
 已删除 · 认知职责由 plugin skills 承担:
 
-  render(+ deprecated alias build)/ lint / init → build.py
+  render / lint / init → build.py
   migrate → migrate.py
   browse → browse.py
   sync-status → sync_status.py
@@ -22,7 +22,7 @@ import sys
 
 
 def _add_render_options(p: argparse.ArgumentParser) -> None:
-    """render/build 共用选项 · 集中一处防 alias 漂移 · 无状态纯参数定义 helper."""
+    """render 选项 · 集中一处定义 · 无状态纯参数定义 helper."""
     p.add_argument("--config", "-c", default="docs-cockpit.yaml",
                    help="YAML 配置文件路径(默认:当前目录 docs-cockpit.yaml)")
     p.add_argument("--debug", action="store_true",
@@ -50,22 +50,9 @@ def main(argv: list[str] | None = None) -> int:
     )
     sub = parser.add_subparsers(dest="cmd", required=True)
 
-    render_p = sub.add_parser("render", help="按 config 渲染 HTML 看板（原 build 命令 · 1.0 改名）")
+    render_p = sub.add_parser("render", help="按 config 渲染 HTML 看板（原 build 命令 · 1.0 改名 · 旧名 1.1 已移除）")
     _add_render_options(render_p)
     render_p.set_defaults(func=cmd_build)
-
-    # deprecated alias · 保留一个 minor 周期（1.0.x）· 1.1 移除
-    build_p = sub.add_parser("build", help="[已废弃] 用 render 替代 · 行为相同")
-    _add_render_options(build_p)
-
-    def _cmd_build_deprecated(args):
-        print(
-            "[docs-cockpit] 警告：`build` 已废弃，请改用 `render`（行为相同）。该别名将在 1.1 移除。",
-            file=sys.stderr,
-        )
-        return cmd_build(args)
-
-    build_p.set_defaults(func=_cmd_build_deprecated)
 
     # 0.9.0:lint 子命令 · 只校验不 build · 规范见 references/schema.md
     # 0.18.0(gap #3):lint = build 校验子集 · 跑跟 build 同款 issue collection ·

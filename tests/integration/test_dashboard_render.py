@@ -28,7 +28,7 @@ def built_html() -> str:
     try:
         from docs_cockpit.cli import main as cli_main
 
-        rc = cli_main(["build", "-c", str(repo_root / "docs-cockpit.yaml")])
+        rc = cli_main(["render", "-c", str(repo_root / "docs-cockpit.yaml")])
         assert rc == 0, "fixture build failed"
     finally:
         sys.path.pop(0)
