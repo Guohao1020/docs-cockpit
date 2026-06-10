@@ -50,9 +50,9 @@ build / rebuild 升格为「项目体检」的方法论 SSOT —— 查什么（
    ```
 
 2. **verdict 抽检** — 按 `references/association-method.md · 方法 3` 逐条预演给 4 档 verdict（✅ accurate / ⚠️ partial / ❌ wrong / ❓ missing），流程不在本文重复；抽样规则见[双模式](#双模式)
-3. **死锚** = state.json 里任一 anchor 条目（`subtasks[*].code_anchors[*]` / `doc_anchors[*]` / `modules[*].docs[*]`）`exists=false` 或 `warning` 非空——机器已判好，grep `"exists": false` 与 `"warning": "` 即得清单
+3. **死锚** = state.json 里任一 anchor 条目（`subtasks[*].code_anchors[*]` / `doc_anchors[*]` / `modules[*].docs[*]`）`exists=false` 或 `warning` 非空——机器已判好，grep `"exists": false` 与 `"warning": "[^"]` 即得清单（`warning` 字段恒存在 · 空串 `""` = 健康 · 必须排除空串否则 192 条健康锚全报假阳性）
 
-**判定标准** — 覆盖率 ≥90% → ✅ · 70–90% → ⚠️ · <70% → ❌；抽检 accurate 率 ≥90% → ✅ · 否则按比例降 ⚠️/❌（任一 wrong 实锤即开 high 处方）；死锚 0 条是 ✅ 的前提，有死锚至少 ⚠️
+**判定标准** — 覆盖率 ≥90% → ✅ · 70–90% → ⚠️ · <70% → ❌；抽检 accurate 率 ≥90% → ✅ · 70–90% → ⚠️ · <70% → ❌（任一 wrong 实锤即开 high 处方）；死锚 0 条是 ✅ 的前提，有死锚至少 ⚠️
 
 #### ③ 新鲜科 · freshness
 
@@ -123,8 +123,8 @@ build / rebuild 升格为「项目体检」的方法论 SSOT —— 查什么（
    grep -rn "TODO\|FIXME\|HACK\|XXX" --include="*.py" <src-dirs>
    ```
 
-   逐条 `git blame -L <line>,<line> --date=short -- <file>` 取年龄，>90 天 → 陈旧（命中 >30 条时抽样 blame 10 条 + 报总数，其余按文件 `git log -1 --format=%cs -- <file>` 近似）
-2. 测试逃逸：`grep -rn "skip\|xfail" tests/`（`pytest.mark.skip` / `it.skip` 等），区分「带 reason 注明」与「裸 skip」
+   逐条 `git blame -L <line>,<line> --date=short -- <file>` 取年龄，>90 天 → 陈旧（命中 >30 条时抽样 blame 10 条 + 报总数，其余按文件 `git log -1 --format=%cs -- <file>` 近似）；命中后必须 Read 上下文排除假阳性（处理 TODO/FIXME 标记的 lint 代码本身不是 TODO 债）
+2. 测试逃逸：`grep -rn "skip\|xfail" --include="*.py" tests/`（`pytest.mark.skip` / `it.skip` 等），区分「带 reason 注明」与「裸 skip」
 3. 裸 except：`rg -n "except\s*:\s*$" --type py` + `rg -nU "except\s+Exception\s*:\s*\n\s*pass" --type py`（多行模式抓吞异常）
 4. 注释代码块：`rg -n "^\s*#.*[=(]" --type py` 先粗筛，连续 ≥5 行命中的段落 Read 确认是不是整块被注释的代码——这步是认知判断，grep 只负责缩小范围
 
@@ -222,7 +222,7 @@ build / rebuild 升格为「项目体检」的方法论 SSOT —— 查什么（
 | ⑥ 代码质量 | ✅ | pytest 253 passed · ruff N/A |
 | ⑦ 缺陷 | ⚠️ | 陈旧 TODO 3(>90d) · 裸 except 1 |
 | ⑧ 生产就绪 | ✅ | 0 secret · 0 调试残留 |
-| ⑨ 架构 | ❌ | schema.py 1620 行 God file |（快检:未查 · 深检专属）
+| ⑨ 架构 | ⚠️ | schema.py 1492 行（>1000 行）|（快检:未查 · 深检专属）
 
 ### 二 · 处方(按伤害排序:错 anchor/真 bug > 生产就绪 > 规范瑕疵)
 
@@ -249,7 +249,7 @@ build / rebuild 升格为「项目体检」的方法论 SSOT —— 查什么（
 复查节奏建议:{治疗型(本轮处方治完即复查) | 周期型(30 天深检) | 触发型(下次大重构后) + 一句选择理由}
 ```
 
-**总评规则**：有任一 ❌ 科 → 从 **C** 起算 · 全 ✅（N/A 科不计）→ **A** · 其余 → **B**；再按处方 severity 微调 ±：有未分诊的 high 处方 → 减一档的 `-`（如 B-）· ❌ 科的处方全部已分诊入桶 → 加 `+`。等级回答「这个项目的文档/工程状态可信吗」，不是绩效分。
+**总评规则**：全 ✅（N/A 科不计）→ **A** · 有 ⚠️ 无 ❌ → **B** · 有任一 ❌ 科 → 从 **C** 起算 · ≥2 个 ❌ 科、或 ⑧生产就绪科 secret 命中（即刻 ❌ 类）、或 ①结构科有 error → 从 **D** 起算；再按处方 severity 微调 ±：有未分诊的 high 处方 → 减一档的 `-`（如 B-）· ❌/D 科的处方全部已分诊入桶 → 加 `+`。等级回答「这个项目的文档/工程状态可信吗」，不是绩效分。
 
 **处方四字段是看板 Copy-prompt 的原料**（前端拼自然语言 prompt：title + 根因 + anchor + 修法 + 「完成后跑 docs-cockpit render 验证」）——所以 `根因` / `修法` 必须写成完整可执行的句子，不写只有体检上下文才懂的缩略语；丢给一个全新 Claude Code session 能直接照做才算合格。
 
