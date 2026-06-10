@@ -543,9 +543,9 @@ footer a { color: #fff; }
         </div>
         <div class="pain-cell after">
           <span class="tag"><span class="en">▍ After docs-cockpit</span><span class="zh">▍ docs-cockpit 之后</span></span>
-          <span class="en">AI reads a <code>docs-cockpit-author</code> skill before writing anything — required fields, naming rules, status enum all defined there.
+          <span class="en">The <code>docs-cockpit-build</code> skill guides authoring against <code>references/schema.md</code> — required fields, naming rules, status enum all defined there.
           <strong>AI doesn't invent rules. It executes them.</strong></span>
-          <span class="zh">AI 写任何文档前，先读一份 <code>docs-cockpit-author</code> skill——里面规定了所有必填字段、命名规则、状态枚举。
+          <span class="zh"><code>docs-cockpit-build</code> skill 按 <code>references/schema.md</code> 规范引导写作——所有必填字段、命名规则、状态枚举都在那里定义。
           <strong>AI 不再发明规则，它执行规则。</strong></span>
         </div>
       </div>
@@ -575,9 +575,9 @@ footer a { color: #fff; }
         </div>
         <div class="pain-cell after">
           <span class="tag"><span class="en">▍ After docs-cockpit</span><span class="zh">▍ docs-cockpit 之后</span></span>
-          <span class="en">One command <code>docs-cockpit build</code>. The folder becomes one HTML:<br>
+          <span class="en">One command <code>docs-cockpit render</code>. The folder becomes one HTML:<br>
           kanban + sprint timeline + progress bars + subtask checklist + inline doc preview — <strong>double-click locally to open</strong>.</span>
-          <span class="zh">一行命令 <code>docs-cockpit build</code>，整个目录变成一个 HTML：<br>
+          <span class="zh">一行命令 <code>docs-cockpit render</code>，整个目录变成一个 HTML：<br>
           Kanban 看板 + Sprint 时间线 + 进度条 + 子任务清单 + 关联文档预览——<strong>本地双击就开</strong>。</span>
         </div>
       </div>
@@ -631,7 +631,7 @@ footer a { color: #fff; }
       <div class="feature">
         <span class="icon">▍</span>
         <h3><span class="en">One-click prompt copy per subtask</span><span class="zh">Subtask 一键复制 prompt</span></h3>
-        <p><span class="en">Each subtask renders a ready-to-paste prompt (context + code anchors + linked docs). Click Copy → paste into Claude Code / Cursor / Codex → AI executes.</span><span class="zh">每个子任务渲染好的 prompt（含上下文+代码锚点+关联文档），点 Copy 粘贴到 Claude Code / Cursor / Codex 就能让 AI 直接执行。</span></p>
+        <p><span class="en">Each subtask renders a ready-to-paste prompt (context + code anchors + linked docs) via a <code>prompts.js</code> sidecar. Click Copy → paste into Claude Code / Cursor / Codex → AI executes.</span><span class="zh">每个子任务通过 <code>prompts.js</code> sidecar 渲染好即用 prompt（含上下文+代码锚点+关联文档），点 Copy 粘贴到 Claude Code / Cursor / Codex 就能让 AI 直接执行。</span></p>
       </div>
       <div class="feature">
         <span class="icon">▍</span>
@@ -704,7 +704,7 @@ footer a { color: #fff; }
 
 <span class="c"># <span class="en">In your project root</span><span class="zh">在你项目根目录</span></span>
 docs-cockpit init
-docs-cockpit build
+docs-cockpit render
         </div>
       </div>
     </div>
@@ -761,7 +761,7 @@ docs-cockpit build
         <span class="emoji">▍</span>
         <div>
           <h4><span class="en">Tech bloggers · KOLs · early adopters</span><span class="zh">技术博主 / KOL / 早期 adopter</span></h4>
-          <p><span class="en">v0.14 is a rare "complete answer" in the vibe-coding engineering direction: skill + validator + dashboard + portfolio + bilingual + 118 unit tests + CI matrix. Architecture diagrams and CHANGELOG are ready material.</span><span class="zh">v0.14 是 vibe coding 工程化方向上少见的"完整答卷"：skill + validator + dashboard + portfolio + bilingual + 118 单测 + CI 矩阵。架构图和 CHANGELOG 直接可用作素材。</span></p>
+          <p><span class="en">v0.14 was a rare "complete answer" in the vibe-coding engineering direction: skill + validator + dashboard + portfolio (removed in v1.0) + bilingual + 118 unit tests + CI matrix. Architecture diagrams and CHANGELOG are ready material.</span><span class="zh">v0.14 是 vibe coding 工程化方向上少见的"完整答卷"：skill + validator + dashboard + portfolio（v1.0 已移除）+ bilingual + 118 单测 + CI 矩阵。架构图和 CHANGELOG 直接可用作素材。</span></p>
           <a href="https://github.com/Guohao1020/docs-cockpit/blob/main/CHANGELOG.md" rel="noopener"><span class="en">▶ Read CHANGELOG</span><span class="zh">▶ CHANGELOG 看深度</span></a>
         </div>
       </div>
@@ -849,12 +849,12 @@ docs-cockpit build
         <span class="en">This is exactly what docs-cockpit solves. Every build runs <code>validate_meta()</code> and emits three severities:<br>
         ▍ <strong>error</strong> — dashboard can't render this doc (e.g. missing <code>id</code>)<br>
         ▍ <strong>warn</strong> — renders but state is suspicious (e.g. status:done with progress:60)<br>
-        ▍ <strong>hint</strong> — polish (e.g. missing <code>desc</code> weakens "Copy prompt" context)<br>
+        ▍ <strong>hint</strong> — polish (e.g. missing <code>desc</code> weakens subtask prompt context)<br>
         Every issue carries a <code>💡 fix</code> suggestion and a <code>📚 see</code> spec reference — AI sees the error and fixes itself.</span>
         <span class="zh">这是 docs-cockpit 专门解决的问题。每次 build 都会跑 <code>validate_meta()</code>，输出三级问题：<br>
         ▍ <strong>error</strong>（看板没法渲染这个文档，比如 <code>id</code> 缺失）<br>
         ▍ <strong>warn</strong>（能渲染但状态可疑，比如 status:done 但 progress:60）<br>
-        ▍ <strong>hint</strong>（可润色，比如缺 desc 会让"复制 prompt"上下文不全）<br>
+        ▍ <strong>hint</strong>（可润色，比如缺 desc 会让子任务 prompt 上下文不全）<br>
         每条问题都带 <code>💡 fix</code> 修复建议和 <code>📚 see</code> 规范引用——AI 看到错误能自己改。</span>
       </div>
     </details>
