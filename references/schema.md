@@ -17,6 +17,7 @@ build / rebuild skill 共享的字段规范 SSOT。
 9. [subtask title 4 法则](#subtask-title-4-法则)
 10. [per-subtask plan MD](#per-subtask-plan-md)
 11. [sprint-plan schema](#sprint-plan-schema)
+12. [health-report schema](#health-report-schema)
 
 ---
 
@@ -513,3 +514,62 @@ retro:                               # sprint 结束后填
 | 复杂 subtask 有独立 plan MD(见上节 per-subtask plan MD)| 手工 self-check | (尚未自动 lint)|
 
 不满足 DoR · `docs-cockpit lint` / `docs-cockpit render` 报 warn（lint 加 `--strict-warn` / render 加 `--strict` 可升级为阻断）。
+
+---
+
+## health-report schema
+
+体检报告一等公民 doc（1.1.0 引入 · 设计 spec `docs/plans/P-v1.1-health-check.md` §4）· 双重身份：frontmatter = 机器读（render 解析进看板健康徽章 + 健康面板）· body = 人读三段式报告（诊断 → 处方 → 行动规划 · 模板见 `references/health-check.md`）。
+
+### 固定路径约定
+
+- 路径固定 `docs/HEALTH.md` · **不进 config 扫描**——与 `docs/state.json` 同级的约定路径 · render 自行探测（不存在则看板无健康面板 · 零影响）
+- **写入者 = build / rebuild skill**（体检是认知产物）· **解析者 = render**（机械）——职责分界与 module MD 完全同构
+
+### 必填字段
+
+```yaml
+---
+type: health-report        # 必填 · 固定值
+date: 2026-06-10           # 必填 · ISO YYYY-MM-DD
+mode: quick                # 必填 · quick | deep
+grade: B+                  # 必填 · A/B/C/D · 可带 +/- 后缀(如 B+ / C-)
+departments:               # 必填 · 九科结果 · 至少 1 项
+  - id: anchors            # 必填 · 科室稳定 id
+    name: "关联"            # 必填 · 人读科室名
+    verdict: warn          # 必填 · pass | warn | fail(三色行)
+    summary: "覆盖率 78% · 抽检 1❌"   # 必填 · 一行结论
+    detail: "..."          # 可选 · 展开细节
+---
+```
+
+### 可选字段
+
+```yaml
+prescriptions:             # 处方 · 看板处方卡 + Copy-prompt CTA 数据源
+  - id: RX-001             # 必填 · RX-NNN 稳定递增 · 复查未解决保留原 id
+    severity: high         # 必填 · high | medium | low
+    bucket: sprint         # 必填 · now | sprint | backlog | watch | accepted(五桶)
+    title: "M07-S2 锚指向已重构函数"        # 必填
+    root_cause: "fsm.py 重构后原函数移位"   # 必填 · Iron Law(见下)
+    fix: "anchor 改指 fsm.py:88-130"       # 必填 · 建议修法
+    anchors: ["sourcery/worker/fsm.py:42-89"]   # 可选 · code anchor 格式
+    module: M07            # 可选 · 必须是真实存在的 module id(看板反链处方卡 → module 卡)
+accepted_debts:            # 台账 · 已接受的债 · 快检不再报
+  - { item: "schema.py God file", reason: "post-1.0 已排期拆分", review: "2026-08" }
+next_checkup: "本 sprint 收尾快检 · 30 天深检"   # 可选 · 复查节奏建议
+```
+
+### 校验（schema.py::validate_health_report）
+
+| 检查 | severity |
+|---|---|
+| 缺必填顶层字段(type / date / mode / grade / departments) · 或值非法(mode 不在 quick\|deep · grade 不匹配 `[ABCD][+-]?` · date 非 ISO) | error |
+| departments 项缺必填子字段(id / name / verdict / summary) · 或 verdict 不在 pass\|warn\|fail | error |
+| prescriptions / accepted_debts / departments 不是 list 等结构性破损 | error |
+| 处方缺 `root_cause` —— **Iron Law 的死规则面**：skill 层规则是「查不出根因的不开药 · 开进一步检查单」· validator 只能查「写没写」 | warn |
+| 处方其余必填子字段缺失(id / severity / bucket / title / fix) · 或 severity / bucket 枚举非法 | warn |
+| 处方 `module` 引用不存在的 module id(render 时传入已知 module ids 才查) | warn |
+| accepted_debts 项缺 item / reason / review | warn |
+
+error = 看板健康面板渲染不了(或渲染错)· warn = 能渲染但该修。处方层面问题统一 warn 不 error——一条坏处方不应拖垮整份体检报告的渲染。

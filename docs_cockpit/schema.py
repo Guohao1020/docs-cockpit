@@ -99,6 +99,7 @@ VALID_DOC_TYPES = {
     "module", "concept", "plan", "rfc", "spec", "memory", "roadmap",
     "sprint-plan",        # 0.19.0 · agile sprint plan(每个 sprint 一份 · 描述 backlog + DoR/DoD)
     "subtask-plan",       # 0.16.0 · per-subtask plan(复杂 subtask 必写)· 加这里让 validate_meta 不报 unknown
+    "health-report",      # 1.1.0 · 体检报告(docs/HEALTH.md 固定路径 · 看板健康面板数据源)
 }
 
 
@@ -842,6 +843,261 @@ def _strip_anchor_suffix(path_str: str) -> str:
     if m:
         path_str = path_str[: m.start()]
     return path_str.strip()
+
+
+# ── 1.1.0 · health-report schema(docs/HEALTH.md frontmatter 校验)────────
+#
+# v1.1 体检体系:build / rebuild skill 体检后写 docs/HEALTH.md(固定路径 ·
+# 不进 config 扫描)· frontmatter 机器读(render 解析进看板健康徽章 + 健康
+# 面板)· body 人读三段式报告。错 frontmatter = 看板渲染不了体检 · 必须有
+# validator。写入者 = skill(认知)· 解析者 = render(机械)。
+#
+# severity 分界:顶层 / departments 问题 = error(健康面板接不住)·
+# prescriptions / accepted_debts 字段级问题 = warn(一条坏处方不该拖垮整份
+# 报告的渲染)。Iron Law 的死规则面:处方缺 root_cause → warn——skill 层规则
+# 是「查不出根因的不开药 · 开进一步检查单」· validator 只能查「写没写」。
+#
+# 设计 spec · docs/plans/P-v1.1-health-check.md · §4。
+# 规范 SSOT · references/schema.md · health-report schema。
+
+_HEALTH_REPORT_REF = "references/schema.md · health-report schema"
+# 固定路径约定 · caller 没传 path 时 Issue 挂这个(render 传真实绝对路径)
+_HEALTH_REPORT_PATH = pathlib.Path("docs/HEALTH.md")
+
+_HEALTH_REQUIRED_FIELDS = ("type", "date", "mode", "grade", "departments")
+_HEALTH_MODES = frozenset({"quick", "deep"})
+_HEALTH_GRADE_RE = re.compile(r"^[ABCD][+-]?$")
+_HEALTH_DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+_HEALTH_DEPT_REQUIRED = ("id", "name", "verdict", "summary")
+_HEALTH_VERDICTS = frozenset({"pass", "warn", "fail"})
+_HEALTH_RX_REQUIRED = ("id", "severity", "bucket", "title", "root_cause", "fix")
+_HEALTH_RX_SEVERITIES = frozenset({"high", "medium", "low"})
+_HEALTH_RX_BUCKETS = frozenset({"now", "sprint", "backlog", "watch", "accepted"})
+_HEALTH_DEBT_REQUIRED = ("item", "reason", "review")
+
+
+def validate_health_report(
+    meta: dict,
+    known_module_ids: set[str] | None = None,
+    path: pathlib.Path | None = None,
+) -> list[Issue]:
+    """v1.1.0 · 校验 health-report(docs/HEALTH.md)frontmatter schema.
+
+    跟 validate_sprint_plan 同款分治:health-report 字段集独立 · 不塞进
+    validate_meta。纯内存校验 · 无 fs 依赖。
+
+    known_module_ids:render 传 state.json modules[*].id 集合 · 校验处方
+    `module` 反链指向真实 module;None(默认)= 跳过该检查(单测 / 离线校验)。
+    path:Issue 挂的文件路径 · 默认固定路径约定 docs/HEALTH.md。
+    """
+    p = path or _HEALTH_REPORT_PATH
+    issues: list[Issue] = []
+
+    def _issue(severity: str, field: str, message: str, suggestion: str = "") -> None:
+        issues.append(
+            Issue(
+                severity=severity,
+                path=p,
+                field=field,
+                message=message,
+                suggestion=suggestion,
+                reference=_HEALTH_REPORT_REF,
+                category="health-report",
+            )
+        )
+
+    if not isinstance(meta, dict) or not meta:
+        _issue(
+            "error", "frontmatter",
+            "health-report frontmatter must be a non-empty YAML dict",
+            "docs/HEALTH.md 开头写 `---` 包住的 YAML frontmatter(type/date/mode/grade/departments)",
+        )
+        return issues
+
+    # ── 必填顶层字段 · 缺 → error ──
+    for f in _HEALTH_REQUIRED_FIELDS:
+        if f not in meta or meta[f] in (None, "", [], {}):
+            _issue(
+                "error", f,
+                f"health-report missing required field `{f}`",
+                f"add `{f}` to docs/HEALTH.md frontmatter "
+                f"(required: type / date / mode / grade / departments)",
+            )
+
+    # type 固定值
+    t = meta.get("type")
+    if t and t != "health-report":
+        _issue(
+            "error", "type",
+            f"type={t!r} invalid · health-report doc must declare `type: health-report`",
+            "set `type: health-report`",
+        )
+
+    # date · ISO YYYY-MM-DD(split_frontmatter 已把 YAML date 字符串化 ·
+    # 直接传 dict 时也接受原生 date / datetime)
+    d = meta.get("date")
+    if d and not isinstance(d, (_dt.date, _dt.datetime)):
+        ok = isinstance(d, str) and bool(_HEALTH_DATE_RE.match(d.strip()))
+        if ok:
+            try:
+                _dt.date.fromisoformat(d.strip())
+            except ValueError:
+                ok = False
+        if not ok:
+            _issue(
+                "error", "date",
+                f"date={d!r} invalid · must be ISO YYYY-MM-DD",
+                "write the checkup date as e.g. `date: 2026-06-10`",
+            )
+
+    # mode enum
+    mode = meta.get("mode")
+    if mode and mode not in _HEALTH_MODES:
+        _issue(
+            "error", "mode",
+            f"mode={mode!r} invalid · must be one of {sorted(_HEALTH_MODES)}",
+            "quick = 快检(build/rebuild 自动附带)· deep = 深检(明示触发)",
+        )
+
+    # grade · A/B/C/D 可带 +/- 后缀
+    grade = meta.get("grade")
+    if grade and not (isinstance(grade, str) and _HEALTH_GRADE_RE.match(grade.strip())):
+        _issue(
+            "error", "grade",
+            f"grade={grade!r} invalid · must match A/B/C/D with optional +/- suffix (e.g. B+)",
+            "write the overall grade as e.g. `grade: B+`",
+        )
+
+    # ── departments · 九科结果 · 字段级问题也是 error(健康面板的诊断主体)──
+    depts = meta.get("departments")
+    if depts and not isinstance(depts, list):
+        _issue(
+            "error", "departments",
+            f"departments must be a list · got {type(depts).__name__}",
+        )
+    elif isinstance(depts, list):
+        for i, dept in enumerate(depts):
+            if not isinstance(dept, dict):
+                _issue(
+                    "error", f"departments[{i}]",
+                    f"each department entry must be a dict · got {type(dept).__name__}",
+                )
+                continue
+            for f in _HEALTH_DEPT_REQUIRED:
+                if f not in dept or dept[f] in (None, ""):
+                    _issue(
+                        "error", f"departments[{i}].{f}",
+                        f"department entry missing required `{f}`",
+                        "each department needs id / name / verdict / summary",
+                    )
+            verdict = dept.get("verdict")
+            if verdict and verdict not in _HEALTH_VERDICTS:
+                _issue(
+                    "error", f"departments[{i}].verdict",
+                    f"verdict={verdict!r} invalid · must be one of {sorted(_HEALTH_VERDICTS)}",
+                    "pass = ✅ · warn = ⚠️ · fail = ❌",
+                )
+
+    # ── prescriptions · 处方 · 字段级问题 = warn ──
+    rxs = meta.get("prescriptions")
+    if rxs is not None and not isinstance(rxs, list):
+        _issue(
+            "error", "prescriptions",
+            f"prescriptions must be a list · got {type(rxs).__name__}",
+        )
+    elif isinstance(rxs, list):
+        for i, rx in enumerate(rxs):
+            if not isinstance(rx, dict):
+                _issue(
+                    "warn", f"prescriptions[{i}]",
+                    f"each prescription entry must be a dict · got {type(rx).__name__}",
+                )
+                continue
+            rx_label = rx.get("id") or f"prescriptions[{i}]"
+            for f in _HEALTH_RX_REQUIRED:
+                if f not in rx or rx[f] in (None, ""):
+                    if f == "root_cause":
+                        # Iron Law:查不出根因的不开药 · 开「进一步检查单」
+                        _issue(
+                            "warn", f"prescriptions[{i}].root_cause",
+                            f"prescription `{rx_label}` missing `root_cause` · "
+                            f"Iron Law: no prescription without a root cause",
+                            "查到根因再开方;查不出根因时不开药 · 改开进一步检查单"
+                            "(见 references/health-check.md · 三条铁律)",
+                        )
+                    else:
+                        _issue(
+                            "warn", f"prescriptions[{i}].{f}",
+                            f"prescription `{rx_label}` missing required `{f}`",
+                            "each prescription needs id / severity / bucket / title / root_cause / fix",
+                        )
+            sev = rx.get("severity")
+            if sev and sev not in _HEALTH_RX_SEVERITIES:
+                _issue(
+                    "warn", f"prescriptions[{i}].severity",
+                    f"prescription `{rx_label}` severity={sev!r} invalid · "
+                    f"must be one of {sorted(_HEALTH_RX_SEVERITIES)}",
+                )
+            bucket = rx.get("bucket")
+            if bucket and bucket not in _HEALTH_RX_BUCKETS:
+                _issue(
+                    "warn", f"prescriptions[{i}].bucket",
+                    f"prescription `{rx_label}` bucket={bucket!r} invalid · "
+                    f"must be one of {sorted(_HEALTH_RX_BUCKETS)}",
+                    "五桶分诊:now(立即修)/ sprint(本 sprint)/ backlog / watch(观察)/ accepted(台账)",
+                )
+            anchors = rx.get("anchors")
+            if anchors is not None and not isinstance(anchors, list):
+                _issue(
+                    "warn", f"prescriptions[{i}].anchors",
+                    f"prescription `{rx_label}` anchors must be a list of code-anchor strings",
+                )
+            mod = rx.get("module")
+            if mod is not None and not isinstance(mod, str):
+                _issue(
+                    "warn", f"prescriptions[{i}].module",
+                    f"prescription `{rx_label}` module must be a module id string",
+                )
+            elif mod and known_module_ids is not None and mod not in known_module_ids:
+                _issue(
+                    "warn", f"prescriptions[{i}].module",
+                    f"prescription `{rx_label}` references unknown module `{mod}` · "
+                    f"看板反链会断",
+                    "对照 state.json modules[*].id 修正 · 处方不归属任何 module 时省略该字段",
+                )
+
+    # ── accepted_debts · 台账 ──
+    debts = meta.get("accepted_debts")
+    if debts is not None and not isinstance(debts, list):
+        _issue(
+            "error", "accepted_debts",
+            f"accepted_debts must be a list · got {type(debts).__name__}",
+        )
+    elif isinstance(debts, list):
+        for i, debt in enumerate(debts):
+            if not isinstance(debt, dict):
+                _issue(
+                    "warn", f"accepted_debts[{i}]",
+                    f"each accepted_debts entry must be a dict · got {type(debt).__name__}",
+                )
+                continue
+            for f in _HEALTH_DEBT_REQUIRED:
+                if f not in debt or debt[f] in (None, ""):
+                    _issue(
+                        "warn", f"accepted_debts[{i}].{f}",
+                        f"accepted_debts entry missing `{f}`",
+                        "台账条目需 item(债)/ reason(为何接受)/ review(复审日期)",
+                    )
+
+    # next_checkup · 可选 · 自由文本
+    nc = meta.get("next_checkup")
+    if nc is not None and not isinstance(nc, str):
+        _issue(
+            "warn", "next_checkup",
+            f"next_checkup must be a string · got {type(nc).__name__}",
+        )
+
+    return issues
 
 
 # ── MD body section detection (0.4.0 · frontmatter 缺字段时从正文提取) ──

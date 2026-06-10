@@ -22,6 +22,7 @@ from docs_cockpit.schema import (
     extract_subtasks_from_body,
     slugify,
     split_frontmatter,
+    validate_health_report,
     validate_meta,
 )
 
@@ -886,3 +887,140 @@ id: V9.9
 ---
 """)
         assert load_sprint_plans(tmp_path) == []
+
+
+# ── v1.1.0 · validate_health_report(docs/HEALTH.md frontmatter 校验)──
+
+
+class TestValidateHealthReport:
+    """v1.1 体检报告 frontmatter 校验 · spec docs/plans/P-v1.1-health-check.md §4.
+
+    规范节:references/schema.md · health-report schema。
+    severity 分界:顶层/departments 问题 = error(看板健康面板接不住)·
+    prescriptions 层面问题 = warn(一条坏处方不拖垮整份报告渲染)。
+    """
+
+    def _valid_meta(self) -> dict:
+        """spec §4 示例的完整合法 frontmatter."""
+        return {
+            "type": "health-report",
+            "date": "2026-06-10",
+            "mode": "quick",
+            "grade": "B+",
+            "departments": [
+                {
+                    "id": "anchors",
+                    "name": "关联",
+                    "verdict": "warn",
+                    "summary": "覆盖率 78% · 抽检 1❌",
+                    "detail": "...",
+                },
+                {
+                    "id": "structure",
+                    "name": "结构",
+                    "verdict": "pass",
+                    "summary": "lint 0 error / 0 warn",
+                },
+            ],
+            "prescriptions": [
+                {
+                    "id": "RX-001",
+                    "severity": "high",
+                    "bucket": "sprint",
+                    "title": "M07-S2 锚指向已重构函数",
+                    "root_cause": "fsm.py 重构后原函数移位 88-130",
+                    "fix": "anchor 改指 fsm.py:88-130 · 改后 render 验证",
+                    "anchors": ["sourcery/worker/fsm.py:42-89"],
+                    "module": "M07",
+                },
+            ],
+            "accepted_debts": [
+                {
+                    "item": "schema.py God file",
+                    "reason": "post-1.0 已排期拆分",
+                    "review": "2026-08",
+                },
+            ],
+            "next_checkup": "本 sprint 收尾快检 · 30 天深检",
+        }
+
+    # 1 · 合法完整 frontmatter → 0 issue
+    def test_valid_full_meta_zero_issues(self):
+        issues = validate_health_report(self._valid_meta(), known_module_ids={"M07"})
+        assert issues == []
+
+    # 2 · 缺 grade → error · category="health-report"
+    def test_missing_grade_is_error(self):
+        meta = self._valid_meta()
+        del meta["grade"]
+        issues = validate_health_report(meta, known_module_ids={"M07"})
+        grade_errors = [i for i in issues if i.field == "grade" and i.severity == "error"]
+        assert len(grade_errors) == 1
+        assert grade_errors[0].category == "health-report"
+        assert grade_errors[0].reference == "references/schema.md · health-report schema"
+
+    # 3 · mode 非法值 → error
+    def test_invalid_mode_is_error(self):
+        meta = self._valid_meta()
+        meta["mode"] = "full"
+        issues = validate_health_report(meta, known_module_ids={"M07"})
+        assert any(i.field == "mode" and i.severity == "error" for i in issues)
+
+    # 4 · department verdict 非法值 → error
+    def test_invalid_department_verdict_is_error(self):
+        meta = self._valid_meta()
+        meta["departments"][0]["verdict"] = "ok"
+        issues = validate_health_report(meta, known_module_ids={"M07"})
+        assert any("verdict" in i.field and i.severity == "error" for i in issues)
+
+    # 5 · 处方缺 root_cause → warn(Iron Law 的死规则面:查不出根因的不开药)
+    def test_prescription_missing_root_cause_is_warn(self):
+        meta = self._valid_meta()
+        del meta["prescriptions"][0]["root_cause"]
+        issues = validate_health_report(meta, known_module_ids={"M07"})
+        rc = [i for i in issues if "root_cause" in i.field]
+        assert len(rc) == 1
+        assert rc[0].severity == "warn"
+        assert rc[0].category == "health-report"
+
+    # 6 · 处方 bucket 非法 → warn
+    def test_prescription_invalid_bucket_is_warn(self):
+        meta = self._valid_meta()
+        meta["prescriptions"][0]["bucket"] = "someday"
+        issues = validate_health_report(meta, known_module_ids={"M07"})
+        assert any("bucket" in i.field and i.severity == "warn" for i in issues)
+
+    # 7 · 处方 module 不在已知 module ids → warn
+    def test_prescription_unknown_module_is_warn(self):
+        meta = self._valid_meta()
+        meta["prescriptions"][0]["module"] = "M99"
+        issues = validate_health_report(meta, known_module_ids={"M07", "M08"})
+        assert any("module" in i.field and i.severity == "warn" for i in issues)
+
+    # 7b · known_module_ids=None(默认)→ 跳过 module 存在性检查
+    def test_unknown_module_skipped_when_no_known_ids(self):
+        meta = self._valid_meta()
+        meta["prescriptions"][0]["module"] = "M99"
+        assert validate_health_report(meta) == []
+
+    # 8 · 最小合法(只必填 · 无 prescriptions)→ 0 issue
+    def test_minimal_required_only_zero_issues(self):
+        meta = {
+            "type": "health-report",
+            "date": "2026-06-10",
+            "mode": "deep",
+            "grade": "A",
+            "departments": [
+                {
+                    "id": "structure",
+                    "name": "结构",
+                    "verdict": "pass",
+                    "summary": "lint 0 error / 0 warn",
+                },
+            ],
+        }
+        assert validate_health_report(meta) == []
+
+    # health-report 是合法 doc type(validate_meta 不报 unknown)
+    def test_health_report_in_valid_doc_types(self):
+        assert "health-report" in VALID_DOC_TYPES
