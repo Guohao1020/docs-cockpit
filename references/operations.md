@@ -1,8 +1,8 @@
-<!-- 运维参考 · build 的 Phase 0 引用 · 原 docs-cockpit 主 skill 提取 -->
+<!-- 运维参考 · build Phase 0 + 渲染期排障（build Phase 7 / rebuild Phase 5）引用 · 原 docs-cockpit 主 skill 提取 -->
 
-# docs-cockpit · 运维参考（bootstrap / config / upgrade）
+# docs-cockpit · 运维参考（bootstrap / config / upgrade / troubleshooting）
 
-docs-cockpit-build skill 的 Phase 0 运维知识 SSOT：CLI 首次安装、config 结构概览、自身升级。不包含 frontmatter 字段（→ `references/schema.md`）和关联方法（→ `references/association-method.md`）。
+docs-cockpit 运维知识 SSOT：CLI 首次安装、config 结构概览、自身升级（以上为 build skill Phase 0 引用），外加渲染期故障排查（build Phase 7 / rebuild Phase 5 遇到异常时查阅）。不包含 frontmatter 字段（→ `references/schema.md`）和关联方法（→ `references/association-method.md`）。
 
 ---
 
@@ -116,3 +116,21 @@ Remove-Item -Recurse -Force "$env:USERPROFILE\.claude\plugins\cache\*docs-cockpi
 # POSIX / macOS / Linux
 rm -rf ~/.claude/plugins/cache/*docs-cockpit*
 ```
+
+---
+
+## troubleshooting
+
+渲染期常见故障（症状 → 原因 → 修法）。仅收录对照当前代码仍成立的条目：
+
+| 症状 | 原因 | 修法 |
+|---|---|---|
+| render 后 `[WARN] 0 items`，看板空 | 所有路径解析到不存在的文件——几乎总是 `paths.repo` 配错或 scan 目录 typo | `docs-cockpit render --debug` 打印解析后的路径变量与每条 entry 的绝对路径，逐条核对 |
+| 个别 module 不出现在 Kanban | frontmatter 缺 `id:`，或 id 是 `MXX` 这类模板占位符（设计上跳过，lint 会报 "looks like a template placeholder"） | 给 MD 补真实 id（格式见 `references/schema.md`） |
+| `progress=N out of range [lo, hi] for status=...` | status 与 progress 不匹配 | 改 MD 的 status / progress 之一，或放宽 config 的 `frontmatter.status_progress_ranges` |
+| render / lint 报其它 frontmatter issue | 字段不符规范 | 每条 issue 自带 suggestion + reference，按引指向的 `references/schema.md` 小节修 |
+| dashboard 勾过的 subtask 状态「丢了」 | 勾选状态存浏览器 localStorage，按 `file://` URL 区分——换路径打开不带旧覆盖 | 用同一 `file://` 路径重新打开；要持久化回 MD 用 `docs-cockpit sync-status` |
+| Copy prompt 按钮灰 / 点击 toast 报错 | `prompts.js` 不在 `index.html` 旁。最常见：提交了 `index.html` 但 `.gitignore` 排除了 `docs/*.js` | 重跑 `docs-cockpit render` 重新生成；若提交构建产物，`index.html` + `state.json` + `prompts.js` 三件一起提交 |
+| drawer「消失」/ URL 停在 `#/module/...` 回不去 | hash 路由按设计工作（split-view 深链，方便把某 module 视图链接发给他人） | 点 topbar 项目 brand 或按 Esc 返回 dashboard |
+| 断网打开 dashboard 字体 / MD 预览异常 | Google Fonts 与 marked.js 走 CDN | 预期降级：看板本体可用，内联 MD 预览自动回退 `<pre>`，字体回退系统字体——无需修复 |
+| 升级后 skill 行为没更新（ghost state） | plugin cache 未清 | 见上文 `## upgrade`——走 `docs-cockpit upgrade` 原子清 cache，不能只重启 |
