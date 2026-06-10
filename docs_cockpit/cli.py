@@ -8,7 +8,6 @@ sprint / apply-patch / apply-body-patch / migrate-subtasks / mcp-serve)
   migrate → migrate.py
   browse → browse.py
   sync-status → sync_status.py
-  portfolio → portfolio.py
   upgrade → upgrade.py
 
 0.11.0-alpha.1:从 build.py 拆出(plan-eng-review 1A)。
@@ -139,10 +138,6 @@ def main(argv: list[str] | None = None) -> int:
     )
     from . import browse as _browse_mod
     browse_p.set_defaults(func=_browse_mod.cmd_browse)
-
-    # 0.10.0:portfolio · 多项目注册表 + 周快照
-    from . import portfolio as _portfolio_mod
-    _portfolio_mod.add_portfolio_parser(sub)
 
     # 0.12 M09 · sync-status · dashboard localStorage override → MD 反向同步
     ss_p = sub.add_parser(
