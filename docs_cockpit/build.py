@@ -42,6 +42,7 @@ from .schema import (
     normalize_subtasks,
     slugify,
     split_frontmatter,
+    validate_health_report,
     validate_meta,
     validate_subtask_schema,
 )
@@ -486,11 +487,42 @@ def build_payload(
     except Exception:  # noqa: BLE001 · sprint feature 是 opt-in · 异常不该挂 build
         pass
 
+    # ── 1.1.0 · 固定路径探测 docs/HEALTH.md(health-report doc kind)──
+    # 体检报告不进 config 扫描组 · 唯一数据源是 {repo}/docs/HEALTH.md。
+    # 容错原则:体检报告坏了不能拖垮看板 —— frontmatter 缺字段 / 非法时
+    # degraded 透传(缺啥给 None/[])· 校验问题进 issues · 永不抛异常。
+    # 无文件时 health 显式 None(state.json additive-only · 消费者判空稳定)。
+    health: dict | None = None
+    health_path = pathlib.Path(vars_.get("repo", ".")) / "docs" / "HEALTH.md"
+    if health_path.exists():
+        h_content, h_meta, _h_mtime, h_exists = read_md(health_path)
+        if h_exists:
+            # read_md 的 meta 已过 split_frontmatter(date 已字符串化)·
+            # body 再切一次拿 frontmatter 后原文(前端 marked 渲染用)
+            _, h_body = split_frontmatter(h_content)
+            known_ids = {m.get("id") for m in modules if m.get("id")}
+            issues.extend(
+                validate_health_report(
+                    h_meta, known_module_ids=known_ids, path=health_path
+                )
+            )
+            health = {
+                "grade": h_meta.get("grade"),
+                "mode": h_meta.get("mode"),
+                "date": str(h_meta.get("date") or ""),
+                "departments": h_meta.get("departments") or [],
+                "prescriptions": h_meta.get("prescriptions") or [],
+                "accepted_debts": h_meta.get("accepted_debts") or [],
+                "next_checkup": h_meta.get("next_checkup"),
+                "body": h_body,
+            }
+
     payload = {
         "project": payload_project,
         "systemDocs": system_docs,
         "modules": modules,
         "concepts": concepts,
+        "health": health,
     }
     return payload, issues
 
