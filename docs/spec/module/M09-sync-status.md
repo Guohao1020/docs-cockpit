@@ -62,4 +62,4 @@ docs-cockpit sync-status --from-browser chrome --apply
 - [x] 直读浏览器 profile 读出本地勾选 · 用户跳过导出步骤直接同步 @code:docs_cockpit/browser_storage.py @code:tests/unit/test_browser_storage.py @docs:references/sync_status_workflow.md
 - [x] 四种优先级冲突场景全部覆盖 · 集成测试守护 @code:tests/unit/test_sync_status.py:1-220 @docs:docs/spec/module/M09-sync-status.md#§3
 - [x] 写跨机器日 / 周同步流程推荐文档 · 给用户标准操作 @code:references/sync_status_workflow.md
-- [x] 写回 MD 时生成 bak 备份 · 跟 patch 工具共用安全写工具函数 @code:docs_cockpit/sync_status.py:243-268 @code:docs_cockpit/apply_patch.py:248-272
+- [x] 写回 MD 时生成 bak 备份 · 跟 patch 工具共用安全写工具函数 @code:docs_cockpit/sync_status.py:243-268 @docs:CHANGELOG.md#0.12.0

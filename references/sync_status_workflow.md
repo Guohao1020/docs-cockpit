@@ -43,7 +43,7 @@ Output shows:
 docs-cockpit sync-status --import overrides.json --apply
 ```
 
-Writes each touched MD with a `.bak` backup sibling. Standard dry-run-first pattern that `migrate-subtasks` and `apply-patch` also follow.
+Writes each touched MD with a `.bak` backup sibling. Standard dry-run-first pattern（原 migrate-subtasks / apply-patch CLI 同款 · 两者 v1.0 已删 · 现用 Edit 直接重写 MD）.
 
 ### Step 4 · Commit + rebuild
 

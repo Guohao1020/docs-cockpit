@@ -5,7 +5,7 @@ title: "Claude Code Plugin"
 status: done
 sprint: "0.11"
 progress: 100
-desc: "Claude Code plugin · 4 skills + 8 commands · marketplace 分发 · bootstrap CLI"
+desc: "Claude Code plugin · v1.0 三 skill(use-docs-cockpit 入口路由 + build + rebuild)+ 5 commands · marketplace 分发 · bootstrap CLI(v0.10 的 4 skills + 8 commands 布局已在 v1.0 重组)"
 owner: harvey
 prd_ref: "v0.11 driver-seat plan §11 Step 3"
 docs:
@@ -27,16 +27,18 @@ manualProgress: true   # 0.11 sprint 工作全 done · v0.12 候选项不计入�
   ├── plugin.json        ── 版本 / 元数据
   └── marketplace.json   ── 用户 /plugin install 入口
 
-skills/
-  ├── docs-cockpit/                  ── 主 skill · 触发条件 / bootstrap CLI
-  ├── docs-cockpit-standup/          ── 读 state.json · 单项目 narrative
-  └── docs-cockpit-portfolio/        ── 跨项目 weekly + diff
+skills/                              ── v1.0 三件套
+  ├── use-docs-cockpit/              ── 入口路由 skill · SessionStart hook 注入 · 分诊到 build / rebuild
+  ├── docs-cockpit-build/            ── 7-phase 关联系统构建流程
+  └── docs-cockpit-rebuild/          ── 5-phase 漂移诊断 + 刷新 + 状态叙事
 
-commands/
-  ├── build.md / lint.md / status.md
-  ├── migrate.md / browse.md / update.md
-  └── weekly.md
+commands/                            ── v1.0 五个(render 原名 build)
+  ├── render.md / lint.md
+  ├── migrate.md / browse.md
+  └── update.md
 ```
+
+（v0.10 旧布局对照:~~docs-cockpit 主 skill / docs-cockpit-standup / docs-cockpit-portfolio / docs-cockpit-author 四 skill~~ 与 ~~build.md / status.md / weekly.md 三 command~~ 已在 v1.0 删除或重组为上述三件套 + render.md）
 
 ## §2 · 关键文件
 
@@ -45,12 +47,12 @@ commands/
 | `.claude-plugin/plugin.json` | 版本 + skill / command 注册 · 4 文件 release 同步 bump |
 | `.claude-plugin/marketplace.json` | 用户安装入口 · 同上 |
 | ~~`skills/docs-cockpit/SKILL.md`~~ | 主 skill · 已在 v1.0 删除（路由→use-docs-cockpit · 流程→build/rebuild · 运维→references/operations.md） |
-| `commands/*.md` | 8 个 slash command 入口 |
+| `commands/*.md` | slash command 入口 · v1.0 余 5 个(原 8 个) |
 
 ## 3 · 待办
 
 - [x] v0.10 · 4 skills 全部在线 @docs:CLAUDE.md:88-100 <!-- skill anchors removed: v0.10 的 4 个 skill 均已在 v1.0 删除/重组 -->
-- [x] v0.10 · 8 commands 全部在线 @code:commands/build.md @code:commands/lint.md @code:commands/status.md @code:commands/migrate.md @code:commands/browse.md @code:commands/update.md @code:commands/weekly.md @docs:CLAUDE.md:158
+- [x] v0.10 · 8 commands 全部在线 @code:commands/render.md @code:commands/lint.md @code:commands/migrate.md @code:commands/browse.md @code:commands/update.md @docs:CHANGELOG.md#0.10.0 <!-- v1.0:status / weekly 两 command 已删 · build 改名 render · 历史锚指向 0.10.0 release 节 -->
 - [x] First-build bootstrap(uv tool / pipx / pip --user 优先级) @docs:references/operations.md @docs:CLAUDE.md:109-114 <!-- 原 anchor 指向主 skill · v1.0 删除 · bootstrap 知识已迁运维参考 -->
 - [x] docs-cockpit upgrade 原子升级(plugin cache 失效 + 重启提示) @code:docs_cockpit/upgrade.py:211-350 @code:docs_cockpit/upgrade.py:193-209 @code:docs_cockpit/upgrade.py:120-133 @docs:references/operations.md @docs:CLAUDE.md:148
 - [x] v0.11 skill section · prompt scaffolding 触发条件 + CLI 用法 @docs:docs/plans/P-v0.11-driver-seat.md#§6.2 @docs:docs/plans/P-v0.11-driver-seat.md:566-577 @docs:docs/plans/P-v0.11-driver-seat.md:367 <!-- code anchor removed: 主 skill 已在 v1.0 删除 · driver-seat skill section 未迁移（内容过时） -->

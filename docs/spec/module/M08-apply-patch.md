@@ -5,18 +5,20 @@ title: "Apply Patch CLI"
 status: done
 sprint: "0.12"
 progress: 100
-desc: "docs-cockpit apply-patch · 把 LLM 输出的 frontmatter YAML patch 自动落回 MD · refine 流程模式 B 收口"
+desc: "（v1.0 已移除 · 历史模块）docs-cockpit apply-patch · 把 LLM 输出的 frontmatter YAML patch 自动落回 MD · refine 流程模式 B 收口"
 owner: harvey
 prd_ref: "v0.11 driver-seat plan §11 v0.12 候选 · refine.md.j2 模式 B 后端"
 docs:
   - { title: "v0.11 driver-seat plan · v0.12 候选",      path: "docs/plans/P-v0.11-driver-seat.md" }
   - { title: "AI-augmented precision sub-plan",         path: "docs/plans/P-v0.11-ai-augmented-precision-alpha7-2026-05-18.md" }
-  - { title: "refine prompt template",                  path: "docs_cockpit/templates/prompts/refine.md.j2" }
+  - { title: "0.12.0 发布记录",                          path: "CHANGELOG.md" }
 depends_on: []
 blocks: [M07]
 ---
 
 # M08 · Apply Patch CLI
+
+> **v1.0 已移除 · 历史模块** — apply-patch CLI 与配套 refine 模板已在 v1.0 随认知 CLI 层删除（现在由 Agent 用 Edit 工具直接改 frontmatter）。本模块保留为 0.12 sprint 的历史记录（特性曾完整 ship · 故 `status: done` 不变）· 发布详情见 CHANGELOG 的 0.12.0 节。
 
 ## §1 · 范围
 
@@ -34,10 +36,10 @@ docs-cockpit apply-patch --apply patch.yaml            # 从文件读也行
 
 | 文件 | 角色 |
 |---|---|
-| `docs_cockpit/apply_patch.py` | 主模块 · `parse_patch` / `apply_to_md` / `compute_diff` 三个核心函数 |
-| `docs_cockpit/cli.py::cmd_apply_patch` | argparse 入口 · 支持 stdin / 文件输入 · dry-run-first |
-| `tests/unit/test_apply_patch.py` | patch 格式 / 冲突检测 / .bak 备份 单测 |
-| `tests/integration/test_apply_patch_e2e.py` | 端到端:`refine.md.j2` 输出 patch → apply → 跑 build 验证 anchor 落地 |
+| ~~`docs_cockpit/apply_patch.py`~~ | 主模块 · `parse_patch` / `apply_to_md` / `compute_diff` 三个核心函数（v1.0 已删） |
+| ~~`docs_cockpit/cli.py::cmd_apply_patch`~~ | argparse 入口 · 支持 stdin / 文件输入 · dry-run-first（v1.0 已删） |
+| ~~`tests/unit/test_apply_patch.py`~~ | patch 格式 / 冲突检测 / .bak 备份 单测（v1.0 已删） |
+| ~~`tests/integration/test_apply_patch_e2e.py`~~ | 端到端:`refine.md.j2` 输出 patch → apply → 跑 build 验证 anchor 落地（v1.0 已删） |
 
 ## §3 · patch 格式
 
@@ -57,10 +59,10 @@ subtasks:
 
 ## §4 · 待办
 
-- [x] patch 格式 spec(subtask id-based · frontmatter-only · 不动 body checklist) @code:docs_cockpit/apply_patch.py:31-37 @code:docs_cockpit/templates/prompts/refine.md.j2 @docs:docs/spec/module/M08-apply-patch.md#§3 @docs:docs/plans/P-v0.11-ai-augmented-precision-alpha7-2026-05-18.md:133-148
-- [x] `parse_patch(text) -> dict` · 走 PyYAML safe_load · 校验 schema(必须有 id / 字段在白名单 status/code/docs/desc) @code:docs_cockpit/apply_patch.py:50-94 @code:docs_cockpit/schema.py:421-475 @docs:docs/plans/P-v0.11-ai-augmented-precision-alpha7-2026-05-18.md:133-148
-- [x] `apply_to_md(patch, md_path) -> (diff, conflicts)` · 读 frontmatter · 按 subtask.id 找 · merge · 写回 @code:docs_cockpit/apply_patch.py:191-219 @code:docs_cockpit/build.py:712-779 @docs:docs/plans/P-v0.11-ai-augmented-precision-alpha7-2026-05-18.md:133-148
-- [x] 冲突检测:patch 想改 M03-e6adea 但用户手改过 · 走「user wins · skip with warning」语义 · 或 `--force` 覆盖 @code:docs_cockpit/apply_patch.py:120-187
-- [x] `.bak` 备份 · 与 migrate-subtasks 一致 @code:docs_cockpit/apply_patch.py:248-272 @code:docs_cockpit/build.py:712-779
-- [x] dry-run / --apply · diff 输出走 unified diff 格式 · 跟 git diff 一致 @code:docs_cockpit/apply_patch.py:221-235 @code:docs_cockpit/cli.py:181-198
-- [x] 端到端集成测试 · 跑完 refine 流程把 patch 喂进来 · 验证 anchor 落到项目状态里 @code:tests/unit/test_apply_patch.py:1-285 @code:docs_cockpit/templates/prompts/refine.md.j2 @docs:docs/plans/P-v0.11-ai-augmented-precision-alpha7-2026-05-18.md:156-161
+- [x] patch 格式 spec(subtask id-based · frontmatter-only · 不动 body checklist) @docs:CHANGELOG.md#0.12.0 @docs:docs/spec/module/M08-apply-patch.md#§3 @docs:docs/plans/P-v0.11-ai-augmented-precision-alpha7-2026-05-18.md:133-148
+- [x] `parse_patch(text) -> dict` · 走 PyYAML safe_load · 校验 schema(必须有 id / 字段在白名单 status/code/docs/desc) @docs:CHANGELOG.md#0.12.0 @docs:docs/plans/P-v0.11-ai-augmented-precision-alpha7-2026-05-18.md:133-148
+- [x] `apply_to_md(patch, md_path) -> (diff, conflicts)` · 读 frontmatter · 按 subtask.id 找 · merge · 写回 @docs:CHANGELOG.md#0.12.0 @docs:docs/plans/P-v0.11-ai-augmented-precision-alpha7-2026-05-18.md:133-148
+- [x] 冲突检测:patch 想改 M03-e6adea 但用户手改过 · 走「user wins · skip with warning」语义 · 或 `--force` 覆盖 @docs:CHANGELOG.md#0.12.0
+- [x] `.bak` 备份 · 与原 migrate-subtasks(v1.0 已删)一致 @docs:CHANGELOG.md#0.12.0
+- [x] dry-run / --apply · diff 输出走 unified diff 格式 · 跟 git diff 一致 @docs:CHANGELOG.md#0.12.0
+- [x] 端到端集成测试 · 跑完 refine 流程把 patch 喂进来 · 验证 anchor 落到项目状态里 @docs:CHANGELOG.md#0.12.0 @docs:docs/plans/P-v0.11-ai-augmented-precision-alpha7-2026-05-18.md:156-161

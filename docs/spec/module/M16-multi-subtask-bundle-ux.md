@@ -34,7 +34,7 @@ blocks: [M17]
     └─────────────────────────────────────────────────┘
 ```
 
-ⓘ tooltip · 显 M17 build-time 算好的 cohesion / conflict score(M16 只读不算)。
+ⓘ tooltip · 显 M17 build-time 算好的 cohesion / conflict score(M16 只读不算)。(v1.0 注:M17 sidecar 已删 · verdict 走 fallback 文案 · Copy 按钮改为前端拼自然语言 bundle prompt)
 
 ## §2 · 关键文件
 
@@ -54,6 +54,6 @@ blocks: [M17]
 - [x] `<aside id="bundle-bar" hidden>` · fixed bottom · HP 蓝 [Copy bundle prompt] 按钮 + outline [Clear] @code:docs_cockpit/templates/index.html.tmpl
 - [x] `_renderBundleBar()` · N≥1 显 / 走 `window.__BUNDLE_META__` 算 cohesion verdict 显在 verdict span @code:docs_cockpit/templates/index.html.tmpl
 - [x] [Clear] 清 selection · re-render backlog 清 checked 状态 @code:docs_cockpit/templates/index.html.tmpl
-- [x] [Copy bundle prompt] · 走 CLI command copy(MVP · 复制 `docs-cockpit prompt --bundle <ids> --copy` 命令到剪贴板)· 用户终端跑一次拿真 prompt @code:docs_cockpit/templates/index.html.tmpl
-- [x] i18n EN/中 · bundle.copy / bundle.clear / toast.bundle_cli_copied @code:docs_cockpit/templates/index.html.tmpl
+- [x] [Copy bundle prompt] · v1.0 改为前端拼自然语言 bundle prompt(选中 subtask 的 id+title 列表)直接进剪贴板 · 原 MVP 复制 CLI 命令(该 CLI v1.0 已删) @code:docs_cockpit/templates/index.html.tmpl
+- [x] i18n EN/中 · bundle.copy / bundle.clear / bundle.prompt_head / bundle.prompt_tail / toast.bundle_prompt_copied(原 toast.bundle_cli_copied · v1.0 随 Copy 行为改) @code:docs_cockpit/templates/index.html.tmpl
 - [x] [Copy bundle prompt] 状态 · 当 `window.__BUNDLE_META__` 没加载 verdict span 显 fallback message @code:docs_cockpit/templates/index.html.tmpl
