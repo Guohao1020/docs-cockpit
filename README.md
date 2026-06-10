@@ -4,47 +4,55 @@
 
 [![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](pyproject.toml)
-[![CHANGELOG](https://img.shields.io/badge/CHANGELOG-0.14.3-green.svg)](CHANGELOG.md)
+[![CHANGELOG](https://img.shields.io/badge/CHANGELOG-1.0.0-green.svg)](CHANGELOG.md)
 [![PRs welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](#contributing)
 
 > **Open-source MIT-licensed project. Issues + PRs welcome.**
 > **Landing page:** <https://guohao1020.github.io/docs-cockpit/>
 
-A project cockpit for AI-coding agents. Turn any folder of project markdown files (modules, concepts, plans, RFCs, specs) into a single-HTML **Kanban dashboard** + **Backlog view** + **tree-sidebar reader** you open with `file://`. Frontmatter-driven, schema-validated, AI-agent-native. **Claude Code · Cursor · Codex CLI · Continue** all connect via the MCP server.
+A project cockpit for AI-coding agents. Turn any folder of project markdown files (modules, concepts, plans, RFCs, specs) into a single-HTML **Kanban dashboard** + **Backlog view** + **tree-sidebar reader** you open with `file://`. Frontmatter-driven, schema-validated, AI-agent-native.
 
-> Your AI agent stops asking "what frontmatter should I use?" — docs-cockpit ships the canonical spec as a skill, the validator that enforces it, and a copy-prompt CTA that hands AI the right context to write the next plan / RFC / spec / module subtask for you. Multi-project users get a portfolio registry + weekly snapshot diff so one command produces a cross-project weekly report.
+> Since v1.0 docs-cockpit is **skill-first**: the cognition — which module links to which doc, which subtask is backed by which plan section — lives in skills your agent reads; the Python CLI is a mechanical renderer. Install the plugin, open any project that has a `docs-cockpit.yaml`, and a SessionStart hook auto-injects a router into your agent's context — it knows how to use the cockpit before you say a word.
 
-### What's new — v0.11 → v0.14 (driver-seat narrative)
+### What's new — v1.0 (skill-first pivot)
 
-| Version | Theme | Headline |
-|---|---|---|
-| **0.11** | driver-seat | Subtask first-class · split-view UI · Copy-prompt button · author skill §11/§12 |
-| **0.12** | mode 1 wired | **MCP server** (Claude / Cursor / Codex direct) · `apply-patch` · `sync-status` · `suggest` CLIs |
-| **0.13** | polish | `code_anchors.path_only` clean fields · parser accepts `## §N · 待办` / `### TODO` · `--from-browser` Firefox · CSS specificity audit |
-| **0.14** | batch driver | `#/backlog` flat subtask view + time/sprint/status/search filters · multi-select + shift-click range · **`prompt --bundle`** cohesion-scored aggregate prompt |
+One sentence drove the pivot: **cognition lives in skills, Python only renders.** Doc association is judgment work — search, read, decide — and encoding it in CLI subcommands produced exactly the failure users reported: links that point nowhere. v1.0 moves all of that judgment into skill workflows that decide each linkage *with you*, in dialogue, under one north-star rule: **a wrong anchor is worse than a missing anchor.**
 
-Current: **`0.14.3` · 17/17 modules / 100% done (dogfood)**. Full timeline in [CHANGELOG.md](CHANGELOG.md).
+| v0.x | v1.0 |
+|---|---|
+| 4 auto-trigger skills with overlapping scopes | **1 entry router + 2 flow skills** — the router is auto-injected at session start |
+| Cognition-side CLI subcommands (prompt rendering, LLM suggestions, patch merging, …) | Removed — their judgment moved into the skill workflows |
+| MCP server as the agent interface | Removed — **the skill is the agent interface** |
+| `docs-cockpit build` | `docs-cockpit render` (the old name remains a deprecated alias until 1.1) |
+
+Full rationale: [`docs/plans/P-skill-first-pivot.md`](docs/plans/P-skill-first-pivot.md) · full timeline: [CHANGELOG.md](CHANGELOG.md).
 
 ## Quickstart
 
 Give your AI coding agent docs-cockpit:
 
 - **[Claude Code](#claude-code)** ✅ available now
-- **Codex CLI · Codex App · Factory Droid · Gemini CLI · OpenCode · Cursor · GitHub Copilot CLI** — packaging coming · the schema / validator / spec are agent-agnostic, only the skill-distribution layer differs
+- **Cursor** — the SessionStart router hook ships a Cursor adaptation (`hooks/hooks-cursor.json`); full packaging on the roadmap
+- **Codex CLI · Gemini CLI · OpenCode · GitHub Copilot CLI · …** — the dashboard / validator / spec are agent-agnostic (markdown skills + a Python CLI); only the skill-distribution layer differs per harness
 
-Once installed, the 4 skills auto-trigger when you talk to your agent — there's nothing to remember, no syntax to learn. The 7 slash commands give you explicit invocation surfaces when you want them.
+Once installed there is nothing to remember: in any docs-cockpit project the router skill is injected automatically at session start, and your agent routes cockpit-related requests to the right workflow on its own. Five slash commands give you explicit invocation surfaces when you want them.
 
 ## How it works
 
-The moment you ask your AI agent to track a project's progress, write a plan, generate a standup or weekly report, or fix frontmatter issues, docs-cockpit's skills auto-trigger.
+**One router, two flow skills, one mechanical CLI.**
 
-There's a skill for **setting up the cockpit** (`docs-cockpit`), a skill for **reading one project's state to answer status questions** (`docs-cockpit-standup`), and a skill for **producing cross-project weekly reports** (`docs-cockpit-portfolio`); the canonical doc spec lives in [`references/schema.md`](references/schema.md). The AI agent doesn't reinvent conventions each time — the skills _are_ the conventions.
+When a session starts in a project that has a `docs-cockpit.yaml`, the plugin's SessionStart hook injects the `use-docs-cockpit` router into your agent's context (in every other project the hook stays completely silent). The router's only job is dispatch:
 
-Under the hood, the build step reads YAML frontmatter from every markdown file you list, turns each into a card, and writes a self-contained HTML dashboard you can open with `file://` — no localhost, no static-site generator, no JS framework, no network call at runtime. A sidecar `state.json` carries the same payload plus structured frontmatter validation results, which the standup / portfolio skills read for narrative answers and CI reads for invariant checks.
+| You want to | Handled by |
+|---|---|
+| Build the association system 0→1 — set up the cockpit, plan the whole project's specs/plans, wire modules to docs, fill anchor gaps | **`docs-cockpit-build`** skill · 7-phase dialogue workflow: ensure config → discover all docs → reason about linkages → dry-run-verify every anchor → decide each one with you → write anchors + draft missing docs → render |
+| Refresh an EXISTING association that drifted — anchors stale after a refactor, specs evolved, links outdated | **`docs-cockpit-rebuild`** skill · 5 phases: read current state → diagnose drift → re-infer → minimal-diff refresh → render + verify |
+| Ask status questions — what's blocked, sprint progress, which modules stalled | **`docs-cockpit-rebuild` Phase 1** · reads `state.json`, answers, touches nothing |
+| Just regenerate the dashboard HTML | **`docs-cockpit render`** CLI · no association work |
 
-When you ask your AI to write a plan or spec for a module, the **docs-cockpit-build** skill walks the AI through the schema (required fields, status × progress invariants, file naming, cross-doc references — see `references/schema.md`) before any code touches disk. When the dashboard renders, modules with no `docs:` linkage show a copy-prompt CTA — pick `Plan` / `RFC` / `Spec`, see the full prompt rendered inline with your module's id / title / status / sprint / desc / body excerpt all substituted in, then click Copy and paste into your AI agent of choice.
+Under the hood, `render` reads YAML frontmatter from every markdown file you list, turns each into a card, and writes a self-contained HTML dashboard you open with `file://` — no localhost, no static-site generator, no JS framework, no network call at runtime. A sidecar `state.json` carries the same payload plus structured validation results — the rebuild skill reads it for status narratives, CI reads it for invariant checks.
 
-For multi-project users, a **user-level registry** (`~/.docs-cockpit/projects.yaml`) tracks every project across your machine. Run `docs-cockpit portfolio snapshot` weekly (or via cron / pre-commit), and the **portfolio** skill composes one weekly report aggregating all of them with week-over-week diff (newly done · newly blocked · progress jumps · new modules).
+The canonical doc spec — required fields, status × progress invariants, anchor syntax, file naming, cross-doc reference rules — lives in [`references/schema.md`](references/schema.md): one file your agent and you both read, and the validator cites it issue-by-issue. The agent doesn't reinvent conventions each time — **the skills are the conventions.**
 
 ## Installation
 
@@ -56,25 +64,14 @@ For multi-project users, a **user-level registry** (`~/.docs-cockpit/projects.ya
 /plugin install docs-cockpit@docs-cockpit
 ```
 
-That's the whole install. The plugin will check for the `docs-cockpit` Python runtime on first build and bootstrap it transparently (via `uv` / `pipx` / `pip` — whichever is on your machine) before doing anything else. Python 3.10+ is the only thing you need on PATH; everything else is handled.
-
-For the MCP server (Claude Code / Cursor / Codex CLI direct integration · v0.12+), install the optional `[mcp]` extra:
-
-```bash
-pip install 'docs-cockpit[mcp]'                       # or
-uv tool install --with mcp docs-cockpit
-```
-
-The plugin's `plugin.json` auto-registers the MCP server with Claude Code — restart and the three endpoints (`cockpit_prompt` / `cockpit_apply_patch` tools + `cockpit://state` resource) surface in the MCP tools list.
+That's the whole install. The plugin checks for the `docs-cockpit` Python runtime on first render and bootstraps it transparently (via `uv` / `pipx` / `pip` — whichever is on your machine) before doing anything else. Python 3.10+ is the only thing you need on PATH; everything else is handled.
 
 Once installed, the plugin gives you:
 
 ```
-/docs-cockpit:build       # generate dashboard + Backlog view + sidecars
+/docs-cockpit:render      # regenerate dashboard + state.json (explicit invocation)
 /docs-cockpit:browse      # generate tree-sidebar MD reader
 /docs-cockpit:migrate     # legacy-layout migration
-/docs-cockpit:status      # standup-style status report (single project)
-/docs-cockpit:weekly      # multi-project weekly report (cross-project diff)
 /docs-cockpit:lint        # validate frontmatter against references/schema.md
 /docs-cockpit:update      # upgrade docs-cockpit itself
 ```
@@ -82,43 +79,43 @@ Once installed, the plugin gives you:
 And these CLI subcommands (run from terminal):
 
 ```
-docs-cockpit build                              # → docs/index.html (+ state.json, prompts.js, bundle-meta.js)
-docs-cockpit prompt M07 M07-f75501              # single-subtask prompt → clipboard
-docs-cockpit prompt --bundle M07-A,M07-B,M11-X  # bundle prompt (v0.14+) · cohesion-scored aggregate
-docs-cockpit apply-patch <md> < patch.yaml      # LLM YAML patch → MD merge (v0.12+) · dry-run-first
-docs-cockpit sync-status --import overrides.json   # dashboard ticks → MD (v0.12+) · --from-browser firefox
-docs-cockpit suggest M07 --strict               # LLM soft-recommendation prompts (v0.12+) · CI-friendly
-docs-cockpit mcp-serve                          # stdio MCP server (v0.12+) · for Cursor / Codex / Continue
-docs-cockpit migrate-subtasks <md> --apply      # v0.10 → v0.11 subtask schema upgrade
-docs-cockpit portfolio add / list / snapshot    # multi-project registry + weekly diff (v0.10+)
-docs-cockpit upgrade                            # atomic version bump + plugin cache clear
+docs-cockpit render        # → docs/index.html (+ state.json, prompts.js)
+docs-cockpit build         # [deprecated] alias of render · removed in 1.1
+docs-cockpit lint          # frontmatter + body validation, no render · CI / pre-commit
+docs-cockpit init          # scaffold a minimal docs-cockpit.yaml
+docs-cockpit migrate       # scattered legacy MDs → canonical layout · dry-run first
+docs-cockpit browse        # single-file tree-sidebar MD reader
+docs-cockpit sync-status   # dashboard checkbox ticks → back into MD source
+docs-cockpit upgrade       # atomic CLI + plugin upgrade (cache clear + restart prompt)
 ```
 
-Plus 4 auto-triggered skills (you don't invoke these — your agent decides when to use them):
+Plus 3 skills (you don't invoke these — your agent decides when to use them):
 
-| Skill | When it triggers |
+| Skill | Role |
 |---|---|
-| **`docs-cockpit`** | "Set up a dashboard for this project" · "rebuild the cockpit" · "update docs-cockpit" |
-| **`docs-cockpit-standup`** | "What's blocked in Sourcery" · "sprint M1.2 progress" · "standup for this project" |
-| **`docs-cockpit-portfolio`** | "Weekly report" / "周报" · "how are all my projects going" · "add this project to my portfolio" |
+| **`use-docs-cockpit`** | Entry router · auto-injected at session start in any project with a `docs-cockpit.yaml` · routes everything below |
+| **`docs-cockpit-build`** | "set up a docs-cockpit" · "wire modules to specs" · "plan the whole project's docs" — 0→1 / whole-project association building, decided with you in dialogue |
+| **`docs-cockpit-rebuild`** | "anchors are stale" · "re-sync after refactor" · "what's blocked" — diagnose + refresh an existing association, or just read its state |
 
 ### Other AI coding agents
 
-Codex CLI, Codex App, Factory Droid, Gemini CLI, OpenCode, Cursor, GitHub Copilot CLI — packaging is on the roadmap. The dashboard / validator / spec are agent-agnostic (it's just markdown skills + a Python CLI); only the skill-distribution layer differs per harness.
+Cursor, Codex CLI, Gemini CLI, OpenCode, GitHub Copilot CLI — packaging is on the roadmap (Cursor already has a hook adaptation in `hooks/hooks-cursor.json`). The dashboard / validator / spec are agent-agnostic — it's markdown skills + a Python CLI; only the skill-distribution layer differs per harness.
 
 If you're packaging docs-cockpit for one of these, open an issue or PR.
 
 ## The basic workflow
 
-1. **Tell your AI agent to set up the cockpit** — "set up docs-cockpit for this project". The agent scans your repo's doc layout, suggests a config, runs the first build. For legacy projects with `docs/plans/` `docs/adrs/` `docs/RFC/` already in flight, the agent uses the migrate flow — dry-runs first, shows what it'll move where, then `git mv`'s + injects frontmatter scaffolds.
+1. **Tell your agent to set up the cockpit** — "set up docs-cockpit for this project". The build skill's Phase 0 scans your repo's doc layout, writes the config, runs the first render. For legacy projects with `docs/plans/` `docs/adrs/` `docs/RFC/` already in flight, it uses the migrate flow — dry-runs first, shows what moves where, then `git mv`'s + injects frontmatter scaffolds.
 
-2. **Author docs in conversation** — "write an execution plan for M07". The agent reads the canonical schema (`references/schema.md`), writes the frontmatter correctly the first time, drops the file in the right location (`docs/plans/YYYY-MM-DD-<id>-plan.md`), AND updates the source module's `docs:` link so the dashboard picks it up.
+2. **Build the association in dialogue** — "wire modules to docs", "plan the whole project's specs". The build skill discovers every doc, proposes module ↔ subtask ↔ doc-section linkages *with evidence*, dry-run-verifies every anchor before writing it, and asks you instead of guessing. Missing plan / spec docs get drafted per `references/schema.md` — correct frontmatter, right location (`docs/plans/YYYY-MM-DD-<id>-plan.md`), `docs:` link wired back to the module.
 
-3. **Build the dashboard** — "rebuild the cockpit". Open `docs/index.html` in your browser. Module Kanban renders, click any card → drawer shows desc / status select / progress slider / subtask checklist / linked docs with **inline MD preview** (marked.js renders the doc inside the drawer · no jumping to file:// raw view).
+3. **Render the dashboard** — "regenerate the dashboard" or `docs-cockpit render`. Open `docs/index.html` in your browser. Module Kanban renders, click any card → drawer shows desc / status select / progress slider / subtask checklist / linked docs with **inline MD preview** (marked.js renders the doc inside the drawer — no jumping to file:// raw view).
 
-4. **Track status** by asking — "what's blocked", "how's sprint M1.2". The `docs-cockpit-standup` skill reads `state.json` and produces tables / bullet lists / paste-ready Markdown. Read-only by design — never edits files.
+4. **Track status by asking** — "what's blocked", "how's sprint M1.2". The rebuild skill's Phase 1 reads `state.json` and produces tables / bullet lists / paste-ready Markdown. Pure status queries end there — no files touched.
 
-5. **Lint before commit** — "check frontmatter". Output is structured, every issue actionable:
+5. **Refresh after refactors** — "anchors are stale", "spec changed, re-sync the links". The rebuild skill diagnoses drift (lint + dry-run-verify every anchor), re-infers only the broken links, and keeps everything still accurate intact.
+
+6. **Lint before commit** — "check frontmatter". Output is structured, every issue actionable:
 
    ```
    ❌ M07.md · id: missing required field — module won't appear in dashboard
@@ -128,21 +125,18 @@ If you're packaging docs-cockpit for one of these, open an issue or PR.
 
    Three severities: `error` (won't render at all), `warn` (renders with broken state), `hint` (polish · improves copy-prompt context).
 
-6. **Multi-project weekly report** — register each project once (`docs-cockpit portfolio add` in each repo), schedule weekly snapshots (`docs-cockpit portfolio snapshot` via cron / Task Scheduler / pre-commit), then ask your AI for "weekly report" — the portfolio skill aggregates across all your projects with week-over-week diff.
+7. **Upgrade** — "update docs-cockpit". One command detects install backend, compares CLI + plugin layer versions, fetches CHANGELOG diff, asks confirmation, and atomically clears cache + prompts restart if the skill layer changed.
 
-7. **Upgrade** — "update docs-cockpit". One command detects install backend, compares CLI + plugin layer versions, fetches CHANGELOG diff, asks confirmation, and atomically clears cache + prompts restart if the plugin SKILL.md changed.
-
-## What's Inside
+## What's inside
 
 ### Dashboard features
 
-- **Module Kanban** — 5 status columns · click a card → split-view drawer with desc / status select / progress slider / subtask checklist (with per-subtask multi-anchor buttons + Copy prompt) / linked docs · localStorage-persisted overrides with build-time-aware invalidation
+- **Module Kanban + KPI strip** — 5 status columns · click a card → split-view drawer with desc / status select / progress slider / subtask checklist (with per-subtask anchor buttons + Copy prompt) / linked docs · localStorage-persisted overrides with build-time-aware invalidation
 - **Sprint Timeline** — modules grouped by sprint with avg %
-- **Backlog view (v0.14+)** — `#/backlog` hash route · flat cross-module subtask list · 4-axis filter (time / sprint / status / search) · URL state codec for shareable links
-- **Multi-select bundle (v0.14+)** — checkboxes per subtask · shift-click range · "Select all visible" · quick-add by status · floating bar with cohesion verdict → Copy bundle prompt (CLI command) → terminal runs `docs-cockpit prompt --bundle <ids>`
-- **Refine with AI button (v0.11+)** — per module · copies refinement prompt that asks the AI to audit anchor precision · caller-aware mode (Claude Code edits directly · browser-only LLM outputs YAML patch)
+- **Backlog view** — `#/backlog` hash route · flat cross-module subtask list · 4-axis filter (time / sprint / status / search) · URL state codec for shareable links
+- **Multi-select bundle** — checkboxes per subtask · shift-click range · "Select all visible" · quick-add by status · floating bar → Copy bundle prompt (a ready-to-paste prompt covering all selected subtasks)
 - **Concept Grid** + **System Docs Drawer** — curated entries (CLAUDE.md / PRD / DESIGN / RFC / memory / roadmap) one click away
-- **Auto body extraction** — `## 待办` / `## TODO` / `## §N · 待办` (v0.13+) → subtasks · `## Related` / `## 关联` → `docs:`
+- **Auto body extraction** — `## 待办` / `## TODO` → subtasks · `## Related` / `## 关联` → `docs:` · checklist lines carry `@code:` / `@docs:` anchors
 - **Inline MD preview** — click a linked doc / code anchor / doc anchor · marked.js + highlight.js render in right pane · slice info badge shows `📍 Showing lines X-Y of <file>`
 - **Empty-docs Copy-Prompt CTA** — `Plan` / `RFC` / `Spec` tabs · inline prompt preview · one Copy button · paste into your AI agent
 - **needs-docs kanban chip** — active modules without docs are flagged on the card
@@ -150,47 +144,33 @@ If you're packaging docs-cockpit for one of these, open an issue or PR.
 - **Bilingual UI** — `[EN] [中]` toggle in topbar · localStorage persists
 - **Tree-sidebar MD browser** (via `browse`) — sidebar mirrors directory layout · search + collapse + last-viewed memory · marked.js + highlight.js render
 
-### MCP server (v0.12+) · `docs-cockpit mcp-serve`
+### The skill layer
 
-Anthropic official `mcp` SDK · stdio transport. Three endpoints any MCP-aware client (Claude Code · Cursor · Codex CLI · Continue) can use:
+The plugin ships three skills plus a knowledge layer they read on demand:
 
-| Endpoint | Type | What it does |
-|---|---|---|
-| `cockpit_prompt(module_id, subtask_id?, template?)` | tool | Render single-subtask prompt (same as `docs-cockpit prompt` CLI) |
-| `cockpit_apply_patch(yaml_patch, module_id, apply?)` | tool | Merge LLM YAML patch back to MD · dry-run-first · `.bak` backup |
-| `cockpit://state` | resource | Full `state.json` payload (modules + subtasks + concepts + issues) |
+- `skills/use-docs-cockpit/` — the entry router, injected at session start by the SessionStart hook (conditionally: only in projects with a `docs-cockpit.yaml`)
+- `skills/docs-cockpit-build/` — the 7-phase association-building workflow (also owns cockpit setup + build debugging as its Phase 0)
+- `skills/docs-cockpit-rebuild/` — the 5-phase drift-diagnosis + refresh workflow (also answers status questions as its Phase 1)
+- `references/schema.md` — frontmatter + anchor field spec (the SSOT every validator issue cites)
+- `references/association-method.md` — the 4 atomic association methods (discovery / reasoning / dry-run verification / highlight)
+- `references/operations.md` — bootstrap / config / upgrade / troubleshooting runbook
 
-Wiring per client varies — see the MCP server module for transport details.
-
-### Schema closure (v0.12+) · backed by 4 CLIs
-
-- `prompt --bundle` (v0.14) renders aggregate prompt for N subtasks · `docs/bundle-meta.js` sidecar precomputes pairwise cohesion / conflict
-- `apply-patch` (v0.12 · M08) parses LLM YAML output · merges into MD frontmatter OR body checklist · whitelist fields (`status` / `code` / `docs` / `desc`) drop everything else
-- `sync-status` (v0.12 · M09) reverses dashboard ticks → MD source · Firefox SQLite reader (`--from-browser firefox`) · Chrome stub points to Export workflow
-- `suggest` (v0.12 · M10) LLM soft-recommendation prompts · 4 templates (`desc-rewrite` / `subtask-recompose` / `anchor-completeness` / `cross-doc-consistency`) · `--strict` for CI
-
-### Cross-project portfolio (0.10.0+)
-
-- **User-level registry** at `~/.docs-cockpit/projects.yaml` — managed via `docs-cockpit portfolio add/list/remove/tag`
-- **Weekly snapshots** at `~/.docs-cockpit/snapshots/<name>/<YYYY-MM-DD>.json` — run `docs-cockpit portfolio snapshot` (or cron / pre-commit)
-- **Weekly report skill** composes cross-project Markdown with sections: 🚀 Wins · 🔥 Blockers · 📋 In flight · 📈 Progress this week · 🆕 Added · 🥶 Stale · ⚠️ Frontmatter issues · plus cross-project highlights
-- **Week-over-week diff** computed from snapshots: newly done · newly blocked · progress jumps (≥15 points) · new modules · sprint moves
-- **Project picker** — when you ask for a weekly report, the portfolio skill shows a numbered list of registered projects + each project's current KPI summary; you pick by numbers / names / `all` / tag (e.g. `active`)
+There is no MCP server: since v1.0 the agent interface **is** the skill itself — your agent reads the markdown workflows and runs the same CLI you would. (The v0.12 MCP server was removed in 1.0.)
 
 ### Machine-readable sidecar: `state.json`
 
-Every build writes `docs/state.json` next to the HTML. Same payload as the dashboard + `issues[]` from the validator. The standup / portfolio skills read this for narrative answers; CI reads it for invariant checks. Schema is stable across 0.2.0+ (new fields are added, never removed).
+Every render writes `docs/state.json` next to the HTML. Same payload as the dashboard + structured `issues[]` from the validator. The rebuild skill's Phase 1 reads it for status narratives; CI reads it for invariant checks (`--strict`); any external tool can consume it. Schema is additive-only since 0.2.0 (new fields are added, never removed).
 
 ## Philosophy
 
+- **Cognition in skills, Python only renders** — association work is judgment (search, read, decide); the skills do it in dialogue with you, and the CLI stays deterministic. The agent is the interface; the CLI is the runtime.
+- **A wrong anchor is worse than a missing anchor** — a missing anchor is an honest gap; a wrong one sends you to irrelevant content and destroys trust in the whole dashboard. The skills dry-run-verify before writing, and ask instead of guessing.
 - **Single-file artifacts** — `docs/index.html` is self-contained · no localhost, no build pipeline, no JS framework, no network at runtime. Drop it in a Slack DM or commit it to the repo.
 - **Frontmatter as schema** — every module is a markdown file readable by humans AND machine-parseable from the YAML frontmatter. No proprietary database.
-- **One spec to rule them all** (`references/schema.md`) — the schema lives in one reference doc that both AI agents and humans can read. The validator references it line-by-line. No "ask Claude what frontmatter to use" each time.
+- **One spec to rule them all** (`references/schema.md`) — the schema lives in one reference doc that both AI agents and humans read. The validator references it line-by-line. No "ask the AI what frontmatter to use" each time.
 - **Validation is opt-in but actionable** — every `❌` and `⚠️` has a `💡 fix` and a `📚 see` reference. Output is greppable, IDE-consumable, and CI-friendly.
 - **`file://` first** — works without a webserver. Browsers' file:// security model is the deployment target.
 - **Atomic upgrades** — cache-clear + restart prompt happen in one operation. Ghost state (plugin running old SKILL.md after CLI upgraded) is the failure mode this prevents.
-- **AI-agent native** — designed for the AI-conversation workflow, not the CLI workflow. The CLI is the runtime; the agent is the interface.
-- **User-level portfolio** — one user maintains many projects; the registry and snapshots live under `~/.docs-cockpit/` so they're decoupled from any single repo and from Claude Code's install path.
 
 ## Reference
 
@@ -238,23 +218,13 @@ subtasks:                            # OR write `## TODO` in body — both work
 # Module body — anything below frontmatter
 ```
 
-Full spec: see [`references/schema.md`](references/schema.md). It defines the "docs vs subtasks" decision rule, file naming conventions, status × progress invariants, and cross-doc reference rules.
+Body checklists can pin every subtask to evidence — `- [ ] task text @code:src/worker/fsm.py:42-89 @docs:docs/RFC/004.md#§2.1` — and the build / rebuild skills dry-run-verify each anchor before writing it.
 
-### Multi-project registry layout
-
-```
-~/.docs-cockpit/
-├── projects.yaml                   ← registry · `docs-cockpit portfolio add/list/remove/tag`
-└── snapshots/
-    └── <project-name>/
-        └── <YYYY-MM-DD>.json       ← weekly state.json copy (for week-over-week diff)
-```
-
-Path uses `pathlib.Path.home()` — Windows `C:\Users\<name>\.docs-cockpit\` · POSIX `~/.docs-cockpit/`.
+Full spec: see [`references/schema.md`](references/schema.md). It defines the "docs vs subtasks" decision rule, anchor syntax, file naming conventions, status × progress invariants, and cross-doc reference rules.
 
 ## Updating
 
-Just ask your agent — "update docs-cockpit". The `docs-cockpit` skill walks through the upgrade flow: detect backend, compare versions, show CHANGELOG diff, confirm, run upgrade command, atomically clear cache + prompt restart if the plugin SKILL.md changed. `/docs-cockpit:update` gives you the same flow via explicit slash command.
+Just ask your agent — "update docs-cockpit". The router dispatches upgrade phrasings straight to the `docs-cockpit upgrade` CLI: detect backend, compare versions, show CHANGELOG diff, confirm, run upgrade, atomically clear cache + prompt restart if the skill layer changed. `/docs-cockpit:update` gives you the same flow via explicit slash command.
 
 ## Contributing
 
@@ -264,12 +234,13 @@ This is an open-source project — contributions of all sizes are welcome. The d
 git clone https://github.com/Guohao1020/docs-cockpit
 cd docs-cockpit
 pip install -e .              # editable install (Python 3.10+)
-docs-cockpit build -c docs_cockpit/examples/minimal.yaml --debug
+python -m pytest tests/ -q    # 253-test suite (unit + integration)
+docs-cockpit render -c docs_cockpit/examples/minimal.yaml --debug
 ```
 
 **Read [CLAUDE.md](CLAUDE.md) first** — it covers the architecture, the SemVer convention, the language conventions, and the easy-to-break things in this codebase.
 
-For new skills, follow the conventions in the existing four (`skills/docs-cockpit*/SKILL.md`) — frontmatter `description` is "pushy" (over-triggers rather than under-triggers), bodies explain the **why** rather than dictating **what**, file naming + section structure mirrors the canonical-skill style.
+For new skills, follow the conventions in the existing three (`skills/*/SKILL.md`) — frontmatter `description` is "pushy" routing (over-triggers rather than under-triggers, and names the sibling skill that handles the negative case), bodies explain the **why** rather than dictating **what**, file naming + section structure mirrors the canonical-skill style.
 
 Open an issue first for anything substantive (new feature, schema change, breaking change). Bug fixes and docs improvements can come as direct PRs.
 
@@ -283,5 +254,6 @@ MIT — see [LICENSE](LICENSE).
 - **Issues:** <https://github.com/Guohao1020/docs-cockpit/issues>
 - **Release notes:** [CHANGELOG.md](CHANGELOG.md)
 - **Architecture overview for contributors:** [CLAUDE.md](CLAUDE.md)
+- **Skill-first pivot spec:** [`docs/plans/P-skill-first-pivot.md`](docs/plans/P-skill-first-pivot.md)
 - **Sync workflow:** [`references/sync_status_workflow.md`](references/sync_status_workflow.md)
 - **Frontmatter spec (SSOT):** [`references/schema.md`](references/schema.md)
