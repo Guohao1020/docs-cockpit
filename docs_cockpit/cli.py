@@ -68,12 +68,12 @@ def main(argv: list[str] | None = None) -> int:
 
     build_p.set_defaults(func=_cmd_build_deprecated)
 
-    # 0.9.0:lint 子命令 · 只校验不 build · 配合 docs-cockpit-author skill 使用
+    # 0.9.0:lint 子命令 · 只校验不 build · 规范见 references/schema.md
     # 0.18.0(gap #3):lint = build 校验子集 · 跑跟 build 同款 issue collection ·
     #                  只是不写 HTML / state.json · 加 --include / --exclude / --legacy-schema-only
     lint_p = sub.add_parser(
         "lint",
-        help="校验 frontmatter + body 是否符合 docs-cockpit-author 规范(不 build · CI / pre-commit 用)",
+        help="校验 frontmatter + body 是否符合 references/schema.md 规范(不 build · CI / pre-commit 用)",
     )
     lint_p.add_argument("--config", "-c", default="docs-cockpit.yaml",
                        help="YAML 配置文件路径")

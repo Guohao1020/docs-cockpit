@@ -733,7 +733,7 @@ def cmd_build(args: argparse.Namespace) -> int:
             f"{len(warns)} warning(s) · {len(hints)} hint(s)"
         )
         _safe_print("     → run `docs-cockpit lint` to see only issues without rebuilding")
-        _safe_print("     → consult docs-cockpit-author skill for the spec")
+        _safe_print("     → spec: references/schema.md (frontmatter + anchor 字段规范)")
     _safe_print("")
     _safe_print("Open in browser (Claude Code: 点击对应系统的代码块右上角 run 一键执行):")
     _safe_print("")
@@ -759,7 +759,7 @@ def cmd_build(args: argparse.Namespace) -> int:
 
 # ── 0.9.0 · docs-cockpit lint(只校验不 build · CI / pre-commit 用)──
 def cmd_lint(args: argparse.Namespace) -> int:
-    """校验 frontmatter + body 是否符合 docs-cockpit-author 规范 · 不 build · 不写 HTML.
+    """校验 frontmatter + body 是否符合 references/schema.md 规范 · 不 build · 不写 HTML.
 
     退出码:
       0 · 全通过(可能仍有 hint · hint 不阻塞)
@@ -862,7 +862,7 @@ def cmd_lint(args: argparse.Namespace) -> int:
     hints = [i for i in issues if i.severity == "hint"]
 
     if not issues:
-        _safe_print("[OK] no frontmatter issues · all modules / concepts pass docs-cockpit-author spec")
+        _safe_print("[OK] no frontmatter issues · all modules / concepts pass the spec (references/schema.md)")
         return 0
 
     # JSON 输出(CI / IDE 消费 · 通过 --json)
@@ -883,7 +883,7 @@ def cmd_lint(args: argparse.Namespace) -> int:
         f"Summary · {len(errors)} error(s) · {len(warns)} warning(s) · {len(hints)} hint(s)"
     )
     _safe_print(
-        "Reference · docs-cockpit-author skill (frontmatter schema + body conventions)"
+        "Reference · references/schema.md (frontmatter schema + body conventions)"
     )
     if errors:
         return 1

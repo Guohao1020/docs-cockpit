@@ -185,11 +185,13 @@ class TestLintSubtaskTitles:
         for i in issues:
             assert i.severity == "warn"
 
-    def test_reference_points_to_section_16(self):
+    def test_reference_points_to_title_rules(self):
+        # v1.0 · author skill 删除后 reference 改指 references/schema.md 的现存节
         m = self._mk("Lane F · §3.1 同步")
         issues = lint_subtask_titles([m], "zh-CN")
         for i in issues:
-            assert "§16" in i.reference
+            assert "references/schema.md" in i.reference
+            assert "subtask title 4 法则" in i.reference
 
     def test_en_project_mix_with_cjk(self):
         m = self._mk("Implement 资源池 borrow/return")

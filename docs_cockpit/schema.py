@@ -64,17 +64,17 @@ def split_frontmatter(content: str) -> tuple[dict, str]:
     return _stringify_dates(meta), content[m.end():]
 
 
-# ── frontmatter governance 校验 (0.9.0 大改 · 接 docs-cockpit-author 规范) ──
+# ── frontmatter governance 校验 (0.9.0 大改 · 规范 SSOT 现为 references/schema.md) ──
 #
 # 0.8.x 之前 validator 只校验 status 与 progress 区间 · 输出形如
 # "M01.md: progress=80 out of range" 这种干瘪的 warning · 用户实测说"光看
-# warning 不知道该怎么改"。0.9.0 配套 docs-cockpit-author skill 把规范固化:
+# warning 不知道该怎么改"。0.9.0 把规范固化(v1.0 起收编进 references/schema.md):
 #   - REQUIRED 字段:id · 不写就拿不到看板位置
 #   - RECOMMENDED 字段:status · sprint · 没有 status drawer 显示 not-started
 #   - OPTIONAL but high-value:desc · docs · subtasks
 # Issue 输出结构化(severity / field / message / suggestion / reference) · CLI
 # 端打印成"❌ M01: missing required `id` · 💡 add `id: M01-Web` to frontmatter
-# · 📚 docs-cockpit-author §2.1" 这种"问题 + 修法 + 引用"三段式。
+# · 📚 references/schema.md · frontmatter schema" 这种"问题 + 修法 + 引用"三段式。
 #
 # severity 分 3 档:
 #   error · 看板根本接不住 · build 仍写 HTML 但 --strict 模式下 exit 1
@@ -165,7 +165,7 @@ class Issue:
 # ── 0.16.0 · doc_language detect + subtask title lint ───────────────────
 #
 # 用户反馈 · subtask title 中英混 / 含 §N.M 编号 / 含文件名 · 不读
-# 治理走 author skill §16(规则)+ python lint(detect)二段。这里是 detect 部分。
+# 治理走 references/schema.md「subtask title 4 法则」(规则)+ python lint(detect)二段。这里是 detect 部分。
 
 # CJK Unicode 范围(简体 / 繁体 / 日韩共用 ideograph + 汉字补充)
 _CJK_RE = re.compile(
@@ -303,7 +303,7 @@ def lint_subtask_titles(
         - doc-lang-mix  warn   · title 跨 project_lang 界混语言
         - title-has-anchor warn · title 含 anchor 信息(应走 code/docs 字段)
 
-    Reference · 都指向 author skill §16(本 sprint 新加)。
+    Reference · 都指向 references/schema.md「subtask title 4 法则」。
     """
     out: list[Issue] = []
     if not modules:
@@ -332,7 +332,7 @@ def lint_subtask_titles(
                             "Rewrite in a single language matching project.doc_language · "
                             "tech tokens like 'API' / 'MCP' / 'CLI' are whitelist-OK"
                         ),
-                        reference="docs-cockpit-author · §16.2 title style 黄金法则",
+                        reference="references/schema.md · subtask title 4 法则",
                         category="doc-lang-mix",
                     )
                 )
@@ -352,7 +352,7 @@ def lint_subtask_titles(
                             "Move §N / file paths / line numbers / function names to "
                             "code_anchors[].path or doc_anchors[].raw · title should say WHAT user gets"
                         ),
-                        reference="docs-cockpit-author · §16.2 title style 黄金法则",
+                        reference="references/schema.md · subtask title 4 法则",
                         category="title-has-anchor",
                     )
                 )
@@ -369,7 +369,7 @@ def lint_subtask_anchors(modules: list[dict] | None) -> list[Issue]:
     阈值:`code_anchors` + `doc_anchors` 同时为空才报警。任有一边 = 有上下文锚点 ·
     不报警(允许 doc-only / code-only subtask)。
 
-    Reference · 指向 author skill §16.3 anchor 完整性 SOP。
+    Reference · 指向 references/schema.md「code anchor 格式 + doc anchor 格式」。
     """
     out: list[Issue] = []
     if not modules:
@@ -397,7 +397,7 @@ def lint_subtask_anchors(modules: list[dict] | None) -> list[Issue]:
                         suggestion=(
                             "在 body checklist 行末加 @code:path/file.py:N-M 跟 / 或 @docs:path.md#§N.M"
                         ),
-                        reference="docs-cockpit-author · §16.6 anchor 完整性 SOP + LLM verify",
+                        reference="references/schema.md · code anchor 格式 + doc anchor 格式",
                         category="subtask-missing-anchors",
                     )
                 )
@@ -451,7 +451,7 @@ def validate_sprint_plan(
                 path=path,
                 field="frontmatter",
                 message="sprint-plan frontmatter must be a YAML dict",
-                reference="docs-cockpit-author · §17 sprint-plan schema",
+                reference="sprint-plan frontmatter rules (docs-cockpit lint --include sprint-schema)",
                 category="sprint-schema",
             )
         )
@@ -467,10 +467,10 @@ def validate_sprint_plan(
                     field=f,
                     message=f"sprint-plan missing required field `{f}`",
                     suggestion=(
-                        f"add `{f}` to frontmatter · see template at "
-                        f"`docs_cockpit/templates/sprint-plan.md.j2`"
+                        f"add `{f}` to the sprint-plan frontmatter "
+                        f"(docs/plans/V<sprint>.md · required: id / type / title / status / window / goals)"
                     ),
-                    reference="docs-cockpit-author · §17 sprint-plan schema",
+                    reference="sprint-plan frontmatter rules (docs-cockpit lint --include sprint-schema)",
                     category="sprint-schema",
                 )
             )
@@ -496,10 +496,10 @@ def validate_sprint_plan(
                         f"tooling sprint 可显式 `{f}: []` 标记已 review"
                     ),
                     suggestion=(
-                        f"see template `docs_cockpit/templates/sprint-plan.md.j2` · "
-                        f"`{f}` semantics defined in author skill §17"
+                        f"fill `{f}` or write explicit `{f}: []` to mark it reviewed "
+                        f"(recommended fields: in_scope / prd_refs / dor / dod)"
                     ),
-                    reference="docs-cockpit-author · §17 sprint-plan schema",
+                    reference="sprint-plan frontmatter rules (docs-cockpit lint --include sprint-schema)",
                     category="sprint-schema",
                 )
             )
@@ -516,7 +516,7 @@ def validate_sprint_plan(
                     f"sprint-plan.status={status!r} invalid · must be one of "
                     f"{sorted(_SPRINT_PLAN_STATUSES)}"
                 ),
-                reference="docs-cockpit-author · §17 sprint-plan schema",
+                reference="sprint-plan frontmatter rules (docs-cockpit lint --include sprint-schema)",
                 category="sprint-schema",
             )
         )
@@ -582,10 +582,11 @@ def validate_sprint_plan(
                     field=f,
                     message=f"sprint-plan.{f} is empty · at least 1 item recommended",
                     suggestion=(
-                        f"see template · {f} = Definition of "
+                        f"{f} = Definition of "
                         f"{'Ready (DoR · 开干前条件)' if f == 'dor' else 'Done (DoD · 完成标准)'}"
+                        f" · 至少写 1 条"
                     ),
-                    reference="docs-cockpit-author · §17 sprint-plan schema",
+                    reference="sprint-plan frontmatter rules (docs-cockpit lint --include sprint-schema)",
                     category="sprint-schema",
                 )
             )
@@ -608,7 +609,7 @@ def lint_sprint_readiness(
     `enforce=True`(yaml `project.enforce_sprint_plans: true`)· 任何 module.sprint
                   没对应 sprint-plan 也报 warn(强制规范化)
 
-    Reference · author skill §17。
+    Reference · sprint-readiness DoR rules(docs-cockpit lint --include sprint-readiness)。
     """
     out: list[Issue] = []
     if not sprint_plans:
@@ -655,7 +656,7 @@ def lint_sprint_readiness(
                             f"是不是 module id typo · 或者还没 build?"
                         ),
                         suggestion="跑 `docs-cockpit render` 重建 state.json 后再 lint",
-                        reference="docs-cockpit-author · §17 sprint-readiness",
+                        reference="sprint-readiness DoR rules (docs-cockpit lint --include sprint-readiness)",
                         category="sprint-readiness",
                     )
                 )
@@ -685,7 +686,7 @@ def lint_sprint_readiness(
                                     f"对照 module `{mid}` MD 的 subtask 清单"
                                     f"(id = <module-id>-<sha1(title)[:6]>)修正本 sprint-plan"
                                 ),
-                                reference="docs-cockpit-author · §17 sprint-readiness",
+                                reference="sprint-readiness DoR rules (docs-cockpit lint --include sprint-readiness)",
                                 category="sprint-readiness",
                             )
                         )
@@ -713,7 +714,7 @@ def lint_sprint_readiness(
                                 "给 subtask 加 @code:path/file.py:N-M 跟 / 或 "
                                 "@docs:path.md#§N"
                             ),
-                            reference="docs-cockpit-author · §17 sprint-readiness (大模型参考文档)",
+                            reference="sprint-readiness DoR rules · 大模型参考文档 (docs-cockpit lint --include sprint-readiness)",
                             category="sprint-readiness",
                         )
                     )
@@ -755,7 +756,8 @@ def lint_sprint_readiness(
                                     f"里列的 PRD/RFC · 例:@docs:" + (next(iter(prd_paths)) if prd_paths else "docs/PRD/...")
                                 ),
                                 reference=(
-                                    "docs-cockpit-author · §17 sprint-readiness (需求对齐)"
+                                    "sprint-readiness DoR rules · 需求对齐 "
+                                    "(docs-cockpit lint --include sprint-readiness)"
                                 ),
                                 category="sprint-readiness",
                             )
@@ -786,7 +788,7 @@ def lint_sprint_readiness(
                             f"链路断了"
                         ),
                         suggestion="检查 path 是否拼错 · 或者文件改名后没更新",
-                        reference="docs-cockpit-author · §17 sprint-readiness",
+                        reference="sprint-readiness DoR rules (docs-cockpit lint --include sprint-readiness)",
                         category="sprint-readiness",
                     )
                 )
@@ -819,7 +821,7 @@ def lint_sprint_readiness(
                         f"在 docs/plans/ 手写一份 V{ms}.md sprint-plan"
                         f"(frontmatter `type: sprint-plan` + `id: V{ms}`)"
                     ),
-                    reference="docs-cockpit-author · §17 sprint-readiness (enforce)",
+                    reference="sprint-readiness DoR rules · enforce mode (docs-cockpit lint --include sprint-readiness)",
                     category="sprint-readiness",
                 )
             )
@@ -952,8 +954,8 @@ def validate_meta(
 ) -> list[Issue]:
     """返结构化 Issue 列表 · 不抛 · 让 build 继续.
 
-    docs-cockpit-author skill 是 spec 的规范来源 · 这里只把 frontmatter
-    跟规范对齐 · 不增不减 · 改 skill 同步改这里。
+    references/schema.md 是 spec 的规范来源(SSOT)· 这里只把 frontmatter
+    跟规范对齐 · 不增不减 · 改 schema.md 同步改这里。
     """
     issues: list[Issue] = []
 
@@ -964,14 +966,14 @@ def validate_meta(
             "error", path, "id",
             "missing required field — module/concept won't appear in dashboard",
             suggestion=f'add `id: M01-{path.stem[:8]}` (or your project ID convention) to frontmatter',
-            reference="docs-cockpit-author · §2.1 required frontmatter",
+            reference="references/schema.md · frontmatter schema (required fields)",
         ))
     elif isinstance(doc_id, str) and ("XX" in doc_id or doc_id.endswith("XXX")):
         issues.append(Issue(
             "warn", path, "id",
             f"id `{doc_id}` looks like a template placeholder · this entry will be skipped",
             suggestion="replace XX/XXX with a concrete identifier (e.g. M07, RFC-002, C03)",
-            reference="docs-cockpit-author · §2.1 required frontmatter",
+            reference="references/schema.md · frontmatter schema (required fields)",
         ))
 
     # ── RECOMMENDED: status · drawer 的状态指示靠它 ──────
@@ -981,7 +983,7 @@ def validate_meta(
             "warn", path, "status",
             "missing — dashboard will treat this as `not-started`",
             suggestion='set `status: planned` / `in-progress` / `done` etc.',
-            reference="docs-cockpit-author · §2.2 status enum",
+            reference="references/schema.md · frontmatter schema (status enum)",
         ))
     elif status not in VALID_STATUSES:
         valid = " · ".join(sorted(VALID_STATUSES))
@@ -989,7 +991,7 @@ def validate_meta(
             "error", path, "status",
             f"unknown status `{status}` — dashboard renders fallback dot",
             suggestion=f"pick one of: {valid}",
-            reference="docs-cockpit-author · §2.2 status enum",
+            reference="references/schema.md · frontmatter schema (status enum)",
         ))
 
     # ── status × progress 区间一致性 ─────────────────────
@@ -1004,14 +1006,14 @@ def validate_meta(
                     "either move status forward (e.g. `in-progress`) "
                     f"or bring progress back to the {lo}-{hi} band"
                 ),
-                reference="docs-cockpit-author · §2.3 status × progress invariants",
+                reference="references/schema.md · frontmatter schema (status × progress invariants)",
             ))
     elif progress is not None and not isinstance(progress, (int, float)):
         issues.append(Issue(
             "error", path, "progress",
             f"progress must be a number 0-100 · got {type(progress).__name__} `{progress!r}`",
             suggestion="use `progress: 75` (integer 0-100), not strings or percentages",
-            reference="docs-cockpit-author · §2.3 status × progress invariants",
+            reference="references/schema.md · frontmatter schema (status × progress invariants)",
         ))
 
     # ── 0.11.0-alpha.4:status × subtasks 一致性(用户实测反馈)──
@@ -1043,17 +1045,17 @@ def validate_meta(
                     suggestion=(
                         f"把剩余 {sub_total - sub_done} 个 subtask 勾上 · 或把 module status 调回 in-progress"
                     ),
-                    reference="docs-cockpit-author · §2.3 status × subtasks invariants",
+                    reference="references/schema.md · frontmatter schema (status enum × subtasks consistency)",
                 ))
             elif status == "not-started" and sub_done > 0:
                 issues.append(Issue(
                     "warn", path, "status",
                     f"status=`not-started` but {sub_done}/{sub_total} subtask(s) already done",
                     suggestion="bump status to `in-progress` to reflect actual state",
-                    reference="docs-cockpit-author · §2.3 status × subtasks invariants",
+                    reference="references/schema.md · frontmatter schema (status enum × subtasks consistency)",
                 ))
 
-    # ── type 字段(可选 · 但写错会让 author skill 困惑)──
+    # ── type 字段(可选 · 但写错会破坏 doc-type 过滤)──
     doc_type = meta.get("type")
     if doc_type is not None and doc_type not in VALID_DOC_TYPES:
         valid = " · ".join(sorted(VALID_DOC_TYPES))
@@ -1061,7 +1063,7 @@ def validate_meta(
             "warn", path, "type",
             f"unknown type `{doc_type}` — won't affect rendering but breaks doc-type filters",
             suggestion=f"pick one of: {valid}",
-            reference="docs-cockpit-author · §2.4 doc type enum",
+            reference="references/schema.md · frontmatter schema (doc type enum)",
         ))
 
     # ── HINTS · 锦上添花 ────────────────────────────────
@@ -1070,7 +1072,7 @@ def validate_meta(
             "hint", path, "desc",
             "no description — drawer shows '(empty)' and copy-prompt has less context",
             suggestion='add `desc: "<one-line summary>"` so AI editors can generate better plans',
-            reference="docs-cockpit-author · §2.5 recommended fields",
+            reference="references/schema.md · frontmatter schema (recommended fields)",
         ))
 
     docs_field = meta.get("docs")
@@ -1082,7 +1084,7 @@ def validate_meta(
                 "hint", path, "docs",
                 "no docs link · dashboard shows the 'copy prompt' CTA on active modules",
                 suggestion="add a `docs:` list or a `## Related` body section once a plan/RFC exists",
-                reference="docs-cockpit-author · §3 cross-doc references",
+                reference="references/schema.md · cross-doc 字段",
             ))
 
     return issues
@@ -1210,7 +1212,7 @@ def validate_subtask_schema(
                 "error", path, f"subtasks[{i}].title",
                 "missing — subtask without title is invisible in drawer",
                 suggestion="add `title: \"<one-line description>\"` to the subtask object",
-                reference="docs-cockpit-author · §2.4 subtask schema",
+                reference="references/schema.md · subtask 格式",
             ))
             continue
 
@@ -1221,14 +1223,14 @@ def validate_subtask_schema(
                 "error", path, f"subtasks[{i}].id",
                 f"missing id for `{title[:40]}` — localStorage status persistence will break",
                 suggestion=f"add `id: \"{module_id}-S1\"` (or use normalize_subtasks auto-gen)",
-                reference="docs-cockpit-author · §2.4 subtask schema",
+                reference="references/schema.md · subtask 格式",
             ))
         elif sub_id in seen_ids:
             issues.append(Issue(
                 "error", path, f"subtasks[{i}].id",
                 f"duplicate id `{sub_id}` — only the first will show in drawer",
                 suggestion="rename one · ids must be unique within a module",
-                reference="docs-cockpit-author · §2.4 subtask schema",
+                reference="references/schema.md · subtask 格式",
             ))
         else:
             seen_ids.add(sub_id)
@@ -1241,7 +1243,7 @@ def validate_subtask_schema(
                 "error", path, f"subtasks[{i}].status",
                 f"unknown status `{status}` for `{title[:40]}`",
                 suggestion=f"pick one of: {valid}",
-                reference="docs-cockpit-author · §2.4 subtask schema",
+                reference="references/schema.md · subtask 格式",
             ))
 
     return issues
@@ -1409,7 +1411,7 @@ def _apply_body_checklist_path(
         if match_idx is None:
             conflicts.append(
                 f"subtask {target_id} · body checklist 找不到 title 推导出该 id 的行 · "
-                f"(检查 title 是否变了?· title 变 → id 变 · 见 author skill §3.1.1)"
+                f"(检查 title 是否变了?· title 变 → id 变 · 见 references/schema.md · subtask 格式 的 id 算法)"
             )
             continue
 
