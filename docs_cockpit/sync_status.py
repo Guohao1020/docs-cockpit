@@ -221,7 +221,7 @@ def sync_to_repo(
     if not state_path.exists():
         raise SyncStatusError(
             f"state.json not found at {state_path} · "
-            f"run `docs-cockpit build` first"
+            f"run `docs-cockpit render` first"
         )
     try:
         state = json.loads(state_path.read_text(encoding="utf-8"))

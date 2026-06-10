@@ -2,6 +2,6 @@
 
 按 spec/plan 范式实施(Read 参考 → 实施 → 回写驾驶舱)。有 fs 工具(Claude Code / Cursor / Codex CLI)就一次干完:
 - 改 `{{ module._source_path or 'docs/spec/module/' + module.id + '.md' }}` body checklist · `{{ subtask.id }}` 行 `[ ]` → `[x]` · 行尾追 `@code:path:start-end` / `@docs:path#§N.M`
-- `docs-cockpit build` · 简短报告
+- `docs-cockpit render` · 简短报告
 
 没 fs 工具就输出 `subtasks: [{id: {{ subtask.id }}, status: done, ...}]` YAML patch 让用户自己 apply。

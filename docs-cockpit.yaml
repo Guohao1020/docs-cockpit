@@ -5,7 +5,7 @@
 # 验证 v0.10 schema 能否承载自己 + 暴露 v0.11 W1 设计输入。
 #
 # 跑:
-#   docs-cockpit build
+#   docs-cockpit render
 # 输出:
 #   docs/index.html  · cockpit dashboard
 #   docs/state.json  · 机器可读 sidecar

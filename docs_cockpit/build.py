@@ -905,7 +905,7 @@ def cmd_init(args: argparse.Namespace) -> int:
         return 2
     target.write_text(template_yaml.read_text(encoding="utf-8"), encoding="utf-8")
     _safe_print(f"[OK] wrote {target}")
-    _safe_print("     edit, then run: docs-cockpit build")
+    _safe_print("     edit, then run: docs-cockpit render")
     return 0
 
 

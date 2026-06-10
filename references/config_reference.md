@@ -230,7 +230,7 @@ build 流程:
 3. 每条 entry 的 `path` 经过 `{var}` 替换 → `pathlib.Path`
 4. `Path.exists()` 判断 → 不存在则跳过(modules / concepts)或保留(system_docs)
 
-排错:`docs-cockpit build --debug` 打印解析后 `vars_` 字典 + output 路径。最常见的坑是 `paths.repo` 写错 —— 大多数情况下**把 `paths.repo` 干脆删掉**即可。
+排错:`docs-cockpit render --debug` 打印解析后 `vars_` 字典 + output 路径。最常见的坑是 `paths.repo` 写错 —— 大多数情况下**把 `paths.repo` 干脆删掉**即可。
 
 ---
 
@@ -246,4 +246,4 @@ modules:
     title_transform: prefix-dot-titlecase
 ```
 
-只要 `docs/spec/module/M*.md` 里有 frontmatter 带 `id` · 跑 `docs-cockpit build` 就出 dashboard。
+只要 `docs/spec/module/M*.md` 里有 frontmatter 带 `id` · 跑 `docs-cockpit render` 就出 dashboard。

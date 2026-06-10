@@ -80,7 +80,7 @@ blocks: []
 ## 完成 + 同步驾驶舱(N 个 subtask 都要勾完才报告)
 - 按推荐顺序串行实施
 - 每个 subtask done 改对应 body checklist `[ ]` → `[x]`
-- 全部完成跑 docs-cockpit build · 简短报告 N 个 subtask 都做了什么
+- 全部完成跑 docs-cockpit render · 简短报告 N 个 subtask 都做了什么
 - (没 fs 工具就输出 N 行 YAML patch 让用户复制)
 ```
 

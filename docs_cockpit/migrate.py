@@ -14,7 +14,7 @@
 - `docs/spec/module/M{NN}-{slug}.md` · 含 frontmatter (id/title/status/sprint/progress)
 - `docs/spec/concept/C{NN}-{slug}.md` (如有)
 - `docs-cockpit.yaml` · 含 project / paths / system_docs / modules / concepts / frontmatter
-- 用户跑 `docs-cockpit build` 即出 dashboard
+- 用户跑 `docs-cockpit render` 即出 dashboard
 """
 
 from __future__ import annotations
@@ -445,5 +445,5 @@ def cmd_migrate(args: argparse.Namespace) -> int:
     _safe_print(f"\n  ✓ Wrote {yaml_path.relative_to(repo_root)}")
     _safe_print("")
     _safe_print("Next:")
-    _safe_print("  docs-cockpit build")
+    _safe_print("  docs-cockpit render")
     return 0

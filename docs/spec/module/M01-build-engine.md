@@ -21,7 +21,7 @@ blocks: [M02]
 
 ## §1 · 范围
 
-`docs-cockpit build` 的核心 pipeline · 把项目根的 `docs-cockpit.yaml` + `docs/spec/{module,concept}/*.md` + system_docs 卷成单文件 dashboard:
+`docs-cockpit render` 的核心 pipeline · 把项目根的 `docs-cockpit.yaml` + `docs/spec/{module,concept}/*.md` + system_docs 卷成单文件 dashboard:
 
 ```
 docs-cockpit.yaml + MD files

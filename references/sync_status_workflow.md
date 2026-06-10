@@ -50,7 +50,7 @@ Writes each touched MD with a `.bak` backup sibling. Standard dry-run-first patt
 ```bash
 git add docs/spec/module/*.md
 git commit -m "sync: dashboard ticks → source MD"
-docs-cockpit build -c docs-cockpit.yaml
+docs-cockpit render -c docs-cockpit.yaml
 ```
 
 The rebuild's 0.11.3 logic then invalidates the now-stale localStorage entries (because the new `build_time` ≠ stored `_built_at`) — the dashboard re-renders from source and the loop closes cleanly.
@@ -78,7 +78,7 @@ Each machine:
 1. Work in dashboard · tick checkboxes locally
 2. Before context switch · Export overrides → save in `~/Downloads`
 3. On the other machine · pull the JSON file → `sync-status --apply` → commit MD
-4. Other machine `git pull` → `docs-cockpit build` → dashboard now reflects synced state
+4. Other machine `git pull` → `docs-cockpit render` → dashboard now reflects synced state
 
 ### Pattern B · Weekly cadence (recommended for solo developers)
 
