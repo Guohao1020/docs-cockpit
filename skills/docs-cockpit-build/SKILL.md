@@ -41,8 +41,10 @@ Default scope is the **whole project** — every module's spec/plan, every subta
 
 **Codex / non-Claude agent adaptation — AGENTS.md anchor (idempotent).** Codex-style agents don't load Claude Code hooks; they read the project-root `AGENTS.md` by convention. So this phase also plants a routing anchor there:
 
-1. **Idempotency check first**: grep `AGENTS.md` for the substring `docs-cockpit:begin` (substring match — the actual marker line carries a managed-by suffix, so do NOT grep for the full `<!-- docs-cockpit:begin -->` literal). Found → skip entirely (never write a duplicate block, never edit inside an existing block).
-2. Not found and `AGENTS.md` exists → append the block below at the end of the file. `AGENTS.md` doesn't exist → create it containing only the block.
+1. **Three-state check**: grep `AGENTS.md` for the substring `docs-cockpit:begin` (substring match — the actual marker line carries a managed-by suffix, so do NOT grep for the full `<!-- docs-cockpit:begin -->` literal).
+   - **Not found** → `AGENTS.md` exists: append the block below at the end of the file. `AGENTS.md` doesn't exist: create it containing only the block.
+   - **Found, content matches current template** → skip entirely (already up to date; never write a duplicate).
+   - **Found, content differs from current template** → replace the entire block between `docs-cockpit:begin` and `docs-cockpit:end` (inclusive of both marker lines) with the current template below (self-healing — refreshes stale blocks planted by older runs).
 
 Anchor block template (verbatim, including markers):
 
@@ -59,7 +61,7 @@ the router — consult it before any doc-association work. Routing summary:
 - Refresh an existing association that drifted (post-refactor, stale anchors,
   spec evolved) → `docs-cockpit-rebuild` skill
 - Just re-render the dashboard HTML, no association change
-  → CLI `docs-cockpit build` (will be renamed `docs-cockpit render`)
+  → CLI `docs-cockpit render`
 
 Field formats and frontmatter schema: `references/schema.md` in the docs-cockpit plugin.
 <!-- docs-cockpit:end -->
@@ -122,6 +124,6 @@ Proposal presentation format (example):
 ## Phase 7 · Render（渲染）
 
 - **Goal** — a regenerated dashboard proving the association system is clean: 0 warnings.
-- **Actions** — run `docs-cockpit build` and read the issue output. Any `❌`/`⚠️` traced to this build's edits → fix (loop back to the relevant phase for that item) and re-render. Pre-existing unrelated warnings: surface to the user, don't block on them.
-- **Reference** — CLI. *(renamed to `docs-cockpit render` in Stage B — same behavior)*
+- **Actions** — run `docs-cockpit render` and read the issue output. Any `❌`/`⚠️` traced to this build's edits → fix (loop back to the relevant phase for that item) and re-render. Pre-existing unrelated warnings: surface to the user, don't block on them.
+- **Reference** — CLI. *(`docs-cockpit build` still works as a deprecated alias until 1.1)*
 - **Output** — fresh `docs/index.html` + `docs/state.json`, 0 warnings from this build's changes.
