@@ -35,16 +35,34 @@ def main(argv: list[str] | None = None) -> int:
     )
     sub = parser.add_subparsers(dest="cmd", required=True)
 
-    build_p = sub.add_parser("build", help="按 config 生成 HTML 看板")
-    build_p.add_argument("--config", "-c", default="docs-cockpit.yaml",
-                        help="YAML 配置文件路径(默认:当前目录 docs-cockpit.yaml)")
-    build_p.add_argument("--debug", action="store_true",
-                        help="打印解析后的路径变量与每条 entry 的绝对路径")
-    build_p.add_argument("--no-version-check", action="store_true",
-                        help="跳过新版本检测(也可设 DOCS_COCKPIT_NO_VERSION_CHECK=1)")
-    build_p.add_argument("--strict", action="store_true",
-                        help="0.9.0:任何 frontmatter error 非零退出(CI 用 · warn/hint 不算)")
-    build_p.set_defaults(func=cmd_build)
+    # render/build 共用选项 · 集中一处防 alias 漂移
+    def _add_render_options(p: argparse.ArgumentParser) -> None:
+        p.add_argument("--config", "-c", default="docs-cockpit.yaml",
+                       help="YAML 配置文件路径(默认:当前目录 docs-cockpit.yaml)")
+        p.add_argument("--debug", action="store_true",
+                       help="打印解析后的路径变量与每条 entry 的绝对路径")
+        p.add_argument("--no-version-check", action="store_true",
+                       help="跳过新版本检测(也可设 DOCS_COCKPIT_NO_VERSION_CHECK=1)")
+        p.add_argument("--strict", action="store_true",
+                       help="0.9.0:任何 frontmatter error 非零退出(CI 用 · warn/hint 不算)")
+
+    render_p = sub.add_parser("render", help="按 config 渲染 HTML 看板（原 build 命令 · 1.0 改名）")
+    _add_render_options(render_p)
+    render_p.set_defaults(func=cmd_build)
+
+    # deprecated alias · 保留一个 minor 周期（1.0.x）· 1.1 移除
+    build_p = sub.add_parser("build", help="[deprecated] 用 render 替代 · 行为相同")
+    _add_render_options(build_p)
+
+    def _cmd_build_deprecated(args):
+        print(
+            "[docs-cockpit] warning: `build` is deprecated, use `render` (same behavior). "
+            "The alias will be removed in 1.1.",
+            file=sys.stderr,
+        )
+        return cmd_build(args)
+
+    build_p.set_defaults(func=_cmd_build_deprecated)
 
     # 0.9.0:lint 子命令 · 只校验不 build · 配合 docs-cockpit-author skill 使用
     # 0.18.0(gap #3):lint = build 校验子集 · 跑跟 build 同款 issue collection ·
