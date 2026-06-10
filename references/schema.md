@@ -115,7 +115,7 @@ module 级 `status` 要跟 subtasks 的实际完成比例对得上（validator c
 
 **`type`** — optional but recommended. One of: `module`, `concept`, `plan`, `rfc`, `spec`, `memory`, `roadmap`. The validator warns on unknown values.
 
-This affects nothing in the dashboard rendering today, but the author skill uses it to pick the right body template, and lint will eventually use it to validate kind-specific fields (e.g. `rfc` needs `status: draft|reviewing|accepted|superseded`).
+This affects nothing in the dashboard rendering today, but the doc type drives which body template to use (see per-subtask plan MD section), and lint will eventually use it to validate kind-specific fields (e.g. `rfc` needs `status: draft|reviewing|accepted|superseded`).
 
 ### Recommended fields
 
@@ -138,7 +138,7 @@ docs:
 
 If you don't fill `docs:` in frontmatter, the body fallback takes over.
 
-**`depends_on`** / **`blocks`** — lists of other module ids. Currently informational (not rendered yet) but the author skill writes them so dependency graph features can be added later.
+**`depends_on`** / **`blocks`** — lists of other module ids. Currently informational (not rendered yet) but 写上它们是为将来的 dependency graph 特性留数据。
 
 **`prd_ref`** — string · the PRD section reference that motivates this doc · e.g. `"§7.4.2 + §9.2"`. Surfaces in the drawer.
 

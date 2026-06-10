@@ -29,7 +29,7 @@ validator 输出的 `Issue.reference` 字段直接指向规范章节(`📚 refer
 | 文件 | 角色 |
 |---|---|
 | `references/schema.md`(原 author SKILL · v1.0 收编) | §1 概念 / §2 frontmatter / §3 docs vs subtasks / §4 命名 等规范章节 |
-| `references/frontmatter_conventions.md` | 速查版 · 大段引用 author SKILL |
+| `references/frontmatter_conventions.md` | 速查版 · 字段速查 · 与 references/schema.md 互补 |
 
 ## 3 · 待办
 

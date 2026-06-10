@@ -32,7 +32,7 @@ blocks: []
 | `docs_cockpit/mcp_server.py` | MCP server 入口 · stdio transport · 三个 tool / resource handler |
 | `docs_cockpit/cli.py::cmd_mcp_serve` | `docs-cockpit mcp-serve` 子命令 · 起 server · 默认 stdio · 可加 `--port` 走 SSE |
 | `.claude-plugin/mcp_servers.json` | Claude Code 自动注入 MCP server 配置 |
-| `references/mcp_clients.md` | Cursor / Codex CLI / Continue 等 MCP-aware 客户端的接线说明 |
+| ~~`references/mcp_clients.md`~~ | 已在 v1.0 删除 |
 
 ## 3 · 待办
 
@@ -41,7 +41,7 @@ blocks: []
 - [x] 把整个项目状态作为 JSON 资源暴露给 MCP 客户端读 @code:docs_cockpit/mcp_server.py:289-309 @code:docs_cockpit/build.py:486-498 @docs:CLAUDE.md:146
 - [x] 让 MCP 客户端能把 LLM 输出的 YAML patch 直接回写 MD · 返回 diff 概要 @code:docs_cockpit/mcp_server.py:222-286 @code:docs_cockpit/apply_patch.py:248-273 @docs:docs/spec/module/M08-apply-patch.md @docs:docs/plans/P-v0.11-ai-augmented-precision-alpha7-2026-05-18.md:133-148
 - [x] 让用户从命令行一键启 MCP 服务 · 接通到主 CLI dispatcher @code:docs_cockpit/cli.py:200-215 @code:docs_cockpit/mcp_server.py:336-352 @docs:docs/spec/module/M07-mcp-server.md#§1
-- [x] 插件安装时自动给 Claude Code 注册 MCP 服务 · 用户无需手配置 @code:.claude-plugin/plugin.json:26-33 @docs:references/mcp_clients.md
-- [x] 给 Cursor / Codex CLI / Continue 等客户端写接线步骤文档 @code:references/mcp_clients.md @docs:references/mcp_clients.md
-- [x] 起本地集成测试 · 三个 endpoint 都走一遍验 round-trip @code:tests/integration/test_mcp_server.py @docs:references/mcp_clients.md
+- [x] 插件安装时自动给 Claude Code 注册 MCP 服务 · 用户无需手配置 @code:.claude-plugin/plugin.json:26-33 <!-- anchor removed: mcp_clients deleted in v1.0 -->
+- [x] 给 Cursor / Codex CLI / Continue 等客户端写接线步骤文档 <!-- anchor removed: mcp_clients deleted in v1.0 -->
+- [x] 起本地集成测试 · 三个 endpoint 都走一遍验 round-trip @code:tests/integration/test_mcp_server.py <!-- anchor removed: mcp_clients deleted in v1.0 -->
 

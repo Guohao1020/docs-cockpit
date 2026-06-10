@@ -102,7 +102,7 @@ The four skills in `skills/` form a deliberate division — each has a descripti
 Skills are written following the conventions of the `anthropic-skills:skill-creator` skill that this repo uses for guidance:
 
 - **Frontmatter `description` is pushy** — over-triggers rather than under-triggers · includes both positive trigger phrases ("when the user says…") AND a `Do NOT trigger for…` discriminator paragraph naming the sibling skill that handles the negative case
-- **Skill body explains the WHY** — not just rote `MUST`s · the author skill's "why this skill exists" paragraph is the canonical example
+- **Skill body explains the WHY** — not just rote `MUST`s · `skills/docs-cockpit-build/SKILL.md`'s "## Why this skill exists" paragraph is the canonical example
 - **Skill names ≠ slash command names** — in 0.9.0 we renamed `docs-cockpit-status` → `docs-cockpit-standup` precisely because the `/docs-cockpit:status` slash command looked like a duplicate. If you add a new skill, check `commands/` and pick a non-colliding name.
 
 ### The bootstrap pattern (plugin without CLI pre-installed)

@@ -42,7 +42,7 @@
 
 底层,build 步骤从你列出的每个 markdown 文件读 YAML frontmatter · 渲成一张卡 · 写出独立单文件 HTML 看板,`file://` 直接打开 —— 不需要 localhost · 不需要静态站点生成器 · 不需要 JS 框架 · 运行时零网络请求。Sidecar `state.json` 同步携带相同 payload + 结构化的 frontmatter 校验结果 —— standup / portfolio skill 读它出叙事 · CI 读它做不变式检查。
 
-当你让 AI 给某个模块写 plan / spec 时,**author** skill 触发,把 schema(必填字段 · status × progress 不变式 · 文件命名 · 跨文档引用规则)带给 AI,落盘之前就先对齐。当看板渲染出来,任何"还没关联 docs"的模块都会显示一个复制提示词 CTA —— 在 `Plan` / `RFC` / `Spec` 三个 tab 之间切换 · 看清楚替换好 id / title / status / sprint / desc / body 摘要的整段提示词 · 一键复制粘贴到你的 AI 助手即可。
+当你让 AI 给某个模块写 plan / spec 时,**docs-cockpit-build** skill 把 schema(必填字段 · status × progress 不变式 · 文件命名 · 跨文档引用规则 · 详见 `references/schema.md`)带给 AI,落盘之前就先对齐。当看板渲染出来,任何"还没关联 docs"的模块都会显示一个复制提示词 CTA —— 在 `Plan` / `RFC` / `Spec` 三个 tab 之间切换 · 看清楚替换好 id / title / status / sprint / desc / body 摘要的整段提示词 · 一键复制粘贴到你的 AI 助手即可。
 
 对多项目用户,**用户级注册表**(`~/.docs-cockpit/projects.yaml`)跨机器跟踪每个项目。每周跑一次 `docs-cockpit portfolio snapshot`(或挂 cron / pre-commit),**portfolio** skill 出一份覆盖所有项目的周报 · 含"本周变化"周差异(新 done / 新 blocker / 进度跳跃 / 新模块)。
 
@@ -65,7 +65,7 @@ pip install 'docs-cockpit[mcp]'                       # 或
 uv tool install --with mcp docs-cockpit
 ```
 
-插件 `plugin.json` 自动给 Claude Code 注册 MCP server —— 重启即可在 MCP 工具列表看到三个 endpoint(`cockpit_prompt` / `cockpit_apply_patch` tool + `cockpit://state` resource)。Cursor / Codex / Continue 接线说明见 [`references/mcp_clients.md`](references/mcp_clients.md)。
+插件 `plugin.json` 自动给 Claude Code 注册 MCP server —— 重启即可在 MCP 工具列表看到三个 endpoint(`cockpit_prompt` / `cockpit_apply_patch` tool + `cockpit://state` resource)。
 
 装完后,你就得到了:
 
@@ -75,7 +75,7 @@ uv tool install --with mcp docs-cockpit
 /docs-cockpit:migrate     老项目布局迁移
 /docs-cockpit:status      standup 风格状态报告(单项目)
 /docs-cockpit:weekly      多项目周报(含跨项目周差异)
-/docs-cockpit:lint        按 author 规范校验 frontmatter
+/docs-cockpit:lint        按 references/schema.md 规范校验 frontmatter
 /docs-cockpit:update      升级 docs-cockpit 自身
 ```
 
@@ -160,7 +160,7 @@ Anthropic 官方 `mcp` SDK · stdio transport。三个 endpoint · 任何 MCP-aw
 | `cockpit_apply_patch(yaml_patch, module_id, apply?)` | tool | LLM YAML patch merge 回 MD · dry-run-first · `.bak` 备份 |
 | `cockpit://state` | resource | 完整 `state.json` payload(modules + subtasks + concepts + issues) |
 
-各客户端接线步骤:[`references/mcp_clients.md`](references/mcp_clients.md)。
+各客户端接线方式因客户端而异 —— 详见 MCP server 模块的 transport 说明。
 
 ### Schema 闭环(v0.12+)· 4 个 CLI 配合
 

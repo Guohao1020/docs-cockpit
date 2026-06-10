@@ -42,7 +42,7 @@ There's a skill for **setting up the cockpit** (`docs-cockpit`), a skill for **r
 
 Under the hood, the build step reads YAML frontmatter from every markdown file you list, turns each into a card, and writes a self-contained HTML dashboard you can open with `file://` — no localhost, no static-site generator, no JS framework, no network call at runtime. A sidecar `state.json` carries the same payload plus structured frontmatter validation results, which the standup / portfolio skills read for narrative answers and CI reads for invariant checks.
 
-When you ask your AI to write a plan or spec for a module, the **author** skill triggers and walks the AI through the schema (required fields, status × progress invariants, file naming, cross-doc references) before any code touches disk. When the dashboard renders, modules with no `docs:` linkage show a copy-prompt CTA — pick `Plan` / `RFC` / `Spec`, see the full prompt rendered inline with your module's id / title / status / sprint / desc / body excerpt all substituted in, then click Copy and paste into your AI agent of choice.
+When you ask your AI to write a plan or spec for a module, the **docs-cockpit-build** skill walks the AI through the schema (required fields, status × progress invariants, file naming, cross-doc references — see `references/schema.md`) before any code touches disk. When the dashboard renders, modules with no `docs:` linkage show a copy-prompt CTA — pick `Plan` / `RFC` / `Spec`, see the full prompt rendered inline with your module's id / title / status / sprint / desc / body excerpt all substituted in, then click Copy and paste into your AI agent of choice.
 
 For multi-project users, a **user-level registry** (`~/.docs-cockpit/projects.yaml`) tracks every project across your machine. Run `docs-cockpit portfolio snapshot` weekly (or via cron / pre-commit), and the **portfolio** skill composes one weekly report aggregating all of them with week-over-week diff (newly done · newly blocked · progress jumps · new modules).
 
@@ -65,7 +65,7 @@ pip install 'docs-cockpit[mcp]'                       # or
 uv tool install --with mcp docs-cockpit
 ```
 
-The plugin's `plugin.json` auto-registers the MCP server with Claude Code — restart and the three endpoints (`cockpit_prompt` / `cockpit_apply_patch` tools + `cockpit://state` resource) surface in the MCP tools list. For Cursor / Codex / Continue wiring, see [`references/mcp_clients.md`](references/mcp_clients.md).
+The plugin's `plugin.json` auto-registers the MCP server with Claude Code — restart and the three endpoints (`cockpit_prompt` / `cockpit_apply_patch` tools + `cockpit://state` resource) surface in the MCP tools list.
 
 Once installed, the plugin gives you:
 
@@ -75,7 +75,7 @@ Once installed, the plugin gives you:
 /docs-cockpit:migrate     # legacy-layout migration
 /docs-cockpit:status      # standup-style status report (single project)
 /docs-cockpit:weekly      # multi-project weekly report (cross-project diff)
-/docs-cockpit:lint        # validate frontmatter against the author spec
+/docs-cockpit:lint        # validate frontmatter against references/schema.md
 /docs-cockpit:update      # upgrade docs-cockpit itself
 ```
 
@@ -160,7 +160,7 @@ Anthropic official `mcp` SDK · stdio transport. Three endpoints any MCP-aware c
 | `cockpit_apply_patch(yaml_patch, module_id, apply?)` | tool | Merge LLM YAML patch back to MD · dry-run-first · `.bak` backup |
 | `cockpit://state` | resource | Full `state.json` payload (modules + subtasks + concepts + issues) |
 
-Wiring per client: [`references/mcp_clients.md`](references/mcp_clients.md).
+Wiring per client varies — see the MCP server module for transport details.
 
 ### Schema closure (v0.12+) · backed by 4 CLIs
 
