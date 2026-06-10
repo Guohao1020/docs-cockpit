@@ -333,3 +333,32 @@ Expected 命中仅限 Stage C 范围：`commands/*.md`（status/weekly/build 等
 - [ ] 版本号未动（1.0.0 bump 在 Stage C）
 
 **Stage B 后接续：** Stage C plan（CLAUDE.md 重写 · README 双语 · commands/ 清理 · CHANGELOG · 1.0.0 bump · `docs-cockpit upgrade` 发布链路验证），输入 = Task 11 Step 3 的残留清单。
+
+---
+
+## Stage C 输入 · 残留清单
+
+B-Task 11 全量回归后跑残留 grep（patterns：`mcp-serve / docs-cockpit prompt / docs-cockpit suggest / docs-cockpit verify / docs-cockpit sprint / migrate-subtasks / portfolio / standup / docs-cockpit-author / prompts-refine`，范围 `*.md / *.json / *.yml / *.tmpl`，另补查 `*.yaml / *.py / *.j2 / site/*.html`），排除 CHANGELOG 与 `docs/plans/`（历史叙事按约定保留）。命中按文件归组如下——这是 Stage C plan 的直接输入。
+
+| 文件 | 残留内容类型 | Stage C 动作建议 |
+|---|---|---|
+| `commands/`（browse / build / lint / migrate / status / update / weekly · 共 7 个） | 旧 slash command 整目录：`lint.md` 全文引 `docs-cockpit-author` 并要求 hand off 给该 skill（已删）；`status.md` 调 `docs-cockpit-standup` skill（已删）；`weekly.md` 调 `docs-cockpit-portfolio` skill + `portfolio` CLI（均已删）；`build.md` 包装已废弃 alias | 整目录决策：删除（skill-first 后入口走 use-docs-cockpit）或重写指向 3-skill；`lint.md` 的 author 引用至少改指 `references/schema.md` |
+| `README.md` | 四技能叙事（L39-43 · L102-103 · L119 · L131）；CLI cheat-sheet 列已删子命令 `prompt / prompt --bundle / suggest / mcp-serve / migrate-subtasks / portfolio`（L86-93）；MCP server 章节（L153-159）；portfolio 章节（L172-178 · L247 目录树）；state.json 消费者叙事提 standup/portfolio（L182 · L193） | 按 skill-first 全面重写：1 入口 + 2 流程 skill 叙事 · 删死命令与死章节 · state.json 消费者改写 |
+| `README.zh-CN.md` | 同上的中文镜像（结构同步 · 行号一致：L39-47 · L76 · L86-93 · L102-103 · L119 · L131 · L153-159 · L172-178 · L182 · L193 · L247） | 与 EN 同步重写（双语结构保持一致） |
+| `CLAUDE.md` | 架构段整体停留在 v0.x：L25 `portfolio list` 命令示例；L82-83 / L95-96 standup·portfolio 消费者表 + 四技能表；L86 dispatcher 子命令列表（含 build/portfolio）；L106 standup 命名史；L120 / L126 portfolio registry 章节；L161 where-to-look portfolio 行 | 架构段按 v1.0 重写（render + 3 skill + hooks）· 历史命名史可留但加「已删」注 |
+| `site/index.html` | 营销页 4 处：L546/548 `docs-cockpit-author` skill 叙事；L633-634 「Subtask 一键复制 prompt」特性卡；L764 v0.14 引语含 portfolio；L852/857 hint 文案提 Copy prompt | 4 处文案更新为 skill-first 叙事 · prompt CTA 描述与现状对齐（prompts.js sidecar 仍在 · CLI prompt 已删） |
+| `docs_cockpit/templates/index.html.tmpl` | L281-284 注释称「prompts-refine.js sidecar 保留 · MCP server 仍能消费」（build 已不产出 prompts-refine.js · MCP server 已删）；L2238 / L2547 `toast.refine_missing` 文案引 `docs-cockpit build` + prompts-refine.js；L4209 / L4248 Copy bundle prompt 仍向剪贴板写已删除的 `docs-cockpit prompt --bundle` CLI 命令 | 死注释删；死 toast 串删或改;bundle copy CTA 决策：直接输出 bundle prompt 文本（前端拼）或移除按钮 |
+| `docs/spec/module/M02-cli.md` | L8 desc 提 `prompt / migrate-subtasks / lint --prompts`；L32 / L43 / L49 portfolio 子命令树·关键文件·subtask `@code:docs_cockpit/portfolio.py`（文件已删） | desc 更新至 v1.0 CLI 面（render/lint/init/migrate/browse/sync-status/upgrade）· 历史 subtask 改 CHANGELOG 历史锚（同 M07/M10 B-Task 11 做法） |
+| `docs/spec/module/M03-plugin.md` | L32-33 skill 目录树含 standup / portfolio；L56 历史叙事注（已有锚 · 无 warn） | skill 树更新为 use-docs-cockpit + build + rebuild · 历史注保留 |
+| `docs/spec/module/M05-portfolio.md` | 整个 module 即已删 portfolio 特性：L10 prd_ref · L12 docs 指已删 SKILL.md · L36-37 关键文件 · L42-45 subtasks `@code/@docs` 指已删文件 | 模块历史化：保 done（曾 ship）· 锚改 `@docs:CHANGELOG.md#0.10.0` 类历史锚 · docs: 链接换 CHANGELOG |
+| `docs/spec/module/M07-mcp-server.md` | L22 / L33 `mcp-serve` CLI 叙事与关键文件表；L43 `@code:docs_cockpit/cli.py:200-215` 等行号锚指向已删代码 | 叙事补「已随 v1.0 删」注 · stale @code 锚改 CHANGELOG#0.12.0 历史锚（B-Task 11 已处理零锚 warn 的 1 条 · 余下 stale 行号锚 Stage C 收） |
+| `docs/spec/module/M08-apply-patch.md` | L64 「与 migrate-subtasks 一致」措辞（该命令已删） | 措辞历史化（「与原 migrate-subtasks(已删)一致」） |
+| `docs/spec/module/M10-llm-doc-optimizer.md` | title / desc / §1-§2 全文 `docs-cockpit suggest` CLI 叙事（命令已删 · 功能曾 ship） | 叙事历史化 · §1 用法代码块加已删说明或指 CHANGELOG#0.12.0 |
+| `docs/spec/module/M16-multi-subtask-bundle-ux.md` | L57 Copy bundle prompt 走已删 `docs-cockpit prompt --bundle` CLI | 与 tmpl L4209 同一决策项 · 文案随之改 |
+| `docs/spec/module/M17-bundle-prompt-and-skill.md` | L8 desc / L27 / L46 / L105：`prompt --bundle` CLI · author skill §14 · `suggest --bundle-candidates` | 模块历史化（同 M05 做法 · 锚指 CHANGELOG#0.14.0） |
+| `references/sync_status_workflow.md` | L46 提 `migrate-subtasks`；且该文件不在 v1.0 六文件 references 清单（schema / association-method / operations / config_reference / design_tokens / frontmatter_conventions）内 | 措辞改 + 决策：并入 `references/operations.md` 或保留为 sync-status 专属文档 |
+| `references/schema.md` | L1 头注「原 docs-cockpit-author 已删 · 活规范已并入」 | 有意历史说明 · 保留 · 无动作 |
+| `docs_cockpit/build.py`（py 注释 · 扩展面） | L263 注释「standup / portfolio 可消费」· L652 注释「给 docs-cockpit-standup skill 读」（两 skill 已删） | 注释改为「给 rebuild skill / CI 读」类现状措辞（一行 polish） |
+| `docs_cockpit/cli.py` L4 · `docs_cockpit/prompt.py` L7 · `docs_cockpit/schema.py` L1293 | 「已随认知层删除」类有意历史注 | 保留 · 无动作 |
+
+已确认干净（无残留命中）：`.claude-plugin/plugin.json` · `.claude-plugin/marketplace.json` · `docs-cockpit.yaml` · `skills/`（3 个 SKILL.md）· `hooks/` · `references/` 其余 5 文件。

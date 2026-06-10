@@ -130,7 +130,7 @@ def render_prompt(
     template_name: str | None = None,
     linked_docs: list[dict] | None = None,
 ) -> str:
-    """渲染 prompt 字符串 · 给 CLI / build sidecar 调.
+    """渲染 prompt 字符串 · 给 build sidecar 调.
 
     Args:
         module: module 完整 dict(含 id / title / status / sprint / desc / docs ...)

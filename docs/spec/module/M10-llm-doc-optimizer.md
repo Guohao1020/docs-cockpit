@@ -50,5 +50,5 @@ docs-cockpit suggest --all --strict       # 全部 module + 错误超 N 个 exit
 - [x] 内置四种建议视角的 template · 描述改写 / 子任务重组 / 锚点完整性 / 跨文档一致性 @code:docs_cockpit/templates/suggest/desc-rewrite.md.j2 @code:docs_cockpit/templates/suggest/subtask-recompose.md.j2 @code:docs_cockpit/templates/suggest/anchor-completeness.md.j2 @code:docs_cockpit/templates/suggest/cross-doc-consistency.md.j2
 - [x] 用户命令行触发建议 · 严格模式下当 issue 卡 CI @code:docs_cockpit/suggest.py:202-282 @code:docs_cockpit/cli.py:165-201
 - [x] 沿用 refine 的两套执行模式 · 有 fs 工具直接改 · 浏览器只能输出 prompt @code:docs_cockpit/templates/suggest/anchor-completeness.md.j2
-- [x] 给 author skill 加章节讲清如何消费 suggest 输出 · 跟原有自检流程对齐(该章节随 v1.0 suggest 删除)
+- [x] 给 author skill 加章节讲清如何消费 suggest 输出 · 跟原有自检流程对齐(该章节随 v1.0 suggest 删除) @docs:CHANGELOG.md#0.12.0 <!-- 该 author 章节已随 v1.0 删除 · 历史锚指向 0.12.0 release 节 -->
 - [x] 集成测试 · 选一个 module 跑 suggest · 验 prompt 含完整 module 上下文跟所有 template 都能渲染 @code:tests/unit/test_suggest.py
