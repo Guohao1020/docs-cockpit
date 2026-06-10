@@ -16,10 +16,11 @@ This file is a router only. Each routed skill carries its own complete workflow 
 
 | You want to | Use | Trigger examples |
 |---|---|---|
-| Build or extend the association system — plan the whole project's spec/plan, wire modules to docs, fill anchor gaps (0→1 / whole-project) | `docs-cockpit-build` skill | 「把文档体系建起来」「关联模块和文档」「规划 spec」 |
+| Build or extend the association system — set up the cockpit itself (config + scan dirs + debug build issues), plan the whole project's spec/plan, wire modules to docs, fill anchor gaps (0→1 / whole-project) | `docs-cockpit-build` skill | 「把项目做成看板」「把文档体系建起来」「关联模块和文档」「规划 spec」 |
 | Refresh an EXISTING association that drifted — anchors stale after refactor, spec evolved and links need re-sync | `docs-cockpit-rebuild` skill | 「关联乱了重新梳理」「anchor 失效了」 |
 | Just regenerate the dashboard HTML, no association work | CLI `docs-cockpit render` | 「重新生成 dashboard」 |
 | Read status / progress / blockers, no file changes | `docs-cockpit-rebuild` Phase 1 (pure status queries end there) | 「项目进度怎么样」「哪些卡了」 |
+| Upgrade docs-cockpit itself | CLI `docs-cockpit upgrade` (see `references/operations.md` · upgrade) | 「升级 docs-cockpit」 "update docs-cockpit" |
 
 Discriminator between the two skills: **build = the association does not exist yet (or whole-project planning); rebuild = it already exists and needs diagnosis / refresh (or just reading).**
 
