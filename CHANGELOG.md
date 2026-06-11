@@ -2,6 +2,24 @@
 
 本项目遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/) · 版本号采用 [SemVer](https://semver.org/lang/zh-CN/)。
 
+## [1.2.0] · 2026-06-11
+
+下游实战反馈(1.1.0 发布当天):空地建卡(greenfield 0→1)场景下,执行 build skill 的 agent 把「入院体检」解读为"只给已存在的关联做健康诊断",于是自行跳过体检——新建的规划卡没有过 review,也没有留下基线 HEALTH.md。
+
+### Why · 用户原话
+
+> 「这种情况也需要编写好文档做体检review呀」
+
+体检的本意是**任何场景都产出基线**:科室没有对象就标 N/A(N/A 是 verdict,不是跳过整个仪式的理由),且本次新建的卡/文档本身就是体检对象。
+
+### Changed
+
+- **`skills/docs-cockpit-build/SKILL.md` Phase 5** — 入院体检明确**不可跳过(greenfield 含在内)**:新建卡/文档本身是体检对象(① frontmatter 合规 · ④ 真实上游支撑链/孤儿风险 · desc/scope 措辞质量);科室无对象标 N/A;**基线 HEALTH.md 必写**(干净的新看板诚实给 A · 基线是下次 rebuild 复查 diff 的起点)
+- **Phase 6** — 新建 planned 卡的最低质量门:具体 `desc` + 正文 scope 节 + 真实上游链接(`prd_ref` 或 `docs:` 指 ROADMAP/PRD/plan · 不杜撰锚);planned 卡无 `subtasks:` 是诚实状态(等模块 brainstorm 时再补),不是规避 lint 警告的手段
+- **`references/health-check.md` 双模式节** — 新增「场景适配 · Greenfield」段:N/A 机制推广(与 ⑥ 科「没工具标 N/A」同款 · N/A 科不计总评)+ 基线必写规则
+
+升级:`docs-cockpit upgrade`(SKILL.md 变更 · 须清 plugin cache)。
+
 ## [1.1.0] · 2026-06-11
 
 **全方位体检** · v1.0 立了 skill-first 骨架(认知交 skill · python 只做确定性渲染 · 错 anchor 比缺 anchor 伤害大),v1.1 给 build / rebuild 装上体检能力:**九科双卷**(文档卷 + 工程卷 · 借鉴 gstack health/cso/qa 与 superpowers systematic-debugging 思路)· **三段式报告**(诊断 / 处方 / 行动规划)· 体检结果经 `docs/HEALTH.md` 进看板。设计 spec:`docs/plans/P-v1.1-health-check.md`(实施 plan 同目录 `P-v1.1-health-impl.md`)。

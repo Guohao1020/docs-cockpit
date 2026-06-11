@@ -4,7 +4,7 @@
 
 [![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](pyproject.toml)
-[![CHANGELOG](https://img.shields.io/badge/CHANGELOG-1.1.0-green.svg)](CHANGELOG.md)
+[![CHANGELOG](https://img.shields.io/badge/CHANGELOG-1.2.0-green.svg)](CHANGELOG.md)
 [![PRs welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](#contributing)
 
 > **Open-source MIT-licensed project. Issues + PRs welcome.**
