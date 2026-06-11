@@ -16,7 +16,7 @@ departments:
   - id: freshness
     name: "新鲜"
     verdict: fail
-    summary: "近 14 天 122/192 锚指向变更文件(首检无基线 · 全列嫌疑) · 抽验实锤 17 wrong · status 矛盾 0"
+    summary: "近 14 天 146/192 锚指向变更文件(首检无基线 · 全列嫌疑) · 抽验实锤 17 wrong · status 矛盾 0"
     detail: "v1.0/v1.1 大改期:build.py +32 行(2ec300f)· cli.py -24 行(201798c)· schema.py 增至 1755 行——行号锚位移的直接近因;0 个 in-progress module,无 30 天 commit 矛盾项"
   - id: coverage
     name: "覆盖"
@@ -49,12 +49,12 @@ prescriptions:
     bucket: sprint
     title: "M01 行号锚 6 条漂移重锚定(build.py/schema.py/paths.py)"
     root_cause: "M01 的行号锚写定于 v0.10-0.11,此后 build.py 经 v1.1 health 解析块插入(commit 2ec300f 在 490 行处 +32 行)、schema.py 经 v0.16/v0.19/v1.0 多轮增长,行号整体位移;渲染器只验文件存在,行内漂移机器不可见"
-    fix: "改 docs/spec/module/M01-build-engine.md 的 @code 锚:M01-2599ce 与 M01-012713 改指 docs_cockpit/build.py:534-555(render_html 的 </script> 转义 + count=1 替换);M01-52d6f1 改指 build.py:698-714(prompts.js sidecar 写出);M01-547e32 改指 docs_cockpit/schema.py:1156-1196(extract_subtasks_from_body);M01-f19e47 改指 docs_cockpit/paths.py:586-644(_resolve_code_anchor)+ paths.py:343-400(_read_code_lines 容错);M01-f0bd29 第二条 build.py:469-540 收窄为 392-527(build_payload 全体)。每条改前按 association-method.md 方法 3 重读确认,改后跑 docs-cockpit render 验证"
+    fix: "改 docs/spec/module/M01-build-engine.md 的 @code 锚:M01-2599ce 与 M01-012713 改指 docs_cockpit/build.py:534-555(render_html 的 </script> 转义 + count=1 替换);M01-52d6f1 改指 build.py:698-714(prompts.js sidecar 写出);M01-547e32 改指 docs_cockpit/schema.py:1392-1450(normalize_subtasks id 算法 + status coerce 本体)并附 1369-1381(_subtask_id_for 稳定 id 算法);M01-f19e47 改指 docs_cockpit/paths.py:586-644(_resolve_code_anchor)+ paths.py:343-400(_read_code_lines 容错);M01-f0bd29 第二条 build.py:469-540 收窄为 392-527(build_payload 全体)。每条改前按 association-method.md 方法 3 重读确认,改后跑 docs-cockpit render 验证"
     anchors:
       - "docs/spec/module/M01-build-engine.md"
       - "docs_cockpit/build.py:534-555"
       - "docs_cockpit/build.py:698-714"
-      - "docs_cockpit/schema.py:1156-1196"
+      - "docs_cockpit/schema.py:1392-1450"
       - "docs_cockpit/paths.py:586-644"
     module: M01
   - id: RX-002
@@ -62,7 +62,7 @@ prescriptions:
     bucket: sprint
     title: "M04 行号锚 5 条漂移重锚定(schema.py/prompt.py)"
     root_cause: "schema.py 在锚写定后插入 v0.16 lint 段、v0.19 sprint-plan 校验段、v1.1 health 校验段,原 152-541 区间内容整体易主;prompt.py 在 v1.0 裁剪后只剩 206 行,锚 130-237 行尾越界"
-    fix: "改 docs/spec/module/M04-author-skill.md 的 @code 锚:M04-fe43ce 改指 docs_cockpit/schema.py:106-163(Issue 类 + format_for_terminal 三段式输出);M04-5c19d5 改指 schema.py:1156-1196(extract_subtasks_from_body);M04-4d1c66 改指 schema.py:1369-1381(_subtask_id_for 稳定 id 算法);M04-1c2814 改指 schema.py:1137-1196(@code:/@docs: 内联正则 + 提取逻辑);M04-438a91 改指 docs_cockpit/prompt.py:39(BUILTIN_TEMPLATES)并补 @docs 指向 docs_cockpit/templates/prompts/ 内对应 j2 模板。改后跑 docs-cockpit render 验证"
+    fix: "改 docs/spec/module/M04-author-skill.md 的 @code 锚:M04-fe43ce 改指 docs_cockpit/schema.py:106-163(Issue 类 + format_for_terminal 三段式输出);M04-5c19d5 改指 schema.py:1392-1450(normalize_subtasks id 算法 + status coerce 本体)并附 1369-1381(_subtask_id_for 稳定 id 算法);M04-4d1c66 改指 schema.py:1369-1381(_subtask_id_for 稳定 id 算法);M04-1c2814 改指 schema.py:1137-1196(@code:/@docs: 内联正则 + 提取逻辑);M04-438a91 改指 docs_cockpit/prompt.py:39(BUILTIN_TEMPLATES)并补 @docs 指向 docs_cockpit/templates/prompts/ 内对应 j2 模板。改后跑 docs-cockpit render 验证"
     anchors:
       - "docs/spec/module/M04-author-skill.md"
       - "docs_cockpit/schema.py:106-163"
@@ -85,10 +85,10 @@ prescriptions:
     bucket: sprint
     title: "M09 锚 3 条漂移(cli.py 行尾越界 + tmpl 指向 CSS 区)"
     root_cause: "cli.py 在 1.1 移除 build 别名后缩至 182 行,锚 181-205 行尾越界且现指 parse_args 收尾;index.html.tmpl 多版本增长至 5226 行,锚 1697-1706 现为 .doc-preview-body CSS、3803-3829 为相邻的 progress override 写入区"
-    fix: "改 docs/spec/module/M09-sync-status.md 的 @code 锚:M09-7addb7 改指 docs_cockpit/cli.py:138-156(sync-status 子命令 argparse 接线);M09-3879c3 两条改指 docs_cockpit/templates/index.html.tmpl:2066-2070(export-overrides 按钮)与 index.html.tmpl:5163-5187(下载 localStorage JSON 逻辑)。改后跑 docs-cockpit render 验证"
+    fix: "改 docs/spec/module/M09-sync-status.md 的 @code 锚:M09-7addb7 改指 docs_cockpit/cli.py:129-156(sync-status 子命令 argparse 接线:130-133 add_parser + 134-137 --import 参数是命令行接受导出 JSON 的语义核心);M09-3879c3 两条改指 docs_cockpit/templates/index.html.tmpl:2066-2070(export-overrides 按钮)与 index.html.tmpl:5163-5187(下载 localStorage JSON 逻辑)。改后跑 docs-cockpit render 验证"
     anchors:
       - "docs/spec/module/M09-sync-status.md"
-      - "docs_cockpit/cli.py:138-156"
+      - "docs_cockpit/cli.py:129-156"
       - "docs_cockpit/templates/index.html.tmpl:5163-5187"
     module: M09
   - id: RX-005
@@ -165,7 +165,7 @@ next_checkup: "治疗型:RX-001~006 与 RX-009 治完即 rebuild 快检复查;v1
 |---|---|---|
 | ① 结构 | ✅ | `docs-cockpit lint`:0 error · 0 warn · 0 hint(17 module · 121 subtask) |
 | ② 关联 | ❌ | 覆盖率 121/121=100% · 死锚 0 · 方法3 抽检 41 条(风险优先):✅21 ⚠️3 ❌17 → accurate 51% |
-| ③ 新鲜 | ❌ | 近 14 天 122/192 锚指向变更文件(首检全列嫌疑)· 抽验实锤 17 wrong · 0 status 矛盾 |
+| ③ 新鲜 | ❌ | 近 14 天 146/192 锚指向变更文件(首检全列嫌疑)· 抽验实锤 17 wrong · 0 status 矛盾 |
 | ④ 覆盖 | ❌ | 孤儿 plan 12 篇 · v1.0/v1.1 工作 0 module 0 sprint-plan · 0-anchor subtask 0 |
 | ⑤ 一致 | ⚠️ | depends_on↔blocks 单边 10 处(schema.md 注明 informational · 按 warn 计)· V0.19 plan status 过时 |
 | ⑥ 代码质量 | ✅ | pytest 289 passed(5.45s · 与 CI 同源)· ruff/mypy 未配置 → N/A |
@@ -202,7 +202,7 @@ next_checkup: "治疗型:RX-001~006 与 RX-009 治完即 rebuild 快检复查;v1
 
 #### RX-004 · M09 锚 3 条漂移 · severity: high · bucket: sprint
 - 根因:cli.py 1.1 删 build 别名后缩至 182 行(锚 181-205 越界);tmpl 增长至 5226 行(锚 1697-1706 现为 CSS)
-- anchor:docs/spec/module/M09-sync-status.md → cli.py:138-156 · tmpl:2066-2070 + 5163-5187
+- anchor:docs/spec/module/M09-sync-status.md → cli.py:129-156 · tmpl:2066-2070 + 5163-5187
 - 修法:见 frontmatter fix 字段;改后 render 验证
 - module:M09
 
