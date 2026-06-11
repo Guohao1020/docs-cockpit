@@ -5,7 +5,7 @@ title: "CLI"
 status: done
 sprint: "0.11"
 progress: 100
-desc: "argparse dispatcher · v1.0 子命令面:render(原 build · 留废弃别名)/ lint / init / migrate / browse / sync-status / upgrade · 认知类子命令(prompt / suggest / bundle / portfolio 等)已在 v1.0 移除"
+desc: "argparse dispatcher · 子命令面:render(原 build · 1.1 已移除别名)/ lint / init / migrate / browse / sync-status / upgrade · 认知类子命令(prompt / suggest / bundle / portfolio 等)已在 v1.0 移除"
 owner: harvey
 prd_ref: "v0.11 driver-seat plan §6.2 + §11 Step 2-3"
 docs:
@@ -24,7 +24,7 @@ blocks: []
 ```
 docs-cockpit <subcommand> [args]
         │
-        ├── render      → build.py::cmd_build      · MD → HTML(v1.0 由 build 改名 · build 留作废弃别名)
+        ├── render      → build.py::cmd_build      · MD → HTML(v1.0 由 build 改名 · 废弃别名 1.1 已移除)
         ├── lint        → build.py::cmd_lint       · frontmatter 校验
         ├── init        → build.py::cmd_init       · 脚手架 docs-cockpit.yaml
         ├── migrate     → migrate.py::cmd_migrate  · 把现有项目 docs 迁到 docs-cockpit 规范

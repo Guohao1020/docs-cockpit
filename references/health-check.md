@@ -50,7 +50,7 @@ build / rebuild 升格为「项目体检」的方法论 SSOT —— 查什么（
    ```
 
 2. **verdict 抽检** — 按 `references/association-method.md · 方法 3` 逐条预演给 4 档 verdict（✅ accurate / ⚠️ partial / ❌ wrong / ❓ missing），流程不在本文重复；抽样规则见[双模式](#双模式)
-3. **死锚** = state.json 里任一 anchor 条目（`subtasks[*].code_anchors[*]` / `doc_anchors[*]` / `modules[*].docs[*]`）`exists=false` 或 `warning` 非空——机器已判好，grep `"exists": false` 与 `"warning": "[^"]` 即得清单（`warning` 字段恒存在 · 空串 `""` = 健康 · 必须排除空串否则 192 条健康锚全报假阳性）
+3. **死锚** = state.json 里任一 anchor 条目（`subtasks[*].code_anchors[*]` / `doc_anchors[*]` / `modules[*].docs[*]`）`exists=false` 或 `warning` 非空——机器已判好，grep `"exists": false` 与 `"warning": "[^"]` 即得清单（`warning` 字段恒存在 · 空串 `""` = 健康 · 必须排除空串否则 192 条健康锚全报假阳性）。**机查盲区**（首检实测）：行号锚仅 start 越界会出 warning，end 越界被静默 clamp——`path:181-205` 指向 182 行的文件仍报健康。对近期变更文件的行号锚不要只信死锚清单，要走方法 3 实读
 
 **判定标准** — 覆盖率 ≥90% → ✅ · 70–90% → ⚠️ · <70% → ❌；抽检 accurate 率 ≥90% → ✅ · 70–90% → ⚠️ · <70% → ❌（任一 wrong 实锤即开 high 处方）；死锚 0 条是 ✅ 的前提，有死锚至少 ⚠️
 
@@ -79,7 +79,7 @@ build / rebuild 升格为「项目体检」的方法论 SSOT —— 查什么（
 **怎么查**（即 `association-method.md · 方法 1` 第 3 步的检索产出，执行细节见彼处）
 
 1. **孤儿文档** = Glob 五类 docs 全集 − 所有 module `docs:` / `@docs:` 引用的并集
-2. **无 spec module** = state.json `modules[*].docs[]` 里没有任何 `path` 含 `-spec.md`（或 `type: spec`）条目的 module
+2. **无 spec module** = state.json `modules[*].docs[]` 里没有任何 `path` 含 `-spec.md`（或 `type: spec`）条目的 module。**自举仓豁免**（首检实测）：module MD 自身就放在 `docs/spec/**` 下的项目（如 docs-cockpit 本仓），module 卡即 spec——本项按字面跑会全量假阳性，直接判过并在报告注明
 3. **无 plan sprint** = 收集 `modules[*].sprint` 值集合，逐个查 `docs/plans/` 有无对应 sprint-plan（frontmatter `sprint:` 匹配；schema 见 `references/schema.md · sprint-plan schema`）
 4. **0-anchor subtask** = lint 的 `subtask-missing-anchors` 直接给清单
 
@@ -91,7 +91,7 @@ build / rebuild 升格为「项目体检」的方法论 SSOT —— 查什么（
 
 **怎么查**
 
-1. **配对**：读 state.json `modules[*].depends_on / blocks`（或 `Grep "depends_on:|blocks:" docs/spec/module/`）——A `depends_on` B 则 B 的 `blocks` 应含 A，反向同理，列出单边缺失对
+1. **配对**：读 state.json `modules[*].depends_on / blocks`（或 `Grep "depends_on:|blocks:" docs/spec/module/`）——A `depends_on` B 则 B 的 `blocks` 应含 A，反向同理，列出单边缺失对。**降档注**（首检实测）：`references/schema.md` 明文该字段 currently informational（不参与渲染），单边缺失计 ⚠️ 级不计 ❌ 级矛盾——除非项目已启用依赖图渲染特性
 2. **subtask×module**：数每个 module 的 subtask done 比例，对照 module `status` / `progress`——9 done + 1 not-started 而 module 仍 `not-started` → 该 in-progress；subtask 全 done 而 module 仍 in-progress → 该 done 或缺 subtask
 3. **sprint 对齐**：module `sprint` 字段 vs sprint-plan `in_scope` 互查（lint 的 `sprint-schema` 类 issue 已覆盖结构层，本科查语义层：in_scope 列了的 module 其 sprint 字段是否一致）
 
@@ -173,7 +173,7 @@ build / rebuild 升格为「项目体检」的方法论 SSOT —— 查什么（
 | | 快检（build / rebuild 自动附带） | 深检（「全面体检 / 深度体检」明示触发） |
 |---|---|---|
 | 科室 | ①②④ 全量 + ⑥ 机械跑 + ⑦⑧ 高置信 grep 项 | 全九科（⑨ 深检专属 · ③⑤ 补齐） |
-| anchor verdict | >30 锚抽检（规则见下） | 全量逐条 |
+| anchor verdict | >30 锚抽检（规则见下） | 全量逐条；锚数 >100 时单次会话不可行（首检实测 192 锚）——退化为**风险优先抽检**：行号锚全验（drift 概率最高）+ doc 锚按快检规则抽，报告必须标注未覆盖面并把余量滚动到后续体检 |
 | 报告门槛 | 高置信才报 · 台账条目跳过 | 低置信也报（标置信度）· 台账条目列出但标「已接受」 |
 
 **抽检规则**（②关联科 verdict 用）：总锚数 ≤30 → 全量；>30 → 抽 20%，**最少 10 条**；优先抽 ③新鲜科标出的「近期变更文件的锚」（drift 概率最高），余量随机补齐。
