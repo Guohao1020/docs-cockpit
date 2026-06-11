@@ -2,6 +2,58 @@
 
 本项目遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/) · 版本号采用 [SemVer](https://semver.org/lang/zh-CN/)。
 
+## [1.1.0] · 2026-06-11
+
+**全方位体检** · v1.0 立了 skill-first 骨架(认知交 skill · python 只做确定性渲染 · 错 anchor 比缺 anchor 伤害大),v1.1 给 build / rebuild 装上体检能力:**九科双卷**(文档卷 + 工程卷 · 借鉴 gstack health/cso/qa 与 superpowers systematic-debugging 思路)· **三段式报告**(诊断 / 处方 / 行动规划)· 体检结果经 `docs/HEALTH.md` 进看板。设计 spec:`docs/plans/P-v1.1-health-check.md`(实施 plan 同目录 `P-v1.1-health-impl.md`)。
+
+### Why · 用户原话
+
+> 「每次 build 或者 rebuild ,相当于一次全方位的体检」
+
+体检立三条铁律:**Iron Law**(处方必须带根因 + anchor 定位 · 查不出根因不开药 · 开「进一步检查单」)· **Zero-noise**(快检只报高置信度异常 · 已接受债务不重复报——体检报告没人看 = 体检失败)· **诊断与治疗分离**(体检只产出报告 · 治疗走 build/rebuild 的对话决策 phase)。
+
+### Added · 体检方法论 + 数据底座
+
+- `references/health-check.md` · 九科双卷方法论 SSOT:
+  - 文档卷(docs-cockpit 本职):①结构(lint 全量)②关联(anchor 覆盖率 + 4 档 verdict + 死锚)③新鲜(git 近期变更 vs anchor 复核)④覆盖(无 spec module / 孤儿文档 / 0-anchor subtask)⑤一致(depends_on↔blocks 配对 · status 矛盾)
+  - 工程卷(借鉴 gstack 思路 · 内置检查表为基线):⑥代码质量(**包装项目既有工具** · 缺的标 N/A)⑦缺陷(TODO 带 git-blame 年龄 · skip/xfail · 裸 except)⑧生产就绪(secret / 调试残留 / mock 进生产路径)⑨架构(深检专属:循环依赖 · God file)
+  - 快检 / 深检双模式矩阵 + 抽检规则(>30 锚抽 20% · 最少 10 条)+ 置信度门(快检只报有具体证据定位的异常)
+- **`health-report` 新 doc kind** · `docs/HEALTH.md` 固定路径(与 state.json 同级的约定路径 · 不进 config 扫描):frontmatter = 机器读(grade / departments / prescriptions / accepted_debts / next_checkup),body = 人读三段式报告
+- `references/schema.md` 新增 health-report 节 + `schema.py::validate_health_report` · Iron Law 的死规则面:处方缺 root_cause → warn · bucket / mode 非法值 → 报 issue · module 引用不存在的 module id → warn
+- render 解析 `docs/HEALTH.md` → **`state.json::health`** · 渲染管线保持机械:固定路径探测 + frontmatter 透传 · validator issue 汇入既有 lint 管线 · 无 HEALTH.md 时 `health: null`(state.json additive-only · 老项目零迁移成本)
+
+### Added · 看板健康面板
+
+- 看板头部**健康徽章**(A/B/C/D 总评 + 快检/深检 + 体检日期 · 无 health 数据时整组不渲染)
+- 点开**三段式健康面板**:九科诊断行(✅⚠️❌ + 各科 summary)· 处方卡(severity 左色条 · 按伤害排序 · 点 module 徽章直达卡片)· 五桶 tab(立即修 / 本 sprint / backlog / 观察 / 已接受)· 台账折叠(accepted_debts 带复审日期)
+- **一键 Copy 处方 prompt(单条 + 桶级)** · 前端拼自然语言 prompt(含根因 + anchor + fix 步骤)· 丢给 Claude Code / Codex 直接执行——处方到治疗一步到位
+
+### Added · skill 升格
+
+- `docs-cockpit-build` · Phase 0 升格**入院体检** / `docs-cockpit-rebuild` · 升格**复查**:体检报告 → **五桶行动规划**(逐桶呈用户对话确认)→ **处方→subtask 闭环**(挂 module · 带 @code anchor · 同步 sprint-plan in_scope)→ 写 HEALTH.md → render 进看板
+- router(`use-docs-cockpit`)新增体检触发:「全面体检 / 深度体检」明示触发深检 · 快检随 build/rebuild 自动附带
+- 报告结尾自动给复查节奏建议(治疗型 / 周期型 / 触发型)
+
+### Added · 首份真实自体检(dogfood)
+
+- 本仓 `docs/HEALTH.md` · 总评 **D+** · 抽检 41 锚实锤 **17 条历史行号锚漂移**(v0.10-0.14 时代写定 · 此后 schema.py/build.py 多轮增长整体位移)——体检体系第一次实战就抓到真问题(RX-001~006 处方已开 · 渲染器只验文件存在 · 行内漂移正是机器不可见、必须 LLM 抽检的那类病灶)
+
+### Changed
+
+- 测试基线 253 → **289**(health validator 单测 + HEALTH.md 解析集成测试 + 健康面板 / Copy-prompt 模板断言 · 只增不破)
+- `state.json` schema 续守 additive-only:新增顶层 `health` 键(无报告时显式 `null` · 既有消费者零感知)
+- build / rebuild skill 的 SKILL.md description 更新体检触发语(routing 变更 · 见下方升级说明)
+
+### Breaking
+
+- **CLI `build` alias 移除** · 1.0 宣告的 scheduled removal · 如期执行。迁移:下游 pre-commit / CI / 脚本把 `docs-cockpit build` 改成 `docs-cockpit render`:
+
+  ```bash
+  docs-cockpit render -c docs-cockpit.yaml          # 1.0 起的正名 · 行为相同
+  ```
+
+升级:`docs-cockpit upgrade` · skill description 有变更 · 必须清 plugin cache + 重启(直接重启 Claude Code 不清 cache · 会留 ghost state)。
+
 ## [1.0.0] · 2026-06-10
 
 **skill-first pivot** · 一刀重定义项目边界。v0.x 一路在 python 里堆认知功能——suggest / verify / refine / prompt / sprint / MCP server——每加一个都离北极星更远:LLM 时代的「认知」不该编译进 CLI。1.0 收口为三句话:**认知交 skill · python 只做确定性渲染 · 错 anchor 比缺 anchor 伤害大**。设计 spec:`docs/plans/P-skill-first-pivot.md`(三阶段实施 plan 同目录 `P-v1.0-stage-{a,b,c}-*.md`)。

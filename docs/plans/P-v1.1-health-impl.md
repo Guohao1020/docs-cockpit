@@ -2,7 +2,7 @@
 id: P-V1.1-HEALTH-IMPL
 type: plan
 title: "v1.1 体检体系 · 实施 plan（9 task）"
-status: planned
+status: done
 sprint: "1.1"
 desc: "P1 落地：health-check reference + HEALTH.md doc kind + render 解析 + 看板健康面板 + Copy-prompt CTA + skill 升格 + alias 移除 + 1.1.0 release"
 owner: harvey

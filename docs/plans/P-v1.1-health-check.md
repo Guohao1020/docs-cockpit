@@ -2,7 +2,7 @@
 id: P-V1.1-HEALTH
 type: plan
 title: "v1.1 · 全方位体检：九科双模式 + 看板体现 + 一键处方 prompt"
-status: planned
+status: done
 sprint: "1.1"
 desc: "build/rebuild 升格为项目体检：诊断/处方/行动规划三段式，HEALTH.md 新 doc kind 进看板，每条处方一键复制 prompt 丢给 Claude Code"
 owner: harvey
