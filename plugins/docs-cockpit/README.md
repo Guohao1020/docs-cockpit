@@ -88,7 +88,7 @@ No server is required at runtime.
 - Concept grid and system docs drawer for PRD, architecture notes, memory files, and RFCs.
 - Copy-prompt actions for individual subtasks, selected bundles, and missing-doc scaffolds.
 - Tree-sidebar markdown reader via `docs-cockpit browse`.
-- Frontmatter lint output with severity, suggested fix, and reference back to `../../references/schema.md`.
+- Frontmatter lint output with severity, suggested fix, and reference back to [`references/schema.md`](../../references/schema.md).
 
 ## Skill Layer
 
@@ -114,7 +114,7 @@ The sidecar schema is additive-only: new fields can appear, but existing fields 
 - A wrong anchor is worse than a missing anchor: the build workflow verifies evidence and asks instead of guessing.
 - Single-file dashboard: open with `file://`, commit it, or share it without hosting.
 - Frontmatter as the database: human-readable markdown remains the source of truth.
-- One schema source: `../../references/schema.md` is the spec the validator cites.
+- One schema source: [`references/schema.md`](../../references/schema.md) is the spec the validator cites.
 - Deterministic rendering: Python loads config, validates metadata, embeds linked docs, and writes artifacts.
 
 ## Project Anatomy

@@ -88,7 +88,7 @@ docs-cockpit 有三层：
 - Concept grid 与 system docs drawer：展示 PRD、architecture notes、memory files 和 RFCs。
 - Copy-prompt actions：可复制单个 subtask、选中的 bundle、缺失文档 scaffold。
 - `docs-cockpit browse` 生成 tree-sidebar markdown reader。
-- Frontmatter lint 输出 severity、suggested fix，并引用 `../../references/schema.md`。
+- Frontmatter lint 输出 severity、suggested fix，并引用 [`references/schema.md`](../../references/schema.md)。
 
 ## Skill Layer
 
@@ -114,7 +114,7 @@ sidecar schema 是 additive-only：可以增加字段，但不会随意移除已
 - A wrong anchor is worse than a missing anchor：build workflow 会验证证据，不确定就问，不猜。
 - Single-file dashboard：用 `file://` 打开，可以提交进仓库，也可以不依赖 hosting 分享。
 - Frontmatter as the database：人类可读的 markdown 仍然是 source of truth。
-- One schema source：`../../references/schema.md` 是 validator 引用的 spec。
+- One schema source：[`references/schema.md`](../../references/schema.md) 是 validator 引用的 spec。
 - Deterministic rendering：Python 只加载 config、校验 metadata、嵌入 linked docs、写 artifacts。
 
 ## Project Anatomy
