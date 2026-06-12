@@ -56,6 +56,15 @@ The canonical doc spec — required fields, status × progress invariants, ancho
 
 ## Installation
 
+### Codex
+
+```bash
+# in Codex CLI
+codex plugin marketplace add Guohao1020/docs-cockpit
+```
+
+Then open the Codex plugin directory, choose the `docs-cockpit` marketplace, and install the `docs-cockpit` plugin. In the Codex app, open **Plugins** after adding the marketplace and install it from there.
+
 ### Claude Code
 
 ```bash

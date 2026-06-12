@@ -56,6 +56,15 @@
 
 ## 安装
 
+### Codex
+
+```bash
+# 在 Codex CLI 里
+codex plugin marketplace add Guohao1020/docs-cockpit
+```
+
+然后打开 Codex 插件目录,选择 `docs-cockpit` marketplace,安装 `docs-cockpit` 插件。在 Codex app 里,添加 marketplace 后从 **Plugins** 页面安装。
+
 ### Claude Code
 
 ```bash

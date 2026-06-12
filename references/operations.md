@@ -87,6 +87,18 @@ modules:
 
 ---
 
+## Codex plugin marketplace
+
+Codex-native installation uses the repo-scoped marketplace at `.agents/plugins/marketplace.json` plus the manifest at `.codex-plugin/plugin.json`:
+
+```bash
+codex plugin marketplace add Guohao1020/docs-cockpit
+```
+
+After adding the marketplace, install `docs-cockpit` from the Codex plugin directory. This does not replace the existing `.claude-plugin/` entry; both plugin surfaces point at the same `skills/`, `commands/`, and `hooks/` content and must share the same release version.
+
+---
+
 ## upgrade
 
 当用户说「升级 docs-cockpit」/「update docs-cockpit」/「看到 new version available banner」，执行 `docs-cockpit upgrade`。0.7.0+ 一条命令完成全流程：检测后端 → 对比版本 → 展示 CHANGELOG diff → 确认 → 升级 → 若 SKILL.md hash 有变更则原子清 cache + 提示重启。**常用 flag**：`--dry-run` · `--yes` · `--no-clear-cache`（仅当升级不含 SKILL.md 变更——即 patch 级 CLI-only 更新——才可用 `--no-clear-cache`；含 skill 变更时必须走完整原子清 cache） · `--skip-changelog`
