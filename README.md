@@ -4,7 +4,7 @@
 
 [![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](pyproject.toml)
-[![CHANGELOG](https://img.shields.io/badge/CHANGELOG-1.2.0-green.svg)](CHANGELOG.md)
+[![CHANGELOG](https://img.shields.io/badge/CHANGELOG-1.3.0-green.svg)](CHANGELOG.md)
 [![PRs welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](#contributing)
 
 > **Open-source MIT-licensed project. Issues + PRs welcome.**
@@ -32,8 +32,9 @@ Full rationale: [`docs/plans/P-skill-first-pivot.md`](docs/plans/P-skill-first-p
 Give your AI coding agent docs-cockpit:
 
 - **[Claude Code](#claude-code)** ✅ available now
+- **[Codex](#codex)** ✅ available now via Codex marketplace install
 - **Cursor** — the SessionStart router hook ships a Cursor adaptation (`hooks/hooks-cursor.json`); full packaging on the roadmap
-- **Codex CLI · Gemini CLI · OpenCode · GitHub Copilot CLI · …** — the dashboard / validator / spec are agent-agnostic (markdown skills + a Python CLI); only the skill-distribution layer differs per harness
+- **Gemini CLI · OpenCode · GitHub Copilot CLI · …** — the dashboard / validator / spec remain agent-agnostic (markdown skills + a Python CLI); only the skill-distribution layer differs per harness
 
 Once installed there is nothing to remember: in any docs-cockpit project the router skill is injected automatically at session start, and your agent routes cockpit-related requests to the right workflow on its own. Five slash commands give you explicit invocation surfaces when you want them.
 

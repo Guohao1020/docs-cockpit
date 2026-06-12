@@ -4,7 +4,7 @@
 
 [![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](pyproject.toml)
-[![CHANGELOG](https://img.shields.io/badge/CHANGELOG-1.2.0-green.svg)](CHANGELOG.md)
+[![CHANGELOG](https://img.shields.io/badge/CHANGELOG-1.3.0-green.svg)](CHANGELOG.md)
 [![PRs welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](#贡献)
 
 > **MIT 协议开源项目 · 欢迎提 Issues + PR。**
@@ -32,8 +32,9 @@
 把 docs-cockpit 装到你的 AI 编程助手上:
 
 - **[Claude Code](#claude-code)** ✅ 已就绪
+- **[Codex](#codex)** ✅ 已通过 Codex marketplace 安装方式支持
 - **Cursor** —— SessionStart 路由 hook 已带 Cursor 适配(`hooks/hooks-cursor.json`);完整打包在 roadmap 上
-- **Codex CLI · Gemini CLI · OpenCode · GitHub Copilot CLI · …** —— 看板 / 校验器 / 规范本身是 agent-agnostic 的(markdown skill + Python CLI);只有 skill 分发层因 harness 而异
+- **Gemini CLI · OpenCode · GitHub Copilot CLI · …** —— 看板 / 校验器 / 规范仍是 agent-agnostic 的(markdown skill + Python CLI);分发层因 harness 而异
 
 装完后不需要记任何东西:在 docs-cockpit 项目里,路由 skill 会在会话启动时自动注入,agent 自己把驾驶舱相关的请求分发到正确的工作流。5 个 slash 命令在你想显式调用时提供入口。
 
