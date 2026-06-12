@@ -1,3 +1,5 @@
+**English** · [中文](README.zh-CN.md)
+
 # docs-cockpit
 
 <p align="center">
@@ -130,7 +132,7 @@ your-project/
 │  ├─ plans/YYYY-MM-DD-<id>-plan.md
 │  ├─ RFC/001-*.md
 │  └─ PRD.md
-├─ AGENTS.md
+├─ CLAUDE.md
 └─ .git/
 ```
 
@@ -189,7 +191,7 @@ py -3.13 -m pytest tests/ -q
 docs-cockpit render -c docs_cockpit/examples/minimal.yaml --debug
 ```
 
-Read [`AGENTS.md`](AGENTS.md) before changing architecture, skills, schema, hooks, or templates. Skill changes are release events because cached plugin descriptions affect routing.
+Read [`CLAUDE.md`](CLAUDE.md) before changing architecture, skills, schema, hooks, or templates. Skill changes are release events because cached plugin descriptions affect routing.
 
 Bug fixes and documentation improvements are welcome as PRs. Open an issue first for schema changes, new commands, workflow changes, or breaking behavior.
 

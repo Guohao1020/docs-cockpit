@@ -1,3 +1,5 @@
+**English** · [中文](README.zh-CN.md)
+
 # docs-cockpit
 
 <p align="center">
@@ -6,9 +8,9 @@
 
 > A skill-first project cockpit for AI coding agents. Turn AI-written markdown into a schema-validated, single-file dashboard.
 
-[![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](pyproject.toml)
-[![CHANGELOG](https://img.shields.io/badge/CHANGELOG-1.3.1-green.svg)](CHANGELOG.md)
+[![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](../../LICENSE)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](../../pyproject.toml)
+[![CHANGELOG](https://img.shields.io/badge/CHANGELOG-1.3.1-green.svg)](../../CHANGELOG.md)
 [![PRs welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](#contributing)
 
 ![docs-cockpit cockpit hero](../../site/assets/brand/docs-cockpit-og-cover.png)
@@ -86,7 +88,7 @@ No server is required at runtime.
 - Concept grid and system docs drawer for PRD, architecture notes, memory files, and RFCs.
 - Copy-prompt actions for individual subtasks, selected bundles, and missing-doc scaffolds.
 - Tree-sidebar markdown reader via `docs-cockpit browse`.
-- Frontmatter lint output with severity, suggested fix, and reference back to `references/schema.md`.
+- Frontmatter lint output with severity, suggested fix, and reference back to `../../references/schema.md`.
 
 ## Skill Layer
 
@@ -112,7 +114,7 @@ The sidecar schema is additive-only: new fields can appear, but existing fields 
 - A wrong anchor is worse than a missing anchor: the build workflow verifies evidence and asks instead of guessing.
 - Single-file dashboard: open with `file://`, commit it, or share it without hosting.
 - Frontmatter as the database: human-readable markdown remains the source of truth.
-- One schema source: `references/schema.md` is the spec the validator cites.
+- One schema source: `../../references/schema.md` is the spec the validator cites.
 - Deterministic rendering: Python loads config, validates metadata, embeds linked docs, and writes artifacts.
 
 ## Project Anatomy
@@ -130,7 +132,7 @@ your-project/
 │  ├─ plans/YYYY-MM-DD-<id>-plan.md
 │  ├─ RFC/001-*.md
 │  └─ PRD.md
-├─ AGENTS.md
+├─ CLAUDE.md
 └─ .git/
 ```
 
@@ -167,7 +169,7 @@ Checklist items in the body can also carry anchors:
 - [ ] Implement retry transition @code:src/worker/fsm.py:42-89 @docs:docs/RFC/004.md#section-2
 ```
 
-See [`references/schema.md`](references/schema.md) for the full frontmatter and anchor spec.
+See [`references/schema.md`](../../references/schema.md) for the full frontmatter and anchor spec.
 
 ## Updating
 
@@ -189,7 +191,7 @@ py -3.13 -m pytest tests/ -q
 docs-cockpit render -c docs_cockpit/examples/minimal.yaml --debug
 ```
 
-Read [`AGENTS.md`](AGENTS.md) before changing architecture, skills, schema, hooks, or templates. Skill changes are release events because cached plugin descriptions affect routing.
+Read [`CLAUDE.md`](../../CLAUDE.md) before changing architecture, skills, schema, hooks, or templates. Skill changes are release events because cached plugin descriptions affect routing.
 
 Bug fixes and documentation improvements are welcome as PRs. Open an issue first for schema changes, new commands, workflow changes, or breaking behavior.
 
@@ -197,10 +199,10 @@ Bug fixes and documentation improvements are welcome as PRs. Open an issue first
 
 - Landing page: <https://guohao1020.github.io/docs-cockpit/>
 - Issues: <https://github.com/Guohao1020/docs-cockpit/issues>
-- Release notes: [CHANGELOG.md](CHANGELOG.md)
-- Schema: [`references/schema.md`](references/schema.md)
-- Skill-first pivot: [`docs/plans/P-skill-first-pivot.md`](docs/plans/P-skill-first-pivot.md)
+- Release notes: [CHANGELOG.md](../../CHANGELOG.md)
+- Schema: [`references/schema.md`](../../references/schema.md)
+- Skill-first pivot: [`docs/plans/P-skill-first-pivot.md`](../../docs/plans/P-skill-first-pivot.md)
 
 ## License
 
-MIT. See [LICENSE](LICENSE).
+MIT. See [LICENSE](../../LICENSE).

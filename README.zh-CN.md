@@ -1,3 +1,5 @@
+[English](README.md) · **中文**
+
 # docs-cockpit
 
 <p align="center">
@@ -130,7 +132,7 @@ your-project/
 │  ├─ plans/YYYY-MM-DD-<id>-plan.md
 │  ├─ RFC/001-*.md
 │  └─ PRD.md
-├─ AGENTS.md
+├─ CLAUDE.md
 └─ .git/
 ```
 
@@ -189,7 +191,7 @@ py -3.13 -m pytest tests/ -q
 docs-cockpit render -c docs_cockpit/examples/minimal.yaml --debug
 ```
 
-修改 architecture、skills、schema、hooks 或 templates 前，请先读 [`AGENTS.md`](AGENTS.md)。Skill changes 都是 release events，因为缓存的 plugin descriptions 会影响 routing。
+修改 architecture、skills、schema、hooks 或 templates 前，请先读 [`CLAUDE.md`](CLAUDE.md)。Skill changes 都是 release events，因为缓存的 plugin descriptions 会影响 routing。
 
 Bug fixes 和 docs improvements 可以直接提 PR。涉及 schema changes、new commands、workflow changes 或 breaking behavior 时，请先开 issue。
 

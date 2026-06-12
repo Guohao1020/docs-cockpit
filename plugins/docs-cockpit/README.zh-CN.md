@@ -1,3 +1,5 @@
+[English](README.md) · **中文**
+
 # docs-cockpit
 
 <p align="center">
@@ -6,9 +8,9 @@
 
 > 面向 AI coding agents 的 skill-first 项目驾驶舱。把 AI 写下的 markdown 变成经过 schema 校验的单文件 dashboard。
 
-[![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](pyproject.toml)
-[![CHANGELOG](https://img.shields.io/badge/CHANGELOG-1.3.1-green.svg)](CHANGELOG.md)
+[![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](../../LICENSE)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](../../pyproject.toml)
+[![CHANGELOG](https://img.shields.io/badge/CHANGELOG-1.3.1-green.svg)](../../CHANGELOG.md)
 [![PRs welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](#contributing)
 
 ![docs-cockpit cockpit hero](../../site/assets/brand/docs-cockpit-og-cover.png)
@@ -86,7 +88,7 @@ docs-cockpit 有三层：
 - Concept grid 与 system docs drawer：展示 PRD、architecture notes、memory files 和 RFCs。
 - Copy-prompt actions：可复制单个 subtask、选中的 bundle、缺失文档 scaffold。
 - `docs-cockpit browse` 生成 tree-sidebar markdown reader。
-- Frontmatter lint 输出 severity、suggested fix，并引用 `references/schema.md`。
+- Frontmatter lint 输出 severity、suggested fix，并引用 `../../references/schema.md`。
 
 ## Skill Layer
 
@@ -112,7 +114,7 @@ sidecar schema 是 additive-only：可以增加字段，但不会随意移除已
 - A wrong anchor is worse than a missing anchor：build workflow 会验证证据，不确定就问，不猜。
 - Single-file dashboard：用 `file://` 打开，可以提交进仓库，也可以不依赖 hosting 分享。
 - Frontmatter as the database：人类可读的 markdown 仍然是 source of truth。
-- One schema source：`references/schema.md` 是 validator 引用的 spec。
+- One schema source：`../../references/schema.md` 是 validator 引用的 spec。
 - Deterministic rendering：Python 只加载 config、校验 metadata、嵌入 linked docs、写 artifacts。
 
 ## Project Anatomy
@@ -130,7 +132,7 @@ your-project/
 │  ├─ plans/YYYY-MM-DD-<id>-plan.md
 │  ├─ RFC/001-*.md
 │  └─ PRD.md
-├─ AGENTS.md
+├─ CLAUDE.md
 └─ .git/
 ```
 
@@ -167,7 +169,7 @@ body 里的 checklist 也可以携带 anchors：
 - [ ] Implement retry transition @code:src/worker/fsm.py:42-89 @docs:docs/RFC/004.md#section-2
 ```
 
-完整 frontmatter 和 anchor 规范见 [`references/schema.md`](references/schema.md)。
+完整 frontmatter 和 anchor 规范见 [`references/schema.md`](../../references/schema.md)。
 
 ## Updating
 
@@ -189,7 +191,7 @@ py -3.13 -m pytest tests/ -q
 docs-cockpit render -c docs_cockpit/examples/minimal.yaml --debug
 ```
 
-修改 architecture、skills、schema、hooks 或 templates 前，请先读 [`AGENTS.md`](AGENTS.md)。Skill changes 都是 release events，因为缓存的 plugin descriptions 会影响 routing。
+修改 architecture、skills、schema、hooks 或 templates 前，请先读 [`CLAUDE.md`](../../CLAUDE.md)。Skill changes 都是 release events，因为缓存的 plugin descriptions 会影响 routing。
 
 Bug fixes 和 docs improvements 可以直接提 PR。涉及 schema changes、new commands、workflow changes 或 breaking behavior 时，请先开 issue。
 
@@ -197,10 +199,10 @@ Bug fixes 和 docs improvements 可以直接提 PR。涉及 schema changes、new
 
 - Landing page: <https://guohao1020.github.io/docs-cockpit/>
 - Issues: <https://github.com/Guohao1020/docs-cockpit/issues>
-- Release notes: [CHANGELOG.md](CHANGELOG.md)
-- Schema: [`references/schema.md`](references/schema.md)
-- Skill-first pivot: [`docs/plans/P-skill-first-pivot.md`](docs/plans/P-skill-first-pivot.md)
+- Release notes: [CHANGELOG.md](../../CHANGELOG.md)
+- Schema: [`references/schema.md`](../../references/schema.md)
+- Skill-first pivot: [`docs/plans/P-skill-first-pivot.md`](../../docs/plans/P-skill-first-pivot.md)
 
 ## License
 
-MIT。见 [LICENSE](LICENSE)。
+MIT。见 [LICENSE](../../LICENSE)。
