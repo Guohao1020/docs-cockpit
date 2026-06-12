@@ -1,0 +1,71 @@
+#!/usr/bin/env bash
+# SessionStart hook · 仅在 docs-cockpit 项目注入 use-docs-cockpit 路由引导
+#
+# 与 superpowers 的 session-start 的关键差异：docs-cockpit 是「条件注入」——
+# 向上 6 层探测 docs-cockpit.yaml，不是 docs-cockpit 项目则静默 exit 0。
+# 输出协议与 JSON 转义机制照搬 superpowers（生产验证）的三路平台检测：
+#   Cursor       → {"additional_context": "..."}                     （snake_case）
+#   Claude Code  → {"hookSpecificOutput": {"hookEventName":
+#                    "SessionStart", "additionalContext": "..."}}     （嵌套）
+#   Copilot/其它 → {"additionalContext": "..."}                       （SDK 标准顶层）
+set -euo pipefail
+
+# ── 1 · 条件注入：向上找 docs-cockpit.yaml（含 cwd 最多 6 层）──
+dir="$(pwd)"
+found=""
+for _ in 1 2 3 4 5 6; do
+  if [ -f "$dir/docs-cockpit.yaml" ]; then found="$dir"; break; fi
+  parent="$(dirname "$dir")"
+  [ "$parent" = "$dir" ] && break
+  dir="$parent"
+done
+
+# 不是 docs-cockpit 项目 → 静默退出，绝不污染无关项目
+[ -z "$found" ] && exit 0
+
+# ── 2 · 定位 plugin root（set -u 安全展开；env 缺失回退脚本位置推导）──
+PLUGIN_ROOT="${CLAUDE_PLUGIN_ROOT:-${CURSOR_PLUGIN_ROOT:-}}"
+if [ -z "$PLUGIN_ROOT" ]; then
+  PLUGIN_ROOT="$(cd "$(dirname "$0")/.." 2>/dev/null && pwd)" || PLUGIN_ROOT=""
+fi
+[ -z "$PLUGIN_ROOT" ] && exit 0
+
+SKILL="${PLUGIN_ROOT}/skills/use-docs-cockpit/SKILL.md"
+[ -f "$SKILL" ] || exit 0
+
+# ── 3 · 注入内容：剥掉 YAML frontmatter，只取 SKILL.md body ──
+skill_body="$(awk 'BEGIN{f=0} /^---$/{f++; next} f>=2{print}' "$SKILL" 2>/dev/null || true)"
+[ -z "$skill_body" ] && exit 0
+
+# JSON 字符串转义（superpowers 同款：bash 参数替换，每个 ${s//old/new}
+# 是一次 C 级整串替换，远快于逐字符循环）
+escape_for_json() {
+    local s="$1"
+    s="${s//\\/\\\\}"
+    s="${s//\"/\\\"}"
+    s="${s//$'\n'/\\n}"
+    s="${s//$'\r'/\\r}"
+    s="${s//$'\t'/\\t}"
+    printf '%s' "$s"
+}
+
+skill_body_escaped=$(escape_for_json "$skill_body")
+# 注意：下面字符串里的 \n 是字面量反斜杠+n——内容已 JSON 转义，
+# 这里继续拼 JSON 转义序列，最终由 printf '%s' 原样嵌入 JSON。
+session_context="# docs-cockpit router (auto-injected)\n\n${skill_body_escaped}"
+
+# ── 4 · 三路平台检测输出（照搬 superpowers · printf 规避 bash 5.3+ heredoc 挂起）──
+# Claude Code 会同时读 additional_context 和 hookSpecificOutput 且不去重，
+# 所以每个平台只输出它自己消费的那一个字段。
+if [ -n "${CURSOR_PLUGIN_ROOT:-}" ]; then
+  # Cursor 设 CURSOR_PLUGIN_ROOT（可能同时设 CLAUDE_PLUGIN_ROOT）
+  printf '{\n  "additional_context": "%s"\n}\n' "$session_context"
+elif [ -n "${CLAUDE_PLUGIN_ROOT:-}" ] && [ -z "${COPILOT_CLI:-}" ]; then
+  # Claude Code 设 CLAUDE_PLUGIN_ROOT 且无 COPILOT_CLI
+  printf '{\n  "hookSpecificOutput": {\n    "hookEventName": "SessionStart",\n    "additionalContext": "%s"\n  }\n}\n' "$session_context"
+else
+  # Copilot CLI（COPILOT_CLI=1）或未知平台 → SDK 标准顶层字段
+  printf '{\n  "additionalContext": "%s"\n}\n' "$session_context"
+fi
+
+exit 0

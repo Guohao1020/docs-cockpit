@@ -2,6 +2,14 @@
 
 本项目遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/) · 版本号采用 [SemVer](https://semver.org/lang/zh-CN/)。
 
+## [1.3.1] · 2026-06-12
+
+### Fixed
+
+- **Codex marketplace 仓库安装** — 将 `.agents/plugins/marketplace.json` 的 `source.path` 从仓库根 `./` 改为 `./plugins/docs-cockpit`，并提交稳定插件 bundle，修复新版 Codex CLI 添加仓库后 marketplace 列表为空的问题。
+
+升级: 这是分发元数据与仓库布局修复，没有修改 skill 工作流；按 patch 发布。
+
 ## [1.3.0] · 2026-06-12
 
 ### Added

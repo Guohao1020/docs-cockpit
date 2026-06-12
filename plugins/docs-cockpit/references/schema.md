@@ -1,0 +1,576 @@
+<!-- 规范 SSOT · 自 v1.0 起本文是唯一字段规范来源（原 docs-cockpit-author 已删 · 其活规范节已并入本文） -->
+
+# docs-cockpit · frontmatter & anchor 字段规范
+
+build / rebuild skill 共享的字段规范 SSOT。
+
+## 目录
+
+1. [五种 doc kind](#五种-doc-kind)
+2. [frontmatter schema](#frontmatter-schema)
+3. [cross-doc 字段](#cross-doc-字段)
+4. [subtasks vs docs 决策](#subtasks-vs-docs-决策)
+5. [subtask 格式](#subtask-格式)
+6. [code anchor 格式](#code-anchor-格式)
+7. [doc anchor 格式](#doc-anchor-格式)
+8. [文件命名约定](#文件命名约定)
+9. [subtask title 4 法则](#subtask-title-4-法则)
+10. [per-subtask plan MD](#per-subtask-plan-md)
+11. [sprint-plan schema](#sprint-plan-schema)
+12. [health-report schema](#health-report-schema)
+
+---
+
+## 五种 doc kind
+
+Every markdown file in a docs-cockpit project is one of:
+
+| Kind | Location | YAML `type` | Purpose |
+|---|---|---|---|
+| **module** | `docs/spec/module/MNN-*.md` | `module` | A code-level unit of work · gets a Kanban card |
+| **concept** | `docs/spec/concept/CNN-*.md` | `concept` | A shared abstraction · gets a Concept Grid tile |
+| **plan** | `docs/plans/YYYY-MM-DD-<id>-plan.md` | `plan` | Time-boxed execution plan for a module |
+| **rfc** | `docs/RFC/NNN-<slug>.md` | `rfc` | Technical decision · compares options |
+| **spec** | `docs/spec/<id>-spec.md` | `spec` | Formal interface contract (API · data model) |
+
+`memory` and `roadmap` are also valid `type` values for system-level docs (e.g. `CLAUDE.md`, `docs/ROADMAP.md`) that appear in the "System Docs" drawer · they don't get individual cards.
+
+**Picking a kind:** ask yourself "what does this doc do for the project?"
+- "It's a thing being built" → **module**
+- "It's an idea/pattern shared by multiple modules" → **concept**
+- "It says how/when we'll build it" → **plan**
+- "It explains why we chose approach A over B" → **rfc**
+- "It defines the contract other code must obey" → **spec**
+
+Don't pick "plan" if you mean "spec". Don't pick "module" if you mean "concept". The validator can't catch this mismatch, but the dashboard groups by kind, so picking wrong puts the doc in the wrong place.
+
+---
+
+## frontmatter schema
+
+Every doc starts with a YAML frontmatter block:
+
+```yaml
+---
+id: M07
+type: module
+title: "Job / Task FSM"
+status: in-progress
+sprint: M1.2
+progress: 60
+desc: "Job lifecycle state machine · drives worker scheduling"
+owner: harvey
+prd_ref: "§7.4.1"
+docs:
+  - { title: "Execution plan", path: "docs/plans/2026-05-03-m07-fsm-plan.md" }
+  - { title: "FSM spec", path: "docs/spec/m07-fsm-spec.md" }
+depends_on: [M06]
+blocks: [M08, M09]
+---
+```
+
+### Required fields
+
+**`id`** — REQUIRED. Without it the doc is silently dropped from the dashboard (the build only counts entries with `id`).
+
+- Convention: `M01`-`M99` for modules · `C01`-`C99` for concepts · `RFC-001` for RFCs · `<MODULE-ID>-PLAN-<date>` for plans · `<MODULE-ID>-SPEC` for specs
+- MUST be unique across all docs (validator does NOT enforce this yet, but the dashboard will collide silently)
+- NEVER use placeholder ids containing `XX` or ending in `XXX` — the validator emits a warning and the entry is skipped
+
+### status enum
+
+**`status`** — RECOMMENDED. Without it the dashboard treats the module as `not-started`. Pick exactly one:
+
+| value | meaning | progress range |
+|---|---|---|
+| `not-started` | not in flight · nobody's looked at it | `0` only |
+| `planned` | scoped + sprint-assigned but not started | `0`-`15` |
+| `in-progress` | being actively worked on | `5`-`95` |
+| `blocked` | started but stuck on dependency / decision | `0`-`100` |
+| `done` | merged + verified | `100` only |
+| `deferred` | intentionally pushed to a later sprint | `0`-`100` |
+
+### status × progress invariants
+
+**`progress`** is an integer 0-100. The validator emits a `warn` if it's out of the band defined for the current status:
+
+```
+status=done       → progress must be 100
+status=not-started → progress must be 0
+status=planned    → progress in [0, 15]   (scoping ≠ doing)
+status=in-progress → progress in [5, 95]   (5 = some commit landed · 95 = needs final review)
+```
+
+When out of range, either move `status` forward or bring `progress` back to the band. Pick whichever describes reality.
+
+### status × subtasks 一致性
+
+module 级 `status` 要跟 subtasks 的实际完成比例对得上（validator cross-field 校验 · warn 级）：
+
+- `status: done` 但 subtasks 未全 done → warn「数据不一致」· 把剩余 subtask 勾完 · 或把 module status 调回 `in-progress`
+- `status: not-started` 但已有 subtask done → warn · bump status 到 `in-progress`
+
+经验法则：9 done + 1 not-started · module status 该是 `in-progress` 不是 `done`。用户坚持 `done` 但 subtask 未完 · 先质疑（多半是 status 标错）· 不要默默放行。
+
+### doc type enum
+
+**`type`** — optional but recommended. One of: `module`, `concept`, `plan`, `rfc`, `spec`, `memory`, `roadmap`. The validator warns on unknown values.
+
+This affects nothing in the dashboard rendering today, but the doc type drives which body template to use (see per-subtask plan MD section), and lint will eventually use it to validate kind-specific fields (e.g. `rfc` needs `status: draft|reviewing|accepted|superseded`).
+
+### Recommended fields
+
+- **`title`** — display name in the Kanban card. Defaults to filename stem if missing — usually fine but won't be pretty
+- **`sprint`** — string · e.g. `M1.2` · drives the Sprint Timeline grouping. Without it the Sprint view shows "unscheduled"
+- **`desc`** — one-line description shown in the drawer. **Without `desc`, the copy-prompt feature gets weaker context** because it falls back to a body excerpt. Validator emits a `hint` if missing
+- **`owner`** — string · just a name · surfaces in the drawer
+
+---
+
+## cross-doc 字段
+
+**`docs`** — list of `{title, path}` linking to plans / RFCs / specs that elaborate this module. Path is **relative to the repo root** (NOT relative to the source file). The build resolver tries absolute → relative-to-source → relative-to-repo so older patterns still work.
+
+```yaml
+docs:
+  - { title: "RFC-002 · ResourcePool",       path: "docs/RFC/002-resource-pool.md" }
+  - { title: "Round 3 plan · build sequence", path: "docs/plans/round-3-build-house.md" }
+```
+
+If you don't fill `docs:` in frontmatter, the body fallback takes over.
+
+**`depends_on`** / **`blocks`** — lists of other module ids. Currently informational (not rendered yet) but 写上它们是为将来的 dependency graph 特性留数据。
+
+**`prd_ref`** — string · the PRD section reference that motivates this doc · e.g. `"§7.4.2 + §9.2"`. Surfaces in the drawer.
+
+### docs body fallback（两种形式）
+
+**Form A · frontmatter (precise · with titles):**
+```yaml
+docs:
+  - { title: "Execution plan", path: "docs/plans/2026-05-03-m07-fsm-plan.md" }
+```
+
+**Form B · body section:**
+```markdown
+## Related
+
+- [Execution plan](docs/plans/2026-05-03-m07-fsm-plan.md)
+- [FSM spec](docs/spec/m07-fsm-spec.md)
+```
+
+Or `## 关联` / `## 参考` / `## Links` for Chinese / shorter. The build auto-extracts markdown links from these sections.
+
+---
+
+## subtasks vs docs 决策
+
+This is where people get confused. Two related but different concepts:
+
+| Concept | Lives where | Used for | Captured by |
+|---|---|---|---|
+| **subtasks** | `subtasks:` frontmatter list OR `## TODO` / `## 待办` body section | Granular work items WITHIN this doc · drives progress auto-calc | Drawer checklist |
+| **docs** | `docs:` frontmatter list OR `## Related` / `## 关联` body section | Links to OTHER docs that elaborate / depend on this | Drawer "Linked Docs" list |
+
+**Rule of thumb:**
+- Sub-bullets of work you'll do yourself → `subtasks`
+- References to other markdown files that describe details → `docs`
+
+If you're tempted to put a "see also" link in `subtasks:`, it's `docs:`. If you're tempted to put a checkbox in `docs:`, it's `subtasks:`.
+
+---
+
+## subtask 格式
+
+> **0.16.0 · title style rules are MANDATORY** — see subtask title 4 法则 below. Quick recap: one sentence requirement (not code logic) · single language matching `project.doc_language` · NO `§N.M` / file paths / line numbers / function names in title (those go to `code:` / `docs:` fields). Violations surface as `doc-lang-mix` / `title-has-anchor` warnings at build time.
+
+v0.10 用 `list[str]` · v0.11 升到 object schema with `id / title / status / code / docs`. The string form keeps working — validator treats a bare string as `{title: <string>}` and generates the rest. Three equivalent forms:
+
+**Form A · frontmatter object array (v0.11 · 最高精度 · 支持 code/docs anchor):**
+```yaml
+subtasks:
+  - id: M09-S1                                       # optional · auto-derived from title if missing
+    title: "wire FSM enum to Pydantic"
+    status: done                                     # not-started | in-progress | done | blocked
+    code: sourcery/worker/fsm.py:42-89               # single anchor · or list for multi-file
+    docs:
+      - docs/spec/module/M09-browser-cluster.md#§2.1
+      - docs/RFC/RFC-004-fsm-redesign.md:128-180
+  - title: "worker pulls next state from queue"      # bare title also fine · id auto-derived
+    status: not-started
+```
+
+**Form B · frontmatter v0.10 legacy (string list):**
+```yaml
+subtasks:
+  - "wire FSM enum to Pydantic"                      # treated as {title, done:false, id:auto}
+  - "worker pulls next state from queue"
+```
+
+v0.10 string 形式是 legacy——解析层继续兼容（bare string 视作 `{title: <string>}` · 其余字段自动生成）。新写一律用 object 形式（Form A）；要升级老文件时 agent 用 Edit 直接把 string 重写为 object 即可 · 不再有 CLI 迁移工具。
+
+**Form C · body section with inline annotations (v0.11.0-alpha.2 · diff-friendly · what this repo uses for its own modules):**
+```markdown
+## 3 · 待办
+
+- [x] wire FSM enum to Pydantic @code:sourcery/worker/fsm.py:42-89 @docs:docs/spec/module/M09.md#§2.1
+- [ ] worker pulls next state from queue @code:sourcery/worker/main.py:120-180 @docs:docs/RFC/RFC-004.md:128-180
+```
+
+**Accepted heading forms** (since 0.14.3 · parser regex was tightened up):
+
+| Form | Example | Notes |
+|---|---|---|
+| Plain | `## 待办` / `## TODO` / `## Subtasks` / `## 任务` | bare keyword |
+| Number-prefixed | `## 3 · 待办` / `## 4. TODO` / `## 3 - Tasks` | digit + optional `·` / `.` / `-` separator |
+| **§-prefixed** | `## §4 · 待办` / `## §3.2 · 任务` | for plan / RFC style heading numbering(0.14.3 加 · M08/M09/M10 dogfood 反馈) |
+| **3rd-level+** | `### 待办` / `#### TODO` | any heading `##` through `######` |
+| Tab-separated | `##\t待办` / `## §4\t待办` | tab works · `\s+` regex |
+| Case-insensitive | `## todo` / `## Subtask` | `re.IGNORECASE` |
+
+**Reject** the form `##待办` (no space between `##` and keyword) and `# 待办` (h1 too thin). Also reject random text like `regular text TODO` — must be a heading line.
+
+The build's `extract_subtasks_from_body()` (in `schema.py`) does:
+
+1. find a section matching one of the heading regexes
+2. for each `- [x]` / `- [ ]` line: extract checkbox state → `done` boolean
+3. run two regex sweeps over the rest of the line:
+   - `@code:(\S+)` → all hits become `code` (single string if 1 hit, list if 2+)
+   - `@docs:(\S+)` → same for `docs`
+4. `title` = original line text minus all `@code:...` / `@docs:...` annotations, whitespace-collapsed
+
+So `@code:` and `@docs:` can stack any number of times on one line · don't put spaces inside the anchor (`\S+` ends at whitespace).
+
+**Frontmatter wins**: if both frontmatter `subtasks:` and body `## 待办` exist, frontmatter overrides — body is ignored. So pick one form per doc and stick to it.
+
+### subtask id 算法 + title-is-identity 权衡
+
+When you write Form A or Form B without an explicit `id:`, the build auto-assigns:
+
+```
+id = <module-id> + "-" + sha1(title.strip())[:6]
+```
+
+Example · module M03, subtask title `"First-build bootstrap(uv tool / pipx / pip --user 优先级)"` → `M03-3bc28b`.
+
+This is deterministic and stable **across builds** as long as the title doesn't change. The dashboard, prompts.js sidecar, and localStorage all key off this id — so changing the title:
+
+- **breaks the localStorage override** (user's manual status flip on this subtask is lost)
+- **rotates the id in `state.json::issues[].field`** (validator/CI tooling sees this as a different subtask)
+- **invalidates any external reference** to the old id (e.g. a PR description that links to `#/module/M03?st=M03-3bc28b`)
+
+**Rule of thumb · title is identity**:
+- Small wording tweak ("ok" → "OK") · usually fine · id rotates · accept the storage loss
+- Substantive rewrite (`"补 BrowserVendor abstraction"` → `"Lane A · BrowserVendor abstraction + LocalPlaywrightVendor"`) · explicitly pin the original id with `id: M09-S1` so storage / tooling keeps pointing at the right subtask
+- Splitting one subtask into two · the new ones get new ids by design · don't try to preserve
+
+You can always upgrade later: leave id auto-derived for new subtasks, only pin `id:` when you know you'll be rewording.
+
+---
+
+## code anchor 格式
+
+The `code:` field on a subtask is parsed by `paths.py::_resolve_code_anchor`. Accepted shapes:
+
+| Shape | Example | Meaning |
+|---|---|---|
+| `<path>` | `sourcery/worker/fsm.py` | whole file · preview = first ~40 lines |
+| `<path>:<line>` | `sourcery/worker/fsm.py:42` | single line · preview = ±20 lines around it |
+| `<path>:<start>-<end>` | `sourcery/worker/fsm.py:42-89` | line range · preview = exactly those lines |
+| `[<anchor1>, <anchor2>, ...]` | `["worker/a.py:10-30", "worker/b.py:100-150"]` | multi-anchor · drawer renders N chevron buttons |
+
+Path resolution is the **three-step fallback** (same as `docs:`): absolute → relative to source MD → relative to repo root. Stale anchors render with a `⚠ stale code anchor` warning in the preview pane (but don't fail the build · severity = warn).
+
+The drawer surfaces a `vscode://file/<abs>:<line>` deep-link button on each anchor — clicking opens the file in VS Code at the right line.
+
+**Resolved `code_anchors[]` entry shape** (after build · the payload your template / downstream tooling sees):
+
+| Field | Type | Meaning | Use this when... |
+|---|---|---|---|
+| `path` | str | **raw user input** including any `:lines` suffix · e.g. `"worker/x.py:42-89"` | you want to display the user's literal anchor string (e.g. CLI output) |
+| `path_only` | str (0.14.3+) | **clean path** without `:lines` · e.g. `"worker/x.py"` | building file references in templates · merging with `lines` separately · cross-anchor dedup |
+| `lines` | str \| null | line range `"42-89"` / `"42"` / null | display "lines X-Y" badges · jump-to-line in editors |
+| `resolved` | str | absolute path · empty if file not found | open / read the file from disk |
+| `exists` | bool | file exists on disk | gate render(stale anchor warning) |
+| `preview` | str | code snippet (truncated to 800 chars) | drawer code-preview pane |
+| `vscode_url` | str | `vscode://file/<abs>:<line>` deep link | "Open in VS Code" button |
+| `warning` | str | "" if ok · else stale / out-of-range / binary message | render `⚠` badge |
+
+**Template rule of thumb**: use `{{ ca.path_only }}{% if ca.lines %}:{{ ca.lines }}{% endif %}` instead of `{{ ca.path }}:{{ ca.lines }}` — `path` already contains `:lines` if user wrote them, so double-appending produces `worker/x.py:42-89:42-89`. The built-in `prompts/*.md.j2` templates do this since 0.14.3.
+
+---
+
+## doc anchor 格式
+
+The subtask-level `docs:` field is a **list of strings** (not `{title, path}` dicts like module-level `docs:`). Parsed by `paths.py::_resolve_subtask_doc_anchor` (added 0.11.0-alpha.8). Accepted shapes:
+
+| Shape | Example | Behavior |
+|---|---|---|
+| `<path>` | `docs/spec/module/M09.md` | whole file rendered in right pane (frontmatter stripped) |
+| `<path>:<lines>` | `CLAUDE.md:88-100` | slice lines 88-100 (1-indexed · inclusive both ends · raw file lines · not stripping frontmatter) |
+| `<path>:<line>` | `docs/plans/p.md:367` | slice single line |
+| `<path>#<heading>` | `docs/plans/p.md#§6.2` | find first `## *<heading>*` line (substring match, case-insensitive) → slice from there to next same-or-higher heading |
+
+The build pre-slices the content into `subtask.doc_anchors[i].content` at build time · the dashboard's right pane just runs `marked.parse(content)`. This avoids the unreliable "render the whole doc and try to highlight line 88-100 in the resulting HTML" problem — slicing happens on the source markdown before rendering.
+
+100 KB hard cap per anchor (same as module-level docs).
+
+**Resolved `doc_anchors[]` entry shape** (after build):
+
+| Field | Type | Meaning |
+|---|---|---|
+| `raw` | str | **raw user input** including `:lines` / `#heading` · e.g. `"plan.md#§6.2"` |
+| `raw_with_anchor` | str (0.14.3+) | alias of `raw` · 命名跟 `code_anchors[].path` 对称(都是 raw 串)· future-proof for v0.X+ deprecation of `raw` |
+| `path` | str | **clean path** without anchor · e.g. `"plan.md"` |
+| `lines` | str \| null | `"88-100"` / `"88"` / null(只 path / heading 时) |
+| `heading` | str \| null | `"§6.2"` · null when lines-style or whole-file |
+| `title` | str | heading 匹配上时取找到的 heading 文本(`"§6.2 · W3 Prompt scaffolding"`) |
+| `resolved` | str | absolute path |
+| `exists` | bool | file exists |
+| `content` | str | sliced markdown text(100KB cap) |
+| `mtime` | str \| null | `"YYYY-MM-DD HH:MM"` |
+| `warning` | str | "" / `path not found` / `heading not found` |
+
+**Template rule of thumb**: 对称命名 · `doc_anchors[].raw` ≡ `code_anchors[].path`(都是 raw 串)· `doc_anchors[].path` ≡ `code_anchors[].path_only`(都是 clean 路径)。0.14.3+ 加了 `raw_with_anchor` alias 让命名对称 · 未来 minor 可 deprecate `raw` 单字段。
+
+---
+
+## 文件命名约定
+
+| Kind | Pattern | Example |
+|---|---|---|
+| module | `docs/spec/module/M<NN>-<kebab-slug>.md` | `M07-job-task-fsm.md` |
+| concept | `docs/spec/concept/C<NN>-<kebab-slug>.md` | `C03-data-schema.md` |
+| plan | `docs/plans/<YYYY-MM-DD>-<module-id-lower>-plan.md` | `2026-05-03-m07-fsm-plan.md` |
+| rfc | `docs/RFC/<NNN>-<kebab-slug>.md` | `002-resource-pool.md` |
+| spec | `docs/spec/<id-lower>-spec.md` | `m07-fsm-spec.md` |
+
+- `<NN>` is two digits zero-padded for the first 99 (`01`, `02`, ..., `99`), then unpadded (`100`, `101`, ...)
+- `<kebab-slug>` is lowercase, hyphen-separated, no spaces, no special chars
+- Module ids in filenames are lowercase (`m07-...`) but the `id:` field stays uppercase (`M07`)
+- Plan filenames lead with date for chronological sort
+
+---
+
+## subtask title 4 法则
+
+When you write a subtask title:
+
+**法则 1 · One sentence in user-need language · NOT code language**
+
+```
+✅ 「实现资源池的借/还机制 · 失败自动冷却 + 超时回收」     ← what the user gets
+❌ 「ResourcePool[T] · COOLDOWN(5 失败 → 300s 冷却 / 25min 超时)+ EWMA 评分」  ← code-name dump
+```
+
+**法则 2 · Single language matching project.doc_language**
+
+The project's `docs-cockpit.yaml::project.doc_language` lock applies to all subtask titles. Tech tokens (`API`, `MCP`, `CLI`, `JSON`, `SDK`, etc.) are whitelist-OK · they're cross-lingual.
+
+```
+zh-CN project · ✅ 「实现 MCP server 的 stdio 接入」          ← 中文主体 + 白名单 'MCP'
+zh-CN project · ❌ 「实现 MCP server 的 stdio 接入 with SDK choice」  ← 'with' / 'choice' 非白名单
+en project    · ✅ "Implement stdio adapter for the MCP server"
+en project    · ❌ "Implement stdio adapter 给 MCP server 接入"        ← CJK 在 en project
+```
+
+**法则 3 · NO anchor info in title · 走 `code:` / `docs:` 字段**
+
+These belong in `code_anchors[]` / `doc_anchors[]`, NEVER in title:
+
+- `§3.1` / `§4.6 / §4.7 / §4.8` heading numbers
+- `DATA_SCHEMA.md` / `account_proxy.py` file paths
+- `:42-89` line ranges
+- `ResourcePool[T]` / `lazyAccountProxy()` function / class identifiers
+
+```
+✅ title: 「同步 vendor 池的字段定义」
+   docs:  ["docs/DATA_SCHEMA.md#§3.1", "docs/DATA_SCHEMA.md#§3.2"]
+   code:  ["sourcery/resources/vendor_pool.py"]
+
+❌ title: 「M1.2 Lane F · DATA_SCHEMA.md §3.1 / §3.2 行同步 + §4.6 / §4.7 / §4.8 ...」
+```
+
+**法则 4 · 一句话讲需求逻辑 · 不讲实施步骤**
+
+```
+✅ 「让 dashboard 在多 sprint 时显示 sprint 筛选下拉」        ← 用户得到的能力
+❌ 「在 index.html.tmpl 加 `<select id='backlog-filter-sprint'>` 渲染 sprint 选项」  ← 实施细节
+```
+
+实施细节属于 per-subtask plan MD body（见下节）· 不是 title。
+
+---
+
+## per-subtask plan MD
+
+复杂 subtask 必须有独立 plan MD（0.16.0 引入 · 原 author skill §16.3 回收至此）。
+
+**Trigger** — 任何 subtask 满足以下任一 · MUST 写独立 plan MD：
+
+- 实施需要 2 步以上(不是 1 行 edit · 也不是 trivial)
+- 跨 2+ 文件 / 模块
+- 含设计 / approach 选择(2 种以上做法可比较)
+- 含 acceptance criteria 多于 1 条
+
+Trivial 单步(改一个常量 · 跑一个命令)可省。
+
+**File location**:
+
+```
+docs/plans/
+  M<NN>/                            ← module dir · 跟 module file 同名零 pad 2 位
+    S<NN>-<slug>.md                 ← subtask plan · S 前缀 · 零 pad 2 位 · kebab-case slug
+```
+
+**Frontmatter**:
+
+```yaml
+---
+type: subtask-plan
+parent_module: M07
+parent_subtask: M07-S1            # 序号形式 · 跟 module body checklist 顺序一致
+                                  # 或 sha1 形式 "M07-f75501" · 跟 frontmatter 显式 id 同
+title: "实现 MCP server 的 stdio 接入"     # 跟 subtask title 一致(单语 · 无 anchor)
+status: not-started               # 跟 module 内 subtask.status 保持一致(手动同步)
+desc: "一句话讲用户得到什么"
+---
+```
+
+**Body 4 节(标准结构)**:
+
+```markdown
+## 用户得到什么
+(一段话 · 用户需求语言 · 不讲代码细节 · 不超过 100 字)
+
+## 范围
+(从哪到哪 · 边界清晰 · 跟其它 subtask 的分工)
+
+## 实施 approach
+(这里可以放 §N.M / 文件名 / 函数名 / 行号 · 这是 plan body 不是 title)
+(给 2-3 种 approach 比较 · 标 chosen)
+
+## 验证
+(acceptance criteria 1-3 条 · 可测试 · "跑 X 命令 / 看 Y 输出 / 文件 Z 存在")
+```
+
+**Dashboard 接线**：`type: subtask-plan` 是合法 doc type（`validate_meta` 不报 unknown）。把 plan MD 挂回 subtask 的方式是在 module body checklist 行显式写 `@docs:docs/plans/M07/S01-<slug>.md` anchor。（原 author skill 声称 build 会按 `parent_subtask` 自动反查注入 `doc_anchors[]`——该自动接线从未落地 · 显式写 anchor 才是接通方式。）
+
+不变式：1 个 file = 1 个 subtask（1:1）· `parent_subtask` 的 id 形式（序号 / sha1）整个 module 锁一种 · plan body 讲思路 · 不复制粘贴 `code_anchors[].preview` 代码段。
+
+---
+
+## sprint-plan schema
+
+sprint 一等公民 doc（0.19.0 引入 · 原 author skill §17.1-§17.3 回收至此）· 答「这 1-4 周交付什么 user-visible 产物」· 把 PRD/RFC → sprint → subtask 串成闭环。
+
+### 三层模型(release · sprint · subtask)
+
+| 层 | 粒度 | doc type | filename 约定 | 答的问题 |
+|---|---|---|---|---|
+| release plan | 跨多 sprint · 一个产品大方向 | `plan` | `docs/plans/P-v<release>-<slug>.md` | 这个 release 要解决什么大问题 |
+| **sprint plan**(0.19 新)| 1-4 周 · 一个 sprint | `sprint-plan` | `docs/plans/V<x.y>[-<slug>].md` | 这 1-4 周交付什么 user-visible 产物 |
+| module spec | 多 sprint 渐进 | `module` | `docs/spec/module/M<NN>-<slug>.md` | 这个模块累计 ship 哪些能力 |
+| subtask plan(0.16 新)| 单 subtask · 几小时-几天 | `subtask-plan` | `docs/plans/M<NN>/S<NN>-<slug>.md` | 这条 subtask 具体怎么做 |
+
+### sprint-plan 必填字段
+
+```yaml
+---
+id: V0.19                            # 必填 · 跟 module.sprint 字段值对齐("0.19" ↔ "V0.19" 自动规整)
+type: sprint-plan                    # 必填 · 新 doc type
+title: "Sprint 0.19 · ..."           # 必填
+status: planned | in-progress | done | blocked
+window: "2026-05-21 → 2026-06-04"    # 必填 · ISO date range
+goals:                               # 必填 · 至少 1 条 · user-visible 产物
+  - "..."
+in_scope:                            # 必填 · sprint backlog · 列哪些 module / subtask
+  - module: M07
+    subtasks: [M07-f75501, M07-53a63a]   # 留空 = 整个 module
+out_of_scope: ["..."]                # 显式 NOT in sprint · 防 scope creep
+prd_refs:                            # 需求对齐 · DoR check #1 · 至少 1 条
+  - { section: "§6.3", title: "...", path: "docs/PRD/Sourcery_PRD_V1.0.docx" }
+dor: ["..."]                         # Definition of Ready · sprint 开干前条件
+dod: ["..."]                         # Definition of Done · sprint 结束的验收
+retro:                               # sprint 结束后填
+  what_worked: ""
+  what_didnt: ""
+  carryover: []                      # 没做完滚到下个 sprint 的 subtask id list
+---
+```
+
+`schema.py::validate_sprint_plan` 按本表校验（缺必填 error · 缺推荐 warn · `goals[]` 写实现细节也该自省——要写 user-visible 体验）。
+
+### DoR(Definition of Ready)· 两条不让放过
+
+「每个版本开始前都需要校验是否有了**充分的需求对齐**和**大模型参考文档**」· lint 自动校验：
+
+| DoR | 谁来检查 | lint category |
+|---|---|---|
+| **需求对齐** · 每个 in_scope subtask 能 trace 到 prd_refs 任一条(走 prd_ref 字段 或 @docs anchor) | `lint_sprint_readiness` | `sprint-readiness` |
+| **大模型参考文档** · 每个 in_scope subtask 有 @code 或 @docs anchor(LLM 拿得到上下文) | `lint_sprint_readiness` | `sprint-readiness` |
+| 引用的 PRD/RFC 文件存在 + 可读 | `lint_sprint_readiness` | `sprint-readiness` |
+| in_scope.module / subtask id 在 state.json 找得到 | `lint_sprint_readiness` | `sprint-readiness` |
+| 复杂 subtask 有独立 plan MD(见上节 per-subtask plan MD)| 手工 self-check | (尚未自动 lint)|
+
+不满足 DoR · `docs-cockpit lint` / `docs-cockpit render` 报 warn（lint 加 `--strict-warn` / render 加 `--strict` 可升级为阻断）。
+
+---
+
+## health-report schema
+
+体检报告一等公民 doc（1.1.0 引入 · 设计 spec `docs/plans/P-v1.1-health-check.md` §4）· 双重身份：frontmatter = 机器读（render 解析进看板健康徽章 + 健康面板）· body = 人读三段式报告（诊断 → 处方 → 行动规划 · 模板见 `references/health-check.md`）。
+
+### 固定路径约定
+
+- 路径固定 `docs/HEALTH.md` · **不进 config 扫描**——与 `docs/state.json` 同级的约定路径 · render 自行探测（不存在则看板无健康面板 · 零影响）
+- **写入者 = build / rebuild skill**（体检是认知产物）· **解析者 = render**（机械）——职责分界与 module MD 完全同构
+
+### 必填字段
+
+```yaml
+---
+type: health-report        # 必填 · 固定值
+date: 2026-06-10           # 必填 · ISO YYYY-MM-DD
+mode: quick                # 必填 · quick | deep
+grade: B+                  # 必填 · A/B/C/D · 可带 +/- 后缀(如 B+ / C-)
+departments:               # 必填 · 九科结果 · 至少 1 项
+  - id: anchors            # 必填 · 科室稳定 id
+    name: "关联"            # 必填 · 人读科室名
+    verdict: warn          # 必填 · pass | warn | fail(三色行)
+    summary: "覆盖率 78% · 抽检 1❌"   # 必填 · 一行结论
+    detail: "..."          # 可选 · 展开细节
+---
+```
+
+### 可选字段
+
+```yaml
+prescriptions:             # 处方 · 看板处方卡 + Copy-prompt CTA 数据源
+  - id: RX-001             # 必填 · RX-NNN 稳定递增 · 复查未解决保留原 id
+    severity: high         # 必填 · high | medium | low
+    bucket: sprint         # 必填 · now | sprint | backlog | watch | accepted(五桶)
+    title: "M07-S2 锚指向已重构函数"        # 必填
+    root_cause: "fsm.py 重构后原函数移位"   # 必填 · Iron Law(见下)
+    fix: "anchor 改指 fsm.py:88-130"       # 必填 · 建议修法
+    anchors: ["sourcery/worker/fsm.py:42-89"]   # 可选 · code anchor 格式
+    module: M07            # 可选 · 必须是真实存在的 module id(看板反链处方卡 → module 卡)
+accepted_debts:            # 台账 · 已接受的债 · 快检不再报
+  - { item: "schema.py God file", reason: "post-1.0 已排期拆分", review: "2026-08" }
+next_checkup: "本 sprint 收尾快检 · 30 天深检"   # 可选 · 复查节奏建议
+```
+
+### 校验（schema.py::validate_health_report）
+
+| 检查 | severity |
+|---|---|
+| 缺必填顶层字段(type / date / mode / grade / departments) · 或值非法(mode 不在 quick\|deep · grade 不匹配 `[ABCD][+-]?` · date 非 ISO) | error |
+| departments 项缺必填子字段(id / name / verdict / summary) · 或 verdict 不在 pass\|warn\|fail | error |
+| prescriptions / accepted_debts / departments 不是 list 等结构性破损 | error |
+| 处方缺 `root_cause` —— **Iron Law 的死规则面**：skill 层规则是「查不出根因的不开药 · 开进一步检查单」· validator 只能查「写没写」 | warn |
+| 处方其余必填子字段缺失(id / severity / bucket / title / fix) · 或 severity / bucket 枚举非法 | warn |
+| 处方 `module` 引用不存在的 module id(render 时传入已知 module ids 才查) | warn |
+| 处方缺 `anchors` 字段 —— Iron Law 要求根因+anchor 定位 · 覆盖类处方可豁免 | hint |
+| accepted_debts 项缺 item / reason / review | warn |
+
+error = 看板健康面板渲染不了(或渲染错)· warn = 能渲染但该修。处方层面问题统一 warn 不 error——一条坏处方不应拖垮整份体检报告的渲染。

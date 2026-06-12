@@ -8,7 +8,7 @@
       "name": "docs-cockpit",
       "source": {
         "source": "local",
-        "path": "./"
+        "path": "./plugins/docs-cockpit"
       },
       "policy": {
         "installation": "AVAILABLE",
@@ -20,7 +20,7 @@
         "shortDescription": "Skill-first project dashboard from markdown",
         "developerName": "Guohao1020"
       },
-      "version": "1.3.0"
+      "version": "1.3.1"
     }
   ]
 }
