@@ -3,7 +3,7 @@
 # docs-cockpit
 
 <p align="center">
-  <img src="../../site/assets/brand/docs-cockpit-logo.png" alt="docs-cockpit logo" width="520">
+  <img src="https://raw.githubusercontent.com/Guohao1020/docs-cockpit/main/site/assets/brand/docs-cockpit-logo.png" alt="docs-cockpit logo" width="520">
 </p>
 
 > 面向 AI coding agents 的 skill-first 项目驾驶舱。把 AI 写下的 markdown 变成经过 schema 校验的单文件 dashboard。
@@ -13,7 +13,7 @@
 [![CHANGELOG](https://img.shields.io/badge/CHANGELOG-1.3.1-green.svg)](../../CHANGELOG.md)
 [![PRs welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](#contributing)
 
-![docs-cockpit cockpit hero](../../site/assets/brand/docs-cockpit-og-cover.png)
+![docs-cockpit cockpit hero](https://raw.githubusercontent.com/Guohao1020/docs-cockpit/main/site/assets/brand/docs-cockpit-og-cover.png)
 
 ## Why docs-cockpit
 
@@ -60,9 +60,9 @@ docs-cockpit render -c docs-cockpit.yaml
 
 ## See It
 
-![docs-cockpit dashboard Kanban](../../site/assets/screenshots/dashboard-kanban.png)
+![docs-cockpit dashboard Kanban](https://raw.githubusercontent.com/Guohao1020/docs-cockpit/main/site/assets/screenshots/dashboard-kanban.png)
 
-![docs-cockpit workflow overview](../../site/assets/screenshots/workflow-overview.svg)
+![docs-cockpit workflow overview](https://raw.githubusercontent.com/Guohao1020/docs-cockpit/main/site/assets/screenshots/workflow-overview.svg)
 
 ## How It Works
 
