@@ -4,7 +4,7 @@
 
 [![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](pyproject.toml)
-[![CHANGELOG](https://img.shields.io/badge/CHANGELOG-1.2.0-green.svg)](CHANGELOG.md)
+[![CHANGELOG](https://img.shields.io/badge/CHANGELOG-1.3.0-green.svg)](CHANGELOG.md)
 [![PRs welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](#贡献)
 
 > **MIT 协议开源项目 · 欢迎提 Issues + PR。**
@@ -32,8 +32,9 @@
 把 docs-cockpit 装到你的 AI 编程助手上:
 
 - **[Claude Code](#claude-code)** ✅ 已就绪
+- **[Codex](#codex)** ✅ 已通过 Codex marketplace 安装方式支持
 - **Cursor** —— SessionStart 路由 hook 已带 Cursor 适配(`hooks/hooks-cursor.json`);完整打包在 roadmap 上
-- **Codex CLI · Gemini CLI · OpenCode · GitHub Copilot CLI · …** —— 看板 / 校验器 / 规范本身是 agent-agnostic 的(markdown skill + Python CLI);只有 skill 分发层因 harness 而异
+- **Gemini CLI · OpenCode · GitHub Copilot CLI · …** —— 看板 / 校验器 / 规范仍是 agent-agnostic 的(markdown skill + Python CLI);分发层因 harness 而异
 
 装完后不需要记任何东西:在 docs-cockpit 项目里,路由 skill 会在会话启动时自动注入,agent 自己把驾驶舱相关的请求分发到正确的工作流。5 个 slash 命令在你想显式调用时提供入口。
 
@@ -55,6 +56,15 @@
 文档规范的 SSOT —— 必填字段、status × progress 不变式、anchor 语法、文件命名、跨文档引用规则 —— 在 [`references/schema.md`](references/schema.md):agent 和人共读一份文件,校验器逐条 issue 引用它。AI 不再每次重新发明约定 —— **skill 本身就是约定。**
 
 ## 安装
+
+### Codex
+
+```bash
+# 在 Codex CLI 里
+codex plugin marketplace add Guohao1020/docs-cockpit
+```
+
+然后打开 Codex 插件目录,选择 `docs-cockpit` marketplace,安装 `docs-cockpit` 插件。在 Codex app 里,添加 marketplace 后从 **Plugins** 页面安装。
 
 ### Claude Code
 
@@ -98,7 +108,7 @@ docs-cockpit upgrade       # 原子升级 CLI + plugin(清 cache + 提示重启)
 
 ### 其他 AI 编程助手
 
-Cursor · Codex CLI · Gemini CLI · OpenCode · GitHub Copilot CLI —— 打包在 roadmap 上(Cursor 已有 hook 适配 `hooks/hooks-cursor.json`)。看板 / 校验器 / 规范本身是 agent-agnostic 的 —— 就是 markdown skill + Python CLI;只是 skill 在不同 harness 上的分发机制不同。
+Codex 已通过上面的 Codex marketplace 安装方式支持。Cursor · Gemini CLI · OpenCode · GitHub Copilot CLI —— 打包仍在 roadmap 上(Cursor 已有 hook 适配 `hooks/hooks-cursor.json`)。看板 / 校验器 / 规范本身是 agent-agnostic 的 —— 就是 markdown skill + Python CLI;只是 skill 在不同 harness 上的分发机制不同。
 
 如果你想给某个 harness 打包,欢迎开 issue 或 PR。
 
