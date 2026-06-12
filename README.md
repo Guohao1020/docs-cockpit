@@ -107,7 +107,7 @@ Plus 3 skills (you don't invoke these — your agent decides when to use them):
 
 ### Other AI coding agents
 
-Cursor, Codex CLI, Gemini CLI, OpenCode, GitHub Copilot CLI — packaging is on the roadmap (Cursor already has a hook adaptation in `hooks/hooks-cursor.json`). The dashboard / validator / spec are agent-agnostic — it's markdown skills + a Python CLI; only the skill-distribution layer differs per harness.
+Codex is supported through the Codex marketplace install above. Cursor, Gemini CLI, OpenCode, GitHub Copilot CLI — packaging remains on the roadmap (Cursor already has a hook adaptation in `hooks/hooks-cursor.json`). The dashboard / validator / spec are agent-agnostic — it's markdown skills + a Python CLI; only the skill-distribution layer differs per harness.
 
 If you're packaging docs-cockpit for one of these, open an issue or PR.
 

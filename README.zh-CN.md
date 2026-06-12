@@ -107,7 +107,7 @@ docs-cockpit upgrade       # 原子升级 CLI + plugin(清 cache + 提示重启)
 
 ### 其他 AI 编程助手
 
-Cursor · Codex CLI · Gemini CLI · OpenCode · GitHub Copilot CLI —— 打包在 roadmap 上(Cursor 已有 hook 适配 `hooks/hooks-cursor.json`)。看板 / 校验器 / 规范本身是 agent-agnostic 的 —— 就是 markdown skill + Python CLI;只是 skill 在不同 harness 上的分发机制不同。
+Codex 已通过上面的 Codex marketplace 安装方式支持。Cursor · Gemini CLI · OpenCode · GitHub Copilot CLI —— 打包仍在 roadmap 上(Cursor 已有 hook 适配 `hooks/hooks-cursor.json`)。看板 / 校验器 / 规范本身是 agent-agnostic 的 —— 就是 markdown skill + Python CLI;只是 skill 在不同 harness 上的分发机制不同。
 
 如果你想给某个 harness 打包,欢迎开 issue 或 PR。
 
