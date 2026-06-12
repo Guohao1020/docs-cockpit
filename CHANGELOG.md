@@ -2,6 +2,19 @@
 
 本项目遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/) · 版本号采用 [SemVer](https://semver.org/lang/zh-CN/)。
 
+## [1.3.0] · 2026-06-12
+
+### Added
+
+- **Codex 原生插件入口** —— 新增 `.codex-plugin/plugin.json` 和 `.agents/plugins/marketplace.json`,让用户可以通过 `codex plugin marketplace add Guohao1020/docs-cockpit` 把 docs-cockpit 加入 Codex 插件市场来源并安装。
+- **双插件清单兼容** —— 保留既有 `.claude-plugin/` 入口,同时让 Codex 和 Claude 两侧共享同一套 `skills/` / `commands/` / `hooks/` 内容与 release 版本。
+
+### Changed
+
+- **安装文档** —— README / README.zh-CN / operations runbook 区分 Codex 与 Claude Code 安装路径,避免把 repo marketplace 安装误写成单一 Claude 流程。
+
+升级:这次新增插件分发入口,版本按 minor 发布;Codex 用户添加 marketplace 后从 Codex 插件目录安装,Claude Code 用户继续使用既有 `/plugin marketplace add` 流程。
+
 ## [1.2.0] · 2026-06-11
 
 下游实战反馈(1.1.0 发布当天):空地建卡(greenfield 0→1)场景下,执行 build skill 的 agent 把「入院体检」解读为"只给已存在的关联做健康诊断",于是自行跳过体检——新建的规划卡没有过 review,也没有留下基线 HEALTH.md。
