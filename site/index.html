@@ -3,38 +3,29 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<!-- Primary SEO · English-default -->
-<title>docs-cockpit · A project cockpit for AI-coding agents. Let LLMs write markdown by schema.</title>
-<meta name="description" content="AI writes markdown faster than anyone can read it. docs-cockpit gives Cursor / Claude Code / Codex a single frontmatter schema, validates AI-written docs on disk-write, and turns any markdown folder into a single-file kanban dashboard. MIT-licensed, Python, zero runtime deps, offline.">
-<meta name="keywords" content="AI coding, markdown management, docs dashboard, Claude Code plugin, Cursor tool, Codex CLI, vibe coding, LLM schema, AI doc workflow, project kanban, indie developer tooling, AI agent engineering, frontmatter, docs-cockpit, AI 编程, markdown 失控, 大模型不可靠, AI 文档管理, 项目看板, 独立开发者">
+<title>docs-cockpit · A skill-first project cockpit for AI coding agents</title>
+<meta name="description" content="Turn AI-written markdown into a schema-validated, single-file project dashboard. docs-cockpit ships Codex and Claude Code plugin workflows, a deterministic Python renderer, and local file:// output.">
+<meta name="keywords" content="docs-cockpit, AI coding, Codex plugin, Claude Code plugin, markdown dashboard, project cockpit, kanban, schema validation, frontmatter, local dashboard">
 <meta name="author" content="Guohao">
-<meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1">
+<meta name="robots" content="index, follow, max-image-preview:large">
 <link rel="canonical" href="https://guohao1020.github.io/docs-cockpit/">
-<link rel="alternate" hreflang="en" href="https://guohao1020.github.io/docs-cockpit/">
-<link rel="alternate" hreflang="zh-CN" href="https://guohao1020.github.io/docs-cockpit/?lang=zh">
-<link rel="alternate" hreflang="x-default" href="https://guohao1020.github.io/docs-cockpit/">
 
-<!-- Open Graph -->
 <meta property="og:type" content="website">
 <meta property="og:locale" content="en_US">
-<meta property="og:locale:alternate" content="zh_CN">
-<meta property="og:title" content="docs-cockpit · Stop your AI-written markdown from spiraling out of control">
-<meta property="og:description" content="AI writes faster than you can read. docs-cockpit gives every LLM-authored doc one schema, validates on disk-write, and ships a single-file kanban for your markdown folder. MIT-licensed.">
+<meta property="og:title" content="docs-cockpit · A skill-first project cockpit for AI coding agents">
+<meta property="og:description" content="Turn AI-written markdown into a schema-validated, single-file project dashboard with Codex and Claude Code plugin workflows.">
 <meta property="og:url" content="https://guohao1020.github.io/docs-cockpit/">
 <meta property="og:site_name" content="docs-cockpit">
-<meta property="og:image" content="https://guohao1020.github.io/docs-cockpit/og-cover.png">
+<meta property="og:image" content="https://guohao1020.github.io/docs-cockpit/assets/brand/docs-cockpit-og-cover.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="docs-cockpit dashboard: kanban + sprint timeline + progress bars">
+<meta property="og:image:alt" content="docs-cockpit radar flight deck and operational kanban dashboard">
 
-<!-- Twitter / X -->
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="docs-cockpit · A project cockpit for AI-coding agents">
-<meta name="twitter:description" content="One schema for every AI-written markdown file. Folder → single-file kanban. MIT-licensed, Python, Claude Code plugin.">
-<meta name="twitter:image" content="https://guohao1020.github.io/docs-cockpit/og-cover.png">
+<meta name="twitter:title" content="docs-cockpit · A skill-first project cockpit for AI coding agents">
+<meta name="twitter:description" content="Codex and Claude Code workflows for schema-validated markdown dashboards.">
+<meta name="twitter:image" content="https://guohao1020.github.io/docs-cockpit/assets/brand/docs-cockpit-og-cover.png">
 
-<!-- JSON-LD: SoftwareApplication -->
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
@@ -42,18 +33,17 @@
   "name": "docs-cockpit",
   "applicationCategory": "DeveloperApplication",
   "operatingSystem": "Windows, macOS, Linux",
-  "description": "Open-source tool that turns any markdown folder into a single-file HTML kanban dashboard, designed for AI-coding workflows.",
+  "description": "Skill-first project cockpit that turns AI-written markdown into a schema-validated, single-file HTML dashboard.",
   "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
-  "softwareVersion": "0.14.3",
+  "softwareVersion": "1.3.1",
   "license": "https://opensource.org/licenses/MIT",
   "url": "https://guohao1020.github.io/docs-cockpit/",
   "downloadUrl": "https://github.com/Guohao1020/docs-cockpit",
   "author": { "@type": "Person", "name": "Guohao" },
-  "keywords": "AI coding, markdown, kanban, Claude Code, Cursor, vibe coding, indie developer"
+  "keywords": "AI coding, markdown, kanban, Codex, Claude Code, schema validation, project dashboard"
 }
 </script>
 
-<!-- JSON-LD: FAQ (Google rich results · English primary for SEO weight) -->
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
@@ -61,42 +51,26 @@
   "mainEntity": [
     {
       "@type": "Question",
-      "name": "Why does my docs folder get worse the more AI writes?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "Because LLMs invent a new format every time. Without a schema, AI is your most unreliable teammate. Ask 'what fields should this plan have' today, get answer A; ask tomorrow, get answer B. docs-cockpit writes the spec into a skill — AI reads it before authoring every plan / RFC / spec, runs frontmatter validation on disk-write, and errors point to the exact spec line that was violated."
-      }
-    },
-    {
-      "@type": "Question",
-      "name": "How is docs-cockpit different from Notion, Jira, or Linear?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "Notion / Jira / Linear are SaaS — you copy-paste content there, data lives on their servers, team use means monthly fees. docs-cockpit reads markdown directly from your git repo. Zero deps, no network, single HTML you double-click. AI edits md → re-run one command → dashboard updates. The philosophy: markdown is the source of truth, dashboard is just a view."
-      }
-    },
-    {
-      "@type": "Question",
-      "name": "I am not a developer. Can I use docs-cockpit?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "Yes. If you already use Claude Code or Cursor to draft project notes, organize material, or write product docs, docs-cockpit is for you. Lowest bar: install the Claude Code plugin in one command, then say 'make a dashboard for my docs folder' — it installs Python, runs the CLI, and generates the dashboard. You only see the result."
-      }
-    },
-    {
-      "@type": "Question",
       "name": "Which AI coding tools are supported?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Native: Claude Code (plugin marketplace, one-command install). Under the hood it is a Python CLI plus markdown skills, so Cursor / Codex CLI / Codex App / Factory Droid / Gemini CLI / OpenCode / GitHub Copilot CLI users can install the CLI manually — every agent shares the same schema. Native packaging for those is on the roadmap."
+        "text": "docs-cockpit supports Codex and Claude Code plugin workflows today. The renderer is a Python CLI over markdown, so other agents can integrate through the same schema and file conventions."
       }
     },
     {
       "@type": "Question",
-      "name": "Is data uploaded? Is it free?",
+      "name": "Does docs-cockpit upload my project data?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Free, MIT license, zero network calls at runtime. The dashboard is a local HTML file — open it locally or commit it to git for team sharing. All data lives on your disk and in your git repository."
+        "text": "No. The renderer reads local markdown and writes a local single-file dashboard plus state.json. Runtime output can be opened from file:// without a hosted service."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How is it different from SaaS project trackers?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "docs-cockpit treats markdown in your repository as the source of truth. The dashboard is a deterministic rendered view, not another database to maintain."
       }
     }
   ]
@@ -105,887 +79,637 @@
 
 <style>
 :root {
-  --brand: #0066ff;
-  --brand-dark: #0052cc;
-  --brand-soft: #e6f0ff;
-  --ink: #0a1628;
-  --ink-2: #3a4a5e;
-  --ink-3: #6b7a8f;
+  --ink: #07111f;
+  --ink-2: #243246;
+  --muted: #607086;
   --paper: #ffffff;
-  --paper-2: #f7f9fc;
-  --paper-3: #eef2f7;
-  --line: #e1e8f0;
-  --ok: #16a34a;
-  --warn: #d97706;
-  --err: #dc2626;
-  --radius: 12px;
-  --radius-sm: 8px;
-  --shadow: 0 1px 3px rgba(10, 22, 40, 0.06), 0 4px 12px rgba(10, 22, 40, 0.04);
-  --shadow-lg: 0 8px 24px rgba(10, 22, 40, 0.08), 0 24px 48px rgba(10, 22, 40, 0.06);
-  --font: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", Roboto, sans-serif;
-  --mono: "JetBrains Mono", "SF Mono", Menlo, Consolas, "Courier New", monospace;
+  --paper-2: #f5f7fb;
+  --paper-3: #ebf0f7;
+  --line: #dce4ef;
+  --brand: #0b63ff;
+  --brand-2: #00a3b5;
+  --green: #0f8f61;
+  --amber: #b7791f;
+  --red: #c93434;
+  --navy: #07111f;
+  --radius: 8px;
+  --shadow: 0 18px 50px rgba(7, 17, 31, 0.15);
+  --font: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
 }
+
 * { box-sizing: border-box; }
 html { scroll-behavior: smooth; }
 body {
   margin: 0;
-  font-family: var(--font);
   color: var(--ink);
   background: var(--paper);
-  line-height: 1.65;
+  font-family: var(--font);
+  line-height: 1.55;
   -webkit-font-smoothing: antialiased;
 }
-a { color: var(--brand); text-decoration: none; }
+a { color: inherit; text-decoration: none; }
 a:hover { text-decoration: underline; }
-code { font-family: var(--mono); background: var(--paper-3); padding: 2px 6px; border-radius: 4px; font-size: 0.9em; }
-.wrap { max-width: 1080px; margin: 0 auto; padding: 0 24px; }
+code { font-family: var(--mono); font-size: 0.92em; }
+img { max-width: 100%; display: block; }
+.wrap { width: min(1160px, calc(100% - 40px)); margin: 0 auto; }
 
-/* Bilingual toggle */
-html[lang="en"] .zh { display: none !important; }
-html[lang="zh"] .en { display: none !important; }
-
-/* Top bar */
 .topbar {
-  position: sticky; top: 0; z-index: 50;
-  background: rgba(255,255,255,0.92);
-  backdrop-filter: saturate(160%) blur(8px);
-  border-bottom: 1px solid var(--line);
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  border-bottom: 1px solid rgba(220, 228, 239, 0.78);
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(12px);
 }
 .topbar-inner {
-  display: flex; align-items: center; justify-content: space-between;
-  height: 56px;
+  height: 62px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
 }
 .brand {
-  font-weight: 700; font-size: 17px;
-  display: inline-flex; align-items: center; gap: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 16px;
+  font-weight: 760;
   color: var(--ink);
 }
-.brand-dot {
-  width: 10px; height: 10px; border-radius: 50%;
-  background: linear-gradient(135deg, var(--brand), #5b8def);
+.brand img { width: 28px; height: 28px; }
+.nav {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  color: var(--ink-2);
+  font-size: 14px;
+  font-weight: 620;
 }
-.nav { display: flex; gap: 20px; align-items: center; font-size: 14px; }
-.nav a { color: var(--ink-2); }
 .nav a:hover { color: var(--brand); text-decoration: none; }
-.nav a.btn,
-.nav a.btn:hover { color: #fff; }
-.lang-toggle {
-  display: inline-flex; align-items: center;
-  border: 1px solid var(--line); border-radius: 100px;
-  padding: 2px; background: var(--paper);
-  font-size: 12px; font-weight: 600;
-  cursor: pointer;
-}
-.lang-toggle button {
-  border: none; background: transparent; cursor: pointer;
-  padding: 4px 12px; border-radius: 100px;
-  color: var(--ink-3); font-weight: 600; font-size: 12px;
-  font-family: inherit;
-}
-.lang-toggle button.active { background: var(--ink); color: #fff; }
 
-.btn {
-  display: inline-block; padding: 9px 18px;
-  background: var(--ink); color: #fff;
-  border-radius: var(--radius-sm); font-size: 14px; font-weight: 500;
-  border: none; cursor: pointer;
-  transition: transform 0.08s ease, background 0.2s ease;
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 11px 18px;
+  border-radius: var(--radius);
+  border: 1px solid transparent;
+  font-weight: 720;
+  font-size: 14px;
+  line-height: 1.1;
+  transition: transform 120ms ease, background 160ms ease, border-color 160ms ease;
 }
-.btn:hover { background: var(--brand); text-decoration: none; transform: translateY(-1px); }
-.btn-primary { background: var(--brand); }
-.btn-primary:hover { background: var(--brand-dark); }
-.btn-ghost {
-  background: transparent; color: var(--ink); border: 1px solid var(--line);
-}
-.btn-ghost:hover { background: var(--paper-2); color: var(--ink); }
+.button:hover { transform: translateY(-1px); text-decoration: none; }
+.button.primary { background: var(--brand); color: #fff; box-shadow: 0 10px 30px rgba(11, 99, 255, 0.28); }
+.button.primary:hover { background: #004fd1; }
+.button.secondary { background: rgba(255, 255, 255, 0.9); color: var(--ink); border-color: rgba(255, 255, 255, 0.45); }
+.button.secondary:hover { background: #fff; }
+.button.outline { background: #fff; border-color: var(--line); color: var(--ink); }
+.button.outline:hover { border-color: var(--brand); color: var(--brand); }
 
-/* Hero */
-.hero { padding: 80px 0 60px; background: linear-gradient(180deg, var(--paper) 0%, var(--paper-2) 100%); }
-.hero-eyebrow {
-  display: inline-block; padding: 5px 12px;
-  background: var(--brand-soft); color: var(--brand-dark);
-  border-radius: 100px; font-size: 13px; font-weight: 500;
-  margin-bottom: 20px;
+.hero {
+  min-height: calc(100vh - 62px);
+  display: flex;
+  align-items: center;
+  position: relative;
+  overflow: hidden;
+  color: #fff;
+  background:
+    linear-gradient(90deg, rgba(3, 9, 18, 0.94) 0%, rgba(4, 13, 26, 0.84) 38%, rgba(4, 13, 26, 0.36) 68%, rgba(4, 13, 26, 0.12) 100%),
+    url("assets/brand/docs-cockpit-hero-bg.png") center right / cover no-repeat;
+}
+.hero::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 120px;
+  background: linear-gradient(180deg, rgba(245, 247, 251, 0), var(--paper-2));
+  pointer-events: none;
+}
+.hero .wrap {
+  position: relative;
+  z-index: 1;
+  padding: 82px 0 118px;
+}
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #b9d6ff;
+  font-size: 13px;
+  font-weight: 740;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 22px;
+}
+.eyebrow::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--brand-2);
+  box-shadow: 0 0 0 6px rgba(0, 163, 181, 0.16);
 }
 .hero h1 {
-  font-size: 52px; line-height: 1.15; font-weight: 800; letter-spacing: -0.02em;
-  margin: 0 0 20px; color: var(--ink);
+  margin: 0;
+  max-width: 680px;
+  font-size: clamp(54px, 8vw, 104px);
+  line-height: 0.92;
+  letter-spacing: 0;
+  font-weight: 860;
 }
-.hero h1 .hl { color: var(--brand); }
 .hero-sub {
-  font-size: 19px; color: var(--ink-2); margin: 0 0 32px; max-width: 720px;
+  margin: 24px 0 0;
+  max-width: 660px;
+  color: #e2ebf8;
+  font-size: clamp(21px, 3vw, 34px);
+  line-height: 1.18;
+  font-weight: 710;
 }
-.hero-cta { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
-.hero-meta { font-size: 13px; color: var(--ink-3); display: flex; gap: 16px; flex-wrap: wrap; }
-.hero-meta span::before { content: "·"; margin-right: 16px; color: var(--line); }
-.hero-meta span:first-child::before { content: ""; margin: 0; }
+.hero-copy {
+  max-width: 610px;
+  margin: 24px 0 0;
+  color: #b9c6d8;
+  font-size: 17px;
+}
+.hero-cta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 34px;
+}
+.hero-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 18px;
+  color: #9fb0c6;
+  font-size: 13px;
+}
+.hero-meta span {
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 999px;
+  padding: 5px 10px;
+  background: rgba(7, 17, 31, 0.28);
+}
 
-/* Demo screen */
-.demo {
-  margin-top: 56px;
-  background: var(--paper);
-  border: 1px solid var(--line);
-  border-radius: 16px;
-  box-shadow: var(--shadow-lg);
-  overflow: hidden;
-}
-.demo-bar {
-  display: flex; align-items: center; gap: 6px;
-  padding: 12px 16px; border-bottom: 1px solid var(--line); background: var(--paper-2);
-}
-.demo-bar .dot { width: 10px; height: 10px; border-radius: 50%; background: #e1e8f0; }
-.demo-bar .dot.red { background: #ff6058; }
-.demo-bar .dot.yel { background: #ffbe2f; }
-.demo-bar .dot.grn { background: #2acb40; }
-.demo-bar .url {
-  margin-left: 12px; font-family: var(--mono); font-size: 12px; color: var(--ink-3);
-}
-.kanban {
-  display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px;
-  padding: 24px;
-}
-.col h4 { margin: 0 0 12px; font-size: 12px; color: var(--ink-3); text-transform: uppercase; letter-spacing: 0.06em; }
-.col h4 .count {
-  display: inline-block; margin-left: 6px; padding: 1px 6px;
-  background: var(--paper-3); border-radius: 4px; font-weight: 500; color: var(--ink-2);
-}
-.card {
-  background: var(--paper); border: 1px solid var(--line); border-radius: 8px;
-  padding: 10px 12px; margin-bottom: 8px; font-size: 12px;
-}
-.card .id { font-family: var(--mono); color: var(--ink-3); font-size: 10px; font-weight: 600; }
-.card .t { color: var(--ink); margin: 2px 0 6px; font-weight: 500; }
-.bar { height: 4px; background: var(--paper-3); border-radius: 2px; overflow: hidden; }
-.bar i { display: block; height: 100%; background: var(--brand); }
-.card.done { background: #f0fdf4; }
-.card.done .bar i { background: var(--ok); }
-.card.blocked { background: #fef2f2; }
-.card.blocked .bar i { background: var(--err); }
-.card.planned { background: #fffbeb; }
-.card.planned .bar i { background: var(--warn); }
-
-/* Sections */
-section { padding: 80px 0; }
+section { padding: 84px 0; }
 section.alt { background: var(--paper-2); }
 .kicker {
-  font-size: 13px; font-weight: 600; color: var(--brand);
-  text-transform: uppercase; letter-spacing: 0.08em; margin: 0 0 12px;
+  margin: 0 0 12px;
+  color: var(--brand);
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
 }
-h2 { font-size: 38px; line-height: 1.2; font-weight: 800; letter-spacing: -0.015em; margin: 0 0 16px; color: var(--ink); }
-h2 .hl { color: var(--brand); }
-.section-lead { font-size: 18px; color: var(--ink-2); margin: 0 0 48px; max-width: 720px; }
+h2 {
+  max-width: 820px;
+  margin: 0;
+  color: var(--ink);
+  font-size: clamp(32px, 4vw, 50px);
+  line-height: 1.05;
+  letter-spacing: 0;
+}
+.lead {
+  max-width: 760px;
+  margin: 18px 0 0;
+  color: var(--muted);
+  font-size: 18px;
+}
 
-.grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
-.grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px; }
-.feature {
-  padding: 28px; background: var(--paper);
-  border: 1px solid var(--line); border-radius: var(--radius);
+.proof {
+  background: var(--paper-2);
+  padding-top: 58px;
 }
-.feature .icon {
-  width: 40px; height: 40px; border-radius: 10px;
-  background: var(--brand-soft); color: var(--brand-dark);
-  display: inline-flex; align-items: center; justify-content: center;
-  font-size: 20px; font-weight: 700; margin-bottom: 16px;
+.proof-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.28fr) minmax(320px, 0.72fr);
+  gap: 28px;
+  align-items: stretch;
+  margin-top: 32px;
 }
-.feature h3 { margin: 0 0 8px; font-size: 18px; font-weight: 700; }
-.feature p { margin: 0; color: var(--ink-2); font-size: 15px; }
-
-/* Pain table */
-.pain {
-  background: var(--paper); border: 1px solid var(--line);
-  border-radius: var(--radius); overflow: hidden;
+.product-shot {
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: #fff;
+  padding: 10px;
+  box-shadow: var(--shadow);
 }
-.pain-row {
-  display: grid; grid-template-columns: 1fr 1fr; gap: 0;
-  border-bottom: 1px solid var(--line);
+.product-shot img {
+  width: 100%;
+  border-radius: 5px;
+  border: 1px solid var(--line);
 }
-.pain-row:last-child { border-bottom: none; }
-.pain-cell {
-  padding: 24px 28px; font-size: 15px;
+.install-panel {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
 }
-.pain-cell.before {
-  background: #fffaf8; color: var(--ink-2);
-  border-right: 1px solid var(--line);
+.command-card {
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: #fff;
+  padding: 18px;
+  box-shadow: 0 10px 30px rgba(7, 17, 31, 0.06);
 }
-.pain-cell.after {
-  background: var(--paper); color: var(--ink);
+.command-card h3 {
+  margin: 0 0 10px;
+  font-size: 16px;
 }
-.pain-cell .tag {
-  font-size: 11px; font-weight: 600; letter-spacing: 0.06em;
-  text-transform: uppercase; margin-bottom: 6px; display: inline-block;
-}
-.pain-cell.before .tag { color: #b91c1c; }
-.pain-cell.after .tag { color: var(--ok); }
-
-/* Audience cards */
-.audience {
-  display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px;
-}
-.aud {
-  padding: 24px; background: var(--paper);
-  border: 1px solid var(--line); border-radius: var(--radius);
-  display: flex; gap: 16px; align-items: flex-start;
-}
-.aud .emoji { font-size: 22px; line-height: 1; color: var(--brand); font-weight: 700; }
-.aud h4 { margin: 0 0 4px; font-size: 16px; font-weight: 700; }
-.aud p { margin: 0 0 10px; color: var(--ink-2); font-size: 14px; }
-.aud a { font-size: 14px; font-weight: 500; }
-
-/* Code blocks */
-.codeblock {
-  background: #0d1421; color: #e1e8f0;
-  border-radius: var(--radius); padding: 18px 22px;
-  font-family: var(--mono); font-size: 13px; line-height: 1.7;
+pre {
+  margin: 0;
+  max-width: 100%;
   overflow-x: auto;
-  margin: 16px 0;
+  border-radius: 6px;
+  background: #07111f;
+  color: #dce8f8;
+  padding: 14px;
+  font-family: var(--mono);
+  font-size: 13px;
+  line-height: 1.55;
   white-space: pre-wrap;
-  word-break: break-word;
-  tab-size: 2;
-}
-.codeblock .c { color: #6b7a8f; }
-.codeblock .k { color: #ff8aae; }
-.codeblock .s { color: #a3e5a8; }
-.codeblock .p { color: #5b8def; }
-
-/* FAQ */
-details {
-  border: 1px solid var(--line); border-radius: var(--radius);
-  background: var(--paper); margin-bottom: 12px; padding: 0;
-}
-details summary {
-  list-style: none; padding: 18px 24px; cursor: pointer;
-  font-weight: 600; font-size: 16px; color: var(--ink);
-  display: flex; justify-content: space-between; align-items: center;
-}
-details summary::-webkit-details-marker { display: none; }
-details summary::after {
-  content: "+"; font-size: 22px; color: var(--ink-3); font-weight: 400;
-  transition: transform 0.2s ease;
-}
-details[open] summary::after { content: "−"; }
-details > div {
-  padding: 0 24px 18px; color: var(--ink-2); font-size: 15px;
+  overflow-wrap: anywhere;
 }
 
-/* Footer */
+.workflow {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 34px;
+}
+.step,
+.feature,
+.audience-card,
+.faq-item {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: #fff;
+}
+.step {
+  padding: 20px;
+  min-height: 210px;
+}
+.step-number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  margin-bottom: 28px;
+  border-radius: 50%;
+  background: var(--paper-3);
+  color: var(--ink-2);
+  font-weight: 800;
+}
+.step h3,
+.feature h3,
+.audience-card h3 {
+  margin: 0 0 8px;
+  font-size: 18px;
+  line-height: 1.25;
+}
+.step p,
+.feature p,
+.audience-card p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 15px;
+}
+
+.feature-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+  margin-top: 34px;
+}
+.feature {
+  padding: 22px;
+  min-height: 190px;
+}
+.feature-tag {
+  display: inline-block;
+  margin-bottom: 18px;
+  color: var(--brand);
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.audience-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+  margin-top: 34px;
+}
+.audience-card {
+  padding: 24px;
+}
+
+.faq-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 34px;
+}
+.faq-item {
+  padding: 22px;
+}
+.faq-item h3 {
+  margin: 0 0 10px;
+  font-size: 17px;
+}
+.faq-item p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 15px;
+}
+
+.final-cta {
+  background: var(--navy);
+  color: #fff;
+}
+.final-cta h2 { color: #fff; }
+.final-cta .lead { color: #b9c6d8; }
+.final-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 30px;
+}
+
 footer {
-  background: var(--ink); color: #b8c4d6; padding: 48px 0 32px;
+  background: #030914;
+  color: #9fb0c6;
+  padding: 34px 0;
   font-size: 14px;
 }
-footer a { color: #fff; }
-.footer-grid {
-  display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 32px;
-  margin-bottom: 32px;
+.footer-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
 }
-.footer-grid h5 { color: #fff; font-size: 13px; text-transform: uppercase; letter-spacing: 0.06em; margin: 0 0 12px; }
-.footer-grid ul { list-style: none; padding: 0; margin: 0; }
-.footer-grid li { margin-bottom: 8px; }
-.copyright { border-top: 1px solid #1e2e44; padding-top: 24px; color: #6b7a8f; font-size: 13px; }
+.footer-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+}
+.footer-links a { color: #dce8f8; }
 
-/* Mobile */
-@media (max-width: 768px) {
-  .hero { padding: 56px 0 40px; }
-  .hero h1 { font-size: 34px; }
-  .hero-sub { font-size: 17px; }
-  section { padding: 56px 0; }
-  h2 { font-size: 28px; }
-  .grid-3, .grid-2, .audience { grid-template-columns: 1fr; }
-  .pain-row { grid-template-columns: 1fr; }
-  .pain-cell.before { border-right: none; border-bottom: 1px solid var(--line); }
-  .kanban { grid-template-columns: repeat(2, 1fr); padding: 16px; gap: 8px; }
-  .col:nth-child(n+3) { display: none; }
-  .footer-grid { grid-template-columns: 1fr 1fr; }
-  .nav a:not(.btn):not(.lang-toggle) { display: none; }
+@media (max-width: 920px) {
+  .nav a:not(.button) { display: none; }
+  .hero {
+    min-height: auto;
+    background:
+      linear-gradient(180deg, rgba(3, 9, 18, 0.94) 0%, rgba(4, 13, 26, 0.82) 58%, rgba(4, 13, 26, 0.66) 100%),
+      url("assets/brand/docs-cockpit-hero-bg.png") center / cover no-repeat;
+  }
+  .hero .wrap { padding: 72px 0 104px; }
+  .proof-layout,
+  .workflow,
+  .feature-grid,
+  .audience-grid,
+  .faq-grid {
+    grid-template-columns: 1fr;
+  }
+  .step { min-height: auto; }
+  .step-number { margin-bottom: 16px; }
+}
+
+@media (max-width: 560px) {
+  .wrap { width: min(100% - 28px, 1160px); }
+  .topbar-inner { height: 58px; }
+  .brand { font-size: 15px; }
+  .nav .button { display: none; }
+  .hero h1 { font-size: clamp(48px, 18vw, 72px); }
+  .hero-sub { font-size: 22px; }
+  .hero-copy { font-size: 16px; }
+  .button { width: 100%; }
+  section { padding: 62px 0; }
+  h2 { font-size: 32px; }
+  .lead { font-size: 17px; }
+  .proof { padding-top: 44px; }
+  pre { font-size: 12px; }
+  .footer-inner { align-items: flex-start; flex-direction: column; }
 }
 </style>
 </head>
 <body>
-
-<!-- Top -->
 <header class="topbar">
   <div class="wrap topbar-inner">
-    <span class="brand"><span class="brand-dot"></span>docs-cockpit</span>
-    <nav class="nav">
-      <a href="#why"><span class="en">Why</span><span class="zh">为什么</span></a>
-      <a href="#how"><span class="en">Install</span><span class="zh">怎么用</span></a>
+    <a class="brand" href="#top" aria-label="docs-cockpit home">
+      <img src="assets/brand/docs-cockpit-logo-mark.png" alt="">
+      <span>docs-cockpit</span>
+    </a>
+    <nav class="nav" aria-label="Primary navigation">
+      <a href="#proof">Product</a>
+      <a href="#workflow">Workflow</a>
+      <a href="#features">Features</a>
       <a href="#faq">FAQ</a>
-      <div class="lang-toggle" role="group" aria-label="Language toggle">
-        <button data-set-lang="en" aria-label="English">EN</button>
-        <button data-set-lang="zh" aria-label="中文">中</button>
-      </div>
-      <a class="btn btn-primary" href="https://github.com/Guohao1020/docs-cockpit" rel="noopener">GitHub ★</a>
+      <a class="button outline" href="https://github.com/Guohao1020/docs-cockpit" rel="noopener">GitHub</a>
     </nav>
   </div>
 </header>
 
-<!-- Hero -->
-<section class="hero">
-  <div class="wrap">
-    <span class="hero-eyebrow">
-      <span class="en">▍ Project cockpit for AI-coding agents · v0.14</span>
-      <span class="zh">▍ 给 AI 编程协作的项目驾驶舱 · v0.14</span>
-    </span>
-    <h1>
-      <span class="en">The faster AI writes,<br><span class="hl">the less you understand your project.</span></span>
-      <span class="zh">AI 写得越快，<br><span class="hl">你越搞不清项目到哪了。</span></span>
-    </h1>
-    <p class="hero-sub">
-      <span class="en">
-        Cursor / Claude Code / Codex can spit out 47 markdown files in one afternoon — but your PRD got rewritten three times, your module specs each invented their own format, and most plans were never read again.
-        <strong>LLMs aren't unreliable. They just have no schema to follow.</strong>
-        docs-cockpit gives every AI-written doc one frontmatter schema, validates on disk-write, and turns your docs folder into a single-file kanban dashboard.
-      </span>
-      <span class="zh">
-        Cursor / Claude Code / Codex 一下午能产出 47 个 markdown 文件，但 PRD 改过三版、module spec 各自为政、plan 写完没人回看——
-        <strong>大模型不是不靠谱，是没人给它定规范。</strong>
-        docs-cockpit 用一份 frontmatter schema 约束所有 AI 写的 md，落盘前自动校验，文档目录一键变成单文件可视化看板。
-      </span>
-    </p>
-    <div class="hero-cta">
-      <a class="btn btn-primary" href="#how">
-        <span class="en">▍ 30-second Quickstart</span>
-        <span class="zh">▍ 30 秒上手</span>
-      </a>
-      <a class="btn btn-ghost" href="https://github.com/Guohao1020/docs-cockpit" rel="noopener">
-        <span class="en">View source on GitHub →</span>
-        <span class="zh">在 GitHub 看代码 →</span>
-      </a>
-    </div>
-    <div class="hero-meta">
-      <span><span class="en">MIT License</span><span class="zh">MIT 开源</span></span>
-      <span>Python 3.10+</span>
-      <span><span class="en">Zero runtime deps</span><span class="zh">零依赖运行时</span></span>
-      <span><span class="en">Offline</span><span class="zh">不联网</span></span>
-      <span><span class="en">Claude Code plugin ✓</span><span class="zh">Claude Code 插件 ✓</span></span>
-    </div>
-
-    <!-- Demo screen -->
-    <div class="demo">
-      <div class="demo-bar">
-        <span class="dot red"></span><span class="dot yel"></span><span class="dot grn"></span>
-        <span class="url">file:///your-project/docs/index.html</span>
+<main id="top">
+  <section class="hero" aria-labelledby="hero-title">
+    <div class="wrap">
+      <p class="eyebrow">Radar Flight Deck for repo-native docs</p>
+      <h1 id="hero-title">docs-cockpit</h1>
+      <p class="hero-sub">A skill-first project cockpit for AI coding agents.</p>
+      <p class="hero-copy">Codex and Claude Code can write fast. docs-cockpit gives that output a durable schema, validates markdown frontmatter, and renders a local single-file dashboard your repo can keep.</p>
+      <div class="hero-cta" aria-label="Primary actions">
+        <a class="button primary" href="https://github.com/Guohao1020/docs-cockpit" rel="noopener">GitHub</a>
+        <a class="button secondary" href="#install-codex">Install with Codex</a>
       </div>
-      <div class="kanban">
-        <div class="col">
-          <h4>
-            <span class="en">Not started</span><span class="zh">未启动</span>
-            <span class="count">3</span>
-          </h4>
-          <div class="card"><div class="id">M14</div><div class="t">Core Engine</div><div class="bar"><i style="width:0%"></i></div></div>
-          <div class="card"><div class="id">M15</div><div class="t">Recipe Hub</div><div class="bar"><i style="width:0%"></i></div></div>
-        </div>
-        <div class="col">
-          <h4>
-            <span class="en">Planned</span><span class="zh">已规划</span>
-            <span class="count">4</span>
-          </h4>
-          <div class="card planned"><div class="id">M10</div><div class="t">Worker Runtime</div><div class="bar"><i style="width:15%"></i></div></div>
-          <div class="card planned"><div class="id">M11</div><div class="t">Scheduler</div><div class="bar"><i style="width:10%"></i></div></div>
-        </div>
-        <div class="col">
-          <h4>
-            <span class="en">In progress</span><span class="zh">进行中</span>
-            <span class="count">5</span>
-          </h4>
-          <div class="card"><div class="id">M07</div><div class="t">Job / Task FSM</div><div class="bar"><i style="width:60%"></i></div></div>
-          <div class="card"><div class="id">M09</div><div class="t">SDK / CLI</div><div class="bar"><i style="width:75%"></i></div></div>
-        </div>
-        <div class="col">
-          <h4>
-            <span class="en">Blocked</span><span class="zh">阻塞</span>
-            <span class="count">1</span>
-          </h4>
-          <div class="card blocked"><div class="id">M12</div><div class="t">Resource Pool</div><div class="bar"><i style="width:35%"></i></div></div>
-        </div>
-        <div class="col">
-          <h4>
-            <span class="en">Done</span><span class="zh">已完成</span>
-            <span class="count">8</span>
-          </h4>
-          <div class="card done"><div class="id">M01</div><div class="t">Web Console</div><div class="bar"><i style="width:100%"></i></div></div>
-          <div class="card done"><div class="id">M02</div><div class="t">Browser Plugin</div><div class="bar"><i style="width:100%"></i></div></div>
+      <div class="hero-meta" aria-label="Project facts">
+        <span>MIT licensed</span>
+        <span>Python renderer</span>
+        <span>Local file:// output</span>
+        <span>Version 1.3.1</span>
+      </div>
+    </div>
+  </section>
+
+  <section id="proof" class="proof" aria-labelledby="proof-title">
+    <div class="wrap">
+      <p class="kicker">Product proof</p>
+      <h2 id="proof-title">Operational Kanban from markdown your agents already write.</h2>
+      <p class="lead">The dashboard is a rendered view over repo files: cards, validation status, linked markdown previews, and machine-readable state for follow-up workflows.</p>
+      <div class="proof-layout">
+        <figure class="product-shot">
+          <img src="assets/screenshots/dashboard-kanban.png" alt="docs-cockpit dashboard showing kanban cards, validation status, and linked markdown preview">
+        </figure>
+        <div class="install-panel" aria-label="Install commands">
+          <article id="install-codex" class="command-card">
+            <h3>Codex</h3>
+            <pre><code>codex plugin marketplace add Guohao1020/docs-cockpit
+codex plugin add docs-cockpit@docs-cockpit</code></pre>
+          </article>
+          <article class="command-card">
+            <h3>Claude Code</h3>
+            <pre><code>/plugin marketplace add Guohao1020/docs-cockpit
+/plugin install docs-cockpit@docs-cockpit</code></pre>
+          </article>
         </div>
       </div>
     </div>
-  </div>
-</section>
+  </section>
 
-<!-- Why -->
-<section id="why" class="alt">
-  <div class="wrap">
-    <p class="kicker">
-      <span class="en">Why you need it</span>
-      <span class="zh">为什么 AI 时代需要它</span>
-    </p>
-    <h2>
-      <span class="en">Your markdown spiral isn't <span class="hl">"too much AI"</span>.</span>
-      <span class="zh">md 文件失控的<span class="hl">真正原因</span>，不是 AI 写太多。</span>
-    </h2>
-    <p class="section-lead">
-      <span class="en">
-        It's that LLMs invent a new format every time you ask. No schema = AI is the least reliable teammate you've ever had.
-        You don't need more management tools — you need <strong>one spec AI is forced to obey</strong>.
-      </span>
-      <span class="zh">
-        是大模型每次写文档的字段、命名、格式都<strong>不一样</strong>——没有 schema 约束，AI 是最不可靠的"同事"。
-        你需要的不是更多管理工具，是<strong>一份规范让 AI 强制对齐</strong>。
-      </span>
-    </p>
-
-    <div class="pain">
-      <div class="pain-row">
-        <div class="pain-cell before">
-          <span class="tag"><span class="en">▍ Before docs-cockpit</span><span class="zh">▍ vibe coding 之前</span></span>
-          <span class="en">Ask AI "what fields should this plan have" — it gives you a new format every time.<br>
-          In one project: <code>plan-01.md</code> uses <code>status: in-progress</code>, <code>plan-02.md</code> uses <code>state: doing</code>, <code>plan-03.md</code> has no status field at all.</span>
-          <span class="zh">每次问 AI "怎么写这个 plan"，它都给你一套新格式。<br>
-          一个项目里 plan-01.md 用 <code>status: 进行中</code>，plan-02.md 用 <code>state: in-progress</code>，plan-03.md 干脆没有状态字段。</span>
-        </div>
-        <div class="pain-cell after">
-          <span class="tag"><span class="en">▍ After docs-cockpit</span><span class="zh">▍ docs-cockpit 之后</span></span>
-          <span class="en">The <code>docs-cockpit-build</code> skill guides authoring against <code>references/schema.md</code> — required fields, naming rules, status enum all defined there.
-          <strong>AI doesn't invent rules. It executes them.</strong></span>
-          <span class="zh"><code>docs-cockpit-build</code> skill 按 <code>references/schema.md</code> 规范引导写作——所有必填字段、命名规则、状态枚举都在那里定义。
-          <strong>AI 不再发明规则，它执行规则。</strong></span>
-        </div>
-      </div>
-      <div class="pain-row">
-        <div class="pain-cell before">
-          <span class="tag"><span class="en">▍ Before docs-cockpit</span><span class="zh">▍ vibe coding 之前</span></span>
-          <span class="en">AI writes <code>progress: 60</code> and <code>status: done</code>. The contradiction is invisible to your eyes.<br>
-          You only find out on launch day that the "finished" module is 60% done.</span>
-          <span class="zh">AI 把 progress 写成 60、status 写成 done——内部矛盾你肉眼根本看不出来。<br>
-          上线那天才发现"已完成"的模块进度只有 60%。</span>
-        </div>
-        <div class="pain-cell after">
-          <span class="tag"><span class="en">▍ After docs-cockpit</span><span class="zh">▍ docs-cockpit 之后</span></span>
-          <span class="en">Every build runs <code>validate_meta()</code>. Status × progress invariant fails — immediate error:<br>
-          <code style="color:#dc2626">❌ M07.md · status:done conflicts with progress:60</code></span>
-          <span class="zh">每次 build 跑 <code>validate_meta()</code>，状态 × 进度的不变式不通过直接报错：<br>
-          <code style="color:#dc2626">❌ M07.md · status:done 与 progress:60 矛盾</code></span>
-        </div>
-      </div>
-      <div class="pain-row">
-        <div class="pain-cell before">
-          <span class="tag"><span class="en">▍ Before docs-cockpit</span><span class="zh">▍ vibe coding 之前</span></span>
-          <span class="en">47 md files in <code>docs/</code>. Nobody can tell at a glance where the project is.<br>
-          You open them one by one — and still can't summarize.</span>
-          <span class="zh">docs 目录里 47 个 md 文件，没人能一眼看出项目做到哪了。<br>
-          想看进度只能挨个打开读，读完还是讲不清。</span>
-        </div>
-        <div class="pain-cell after">
-          <span class="tag"><span class="en">▍ After docs-cockpit</span><span class="zh">▍ docs-cockpit 之后</span></span>
-          <span class="en">One command <code>docs-cockpit render</code>. The folder becomes one HTML:<br>
-          kanban + sprint timeline + progress bars + subtask checklist + inline doc preview — <strong>double-click locally to open</strong>.</span>
-          <span class="zh">一行命令 <code>docs-cockpit render</code>，整个目录变成一个 HTML：<br>
-          Kanban 看板 + Sprint 时间线 + 进度条 + 子任务清单 + 关联文档预览——<strong>本地双击就开</strong>。</span>
-        </div>
-      </div>
-      <div class="pain-row">
-        <div class="pain-cell before">
-          <span class="tag"><span class="en">▍ Before docs-cockpit</span><span class="zh">▍ vibe coding 之前</span></span>
-          <span class="en">Jira / Notion / Linear all need copy-paste; data lives on their servers; team use scales as monthly fees.<br>
-          Want a new field? Wait for their roadmap.</span>
-          <span class="zh">Jira / Notion / Linear 都要复制粘贴一遍内容，数据托管在别人那。<br>
-          想加新字段？等 SaaS 排期吧。</span>
-        </div>
-        <div class="pain-cell after">
-          <span class="tag"><span class="en">▍ After docs-cockpit</span><span class="zh">▍ docs-cockpit 之后</span></span>
-          <span class="en">Data lives in your git repo as markdown.<br>
-          Single HTML, zero deps, no network, MIT — <strong>full ownership stays with you</strong>.</span>
-          <span class="zh">数据就在你 git 仓库的 markdown 里。<br>
-          单 HTML 文件、零依赖、不联网、MIT 协议——<strong>所有权完全归你</strong>。</span>
-        </div>
+  <section id="workflow" aria-labelledby="workflow-title">
+    <div class="wrap">
+      <p class="kicker">Workflow</p>
+      <h2 id="workflow-title">Skills reason. Python renders. Your markdown stays the source of truth.</h2>
+      <p class="lead">The v1 workflow moves cognition into agent skills and keeps the CLI deterministic, which makes the dashboard explainable, repeatable, and easy to verify in git.</p>
+      <div class="workflow">
+        <article class="step">
+          <span class="step-number">1</span>
+          <h3>SessionStart router</h3>
+          <p>When a repo has <code>docs-cockpit.yaml</code>, the plugin injects the entry skill and routes setup, rebuild, render, and upgrade requests.</p>
+        </article>
+        <article class="step">
+          <span class="step-number">2</span>
+          <h3><code>docs-cockpit-build</code></h3>
+          <p>The first-build skill discovers modules, reasons about doc associations, asks when anchors are uncertain, and writes the cockpit config.</p>
+        </article>
+        <article class="step">
+          <span class="step-number">3</span>
+          <h3><code>docs-cockpit-rebuild</code></h3>
+          <p>The refresh skill reads existing <code>state.json</code>, diagnoses drift, re-infers minimal changes, and preserves stable associations.</p>
+        </article>
+        <article class="step">
+          <span class="step-number">4</span>
+          <h3><code>docs-cockpit render</code></h3>
+          <p>The CLI validates frontmatter, embeds linked docs, emits <code>state.json</code>, and writes a single HTML dashboard for local use.</p>
+        </article>
       </div>
     </div>
-  </div>
-</section>
+  </section>
 
-<!-- Features -->
-<section>
-  <div class="wrap">
-    <p class="kicker">
-      <span class="en">Core capabilities</span>
-      <span class="zh">核心能力</span>
-    </p>
-    <h2>
-      <span class="en">Give LLMs a spec they can <span class="hl">actually obey</span>.</span>
-      <span class="zh">给大模型一个<span class="hl">能落地的</span>项目规范。</span>
-    </h2>
-    <p class="section-lead">
-      <span class="en">v0.14 keeps evolving docs-cockpit beyond a "project visualizer" to an "AI co-pilot cockpit". Every capability maps to a real wall vibe coders hit.</span>
-      <span class="zh">v0.14 持续把 docs-cockpit 从"项目状态可视化"演进为"AI 协作驾驶舱"。每个能力都对应一个 vibe coding 实际会撞墙的场景。</span>
-    </p>
-
-    <div class="grid-3">
-      <div class="feature">
-        <span class="icon">▍</span>
-        <h3><span class="en">Frontmatter schema enforcement</span><span class="zh">Frontmatter Schema 强校验</span></h3>
-        <p><span class="en">Missing required fields, status × progress conflicts, unknown keys — all caught at build time. Error messages point to the exact line of the author skill, so AI can read its own error and fix itself.</span><span class="zh">必填字段缺失、status×progress 矛盾、未知字段——全部在 build 阶段拦截。错误信息指向 author skill 第几条，AI 看到错误能自己改。</span></p>
-      </div>
-      <div class="feature">
-        <span class="icon">▍</span>
-        <h3><span class="en">AI reads a skill before writing</span><span class="zh">AI 写文档前先读 skill</span></h3>
-        <p><span class="en">Four skills cover four scenarios: setup / authoring / weekly / status. The skills ARE the conventions — AI no longer asks you "what frontmatter to use".</span><span class="zh">4 个 skill 覆盖 4 个场景：setup / 写文档 / 出周报 / 查状态。skill 是规范的载体——AI 不用每次问你"frontmatter 应该咋写"。</span></p>
-      </div>
-      <div class="feature">
-        <span class="icon">▍</span>
-        <h3><span class="en">One-click prompt copy per subtask</span><span class="zh">Subtask 一键复制 prompt</span></h3>
-        <p><span class="en">Each subtask renders a ready-to-paste prompt (context + code anchors + linked docs) via a <code>prompts.js</code> sidecar. Click Copy → paste into Claude Code / Cursor / Codex → AI executes.</span><span class="zh">每个子任务通过 <code>prompts.js</code> sidecar 渲染好即用 prompt（含上下文+代码锚点+关联文档），点 Copy 粘贴到 Claude Code / Cursor / Codex 就能让 AI 直接执行。</span></p>
-      </div>
-      <div class="feature">
-        <span class="icon">▍</span>
-        <h3><span class="en">Refine with AI · dual mode</span><span class="zh">Refine with AI · 双模式</span></h3>
-        <p><span class="en">"Have AI audit my anchor precision" — CLI agents drop a YAML patch directly; browser LLMs output the patch for you to copy. Engineer-in-the-loop, one-click round-trip.</span><span class="zh">"让 AI 帮我审一遍代码锚点对不对"——CLI agent 直接落 patch；浏览器 LLM 输出 patch 给你复制。一键交回，工程师在场内。</span></p>
-      </div>
-      <div class="feature">
-        <span class="icon">▍</span>
-        <h3><span class="en">Multi-project weekly aggregation</span><span class="zh">多项目周报聚合</span></h3>
-        <p><span class="en"><code>~/.docs-cockpit/</code> registers every project, weekly snapshots run automatically, AI composes a cross-project weekly with WoW diff (newly done / blocked / progress jumps / new modules).</span><span class="zh"><code>~/.docs-cockpit/</code> 注册所有项目，每周快照一次，AI 自动生成跨项目周报+周环比 diff（新完成/新阻塞/进度跃升/新增模块）。</span></p>
-      </div>
-      <div class="feature">
-        <span class="icon">▍</span>
-        <h3><span class="en">Single HTML · file:// works</span><span class="zh">单文件 HTML · file:// 即开</span></h3>
-        <p><span class="en">No server, no SSG, no JS framework, zero network at runtime. Commit the dashboard to git — anyone who clones can double-click and see it.</span><span class="zh">不要服务器、不要 SSG、不要 JS 框架、运行时不发任何网络请求。生成的 dashboard 提交到 git，团队任何人 clone 下来双击就看到。</span></p>
+  <section id="features" class="alt" aria-labelledby="features-title">
+    <div class="wrap">
+      <p class="kicker">Feature set</p>
+      <h2 id="features-title">Built for AI coding power users who still want deterministic artifacts.</h2>
+      <p class="lead">docs-cockpit is not another hosted tracker. It is a plugin-guided markdown workflow with a renderer you can run, diff, and audit.</p>
+      <div class="feature-grid">
+        <article class="feature">
+          <span class="feature-tag">schema</span>
+          <h3>Frontmatter validation</h3>
+          <p>Every document is checked against the canonical schema and reports structured error, warning, and hint issues with references.</p>
+        </article>
+        <article class="feature">
+          <span class="feature-tag">state.json</span>
+          <h3>Machine-readable sidecar</h3>
+          <p>Rebuild workflows and external checks can read stable dashboard state without scraping rendered HTML.</p>
+        </article>
+        <article class="feature">
+          <span class="feature-tag">file://</span>
+          <h3>Local dashboard output</h3>
+          <p>The rendered dashboard is a static file you can open locally, publish with GitHub Pages, or commit as a project artifact.</p>
+        </article>
+        <article class="feature">
+          <span class="feature-tag">plugins</span>
+          <h3>Codex and Claude Code</h3>
+          <p>Both plugin workflows are supported now, sharing the same skills, hooks, commands, schema, and release version.</p>
+        </article>
+        <article class="feature">
+          <span class="feature-tag">upgrade</span>
+          <h3><code>docs-cockpit upgrade</code></h3>
+          <p>The upgrade command handles CLI and plugin-layer updates, release notes, cache clearing, and restart guidance when skills change.</p>
+        </article>
+        <article class="feature">
+          <span class="feature-tag">renderer</span>
+          <h3>Deterministic Python CLI</h3>
+          <p>The CLI renders and validates. Association reasoning lives in skills, keeping output mechanical and easier to trust.</p>
+        </article>
       </div>
     </div>
-  </div>
-</section>
+  </section>
 
-<!-- How -->
-<section id="how" class="alt">
-  <div class="wrap">
-    <p class="kicker">
-      <span class="en">30-second setup</span>
-      <span class="zh">30 秒上手</span>
-    </p>
-    <h2>
-      <span class="en">Three install paths, <span class="hl">pick yours</span>.</span>
-      <span class="zh">三种装法，<span class="hl">选你顺手的</span>。</span>
-    </h2>
-    <p class="section-lead">
-      <span class="en">Same Python CLI underneath. Claude Code users get it in one command; other AI editors install via uv / pipx / pip.</span>
-      <span class="zh">底层是同一个 Python CLI——Claude Code 用户一行命令搞定；其他 AI 编程工具用户用 pip / uv / pipx 装 CLI 即可。</span>
-    </p>
-
-    <div class="grid-2" style="gap:32px;">
-      <div>
-        <h3 style="font-size:18px;margin:0 0 8px;">
-          <span class="en">▍ Claude Code users (recommended)</span>
-          <span class="zh">▍ Claude Code 用户（推荐）</span>
-        </h3>
-        <p style="color:var(--ink-2);margin:0 0 12px;font-size:14px;">
-          <span class="en">Install the plugin in Claude Code, then say "make a dashboard for my docs folder" — it handles Python bootstrap automatically.</span>
-          <span class="zh">在 Claude Code 里直接装插件，跟它说"帮我把 docs 做成 dashboard"，它自己处理 Python 装机。</span>
-        </p>
-        <div class="codeblock">
-<span class="c"># <span class="en">In Claude Code</span><span class="zh">在 Claude Code 里</span></span>
-<span class="k">/plugin</span> marketplace add Guohao1020/docs-cockpit
-<span class="k">/plugin</span> install docs-cockpit@docs-cockpit
-
-<span class="c"># <span class="en">Then tell your agent</span><span class="zh">然后跟 AI 说</span></span>
-<span class="s">"<span class="en">make a dashboard for my docs folder</span><span class="zh">帮我把 docs 文件夹做成 dashboard</span>"</span>
-        </div>
-      </div>
-      <div>
-        <h3 style="font-size:18px;margin:0 0 8px;">
-          <span class="en">▍ Cursor / Codex / other AI editors</span>
-          <span class="zh">▍ Cursor / Codex / 其他 AI 编辑器</span>
-        </h3>
-        <p style="color:var(--ink-2);margin:0 0 12px;font-size:14px;">
-          <span class="en">Install the Python CLI yourself — uv / pipx / pip, pick one. Then init the config.</span>
-          <span class="zh">手动装 Python CLI——uv / pipx / pip 三选一，然后初始化配置文件。</span>
-        </p>
-        <div class="codeblock">
-<span class="c"># <span class="en">Install CLI (pick one)</span><span class="zh">装 CLI（选一种）</span></span>
-<span class="p">uv</span> tool install docs-cockpit
-<span class="p">pipx</span> install docs-cockpit
-<span class="p">pip</span> install --user docs-cockpit
-
-<span class="c"># <span class="en">In your project root</span><span class="zh">在你项目根目录</span></span>
-docs-cockpit init
-docs-cockpit render
-        </div>
+  <section aria-labelledby="audience-title">
+    <div class="wrap">
+      <p class="kicker">Audience</p>
+      <h2 id="audience-title">For builders letting agents produce serious project memory.</h2>
+      <p class="lead">If your plans, specs, RFCs, and implementation notes live in markdown, docs-cockpit gives agents a shared operating surface without moving data out of the repo.</p>
+      <div class="audience-grid">
+        <article class="audience-card">
+          <h3>AI coding power users</h3>
+          <p>Keep Codex and Claude Code productive across multiple projects while making every generated doc conform to one schema.</p>
+        </article>
+        <article class="audience-card">
+          <h3>Indie developers</h3>
+          <p>Replace scattered agent notes with a project cockpit you can open locally, share as HTML, and keep under version control.</p>
+        </article>
+        <article class="audience-card">
+          <h3>Toolsmiths and teams</h3>
+          <p>Use <code>state.json</code> and validation output for CI checks, health reports, and agent handoffs without adopting a SaaS tracker.</p>
+        </article>
       </div>
     </div>
+  </section>
 
-    <p style="margin-top:32px;color:var(--ink-3);font-size:14px;text-align:center;">
-      <span class="en">▍ Native packaging for Codex CLI / Codex App / Factory Droid / Gemini CLI / OpenCode / GitHub Copilot CLI is <a href="https://github.com/Guohao1020/docs-cockpit/issues" rel="noopener">on the roadmap</a>. The schema/validator/spec are all agent-agnostic.</span>
-      <span class="zh">▍ Codex CLI / Codex App / Factory Droid / Gemini CLI / OpenCode / GitHub Copilot CLI 的原生打包<a href="https://github.com/Guohao1020/docs-cockpit/issues" rel="noopener">在路线图上</a>，schema/validator/spec 都是 agent-agnostic 的。</span>
-    </p>
-  </div>
-</section>
-
-<!-- Audience -->
-<section>
-  <div class="wrap">
-    <p class="kicker">
-      <span class="en">Who this is for</span>
-      <span class="zh">这个工具是给谁的</span>
-    </p>
-    <h2>
-      <span class="en">Not just for developers.</span>
-      <span class="zh">不只是给写代码的人。</span>
-    </h2>
-    <p class="section-lead">
-      <span class="en">AI has rewritten the demographic of "people who work in markdown" — indie devs, PMs, content creators, knowledge workers all produce markdown at scale through AI. docs-cockpit gives every one of them the same visualization layer.</span>
-      <span class="zh">AI 改写了"用 markdown 工作"的人口结构——独立开发者、PM、内容创作者、知识工作者，都在用 AI 大量产出 markdown。docs-cockpit 给所有这些场景一个统一的可视化层。</span>
-    </p>
-
-    <div class="audience">
-      <div class="aud">
-        <span class="emoji">▍</span>
-        <div>
-          <h4><span class="en">Indie devs who code with AI</span><span class="zh">用 AI 写代码的独立开发者</span></h4>
-          <p><span class="en">You're the core user. Heavy Cursor / Claude Code / Codex use, multiple projects in parallel, allergic to monthly SaaS fees. The 4 skills + 7 slash commands are designed for you.</span><span class="zh">你是核心用户。Cursor / Claude Code / Codex 重度依赖，多项目并行，最讨厌 SaaS 月费。docs-cockpit 的 4 个 skill + 7 个 slash 命令是为你设计的。</span></p>
-          <a href="#how"><span class="en">▶ 30s Quickstart</span><span class="zh">▶ 30 秒上手</span></a>
-        </div>
-      </div>
-      <div class="aud">
-        <span class="emoji">▍</span>
-        <div>
-          <h4><span class="en">PMs &amp; knowledge workers in the AI era</span><span class="zh">AI 时代的 PM / 知识工作者</span></h4>
-          <p><span class="en">You don't write code, but you use ChatGPT / Claude to draft requirements, write plans, build OKRs. Your markdown piles up. docs-cockpit lets AI turn it all into a board — no Notion team subscription needed.</span><span class="zh">你不写代码，但用 ChatGPT / Claude 整理需求、写策划、做 OKR。markdown 越攒越多，docs-cockpit 让 AI 帮你把它们做成看板，不用买 Notion 团队版。</span></p>
-          <a href="#faq"><span class="en">▶ See PM-scenario FAQ</span><span class="zh">▶ 看 PM 场景 FAQ</span></a>
-        </div>
-      </div>
-      <div class="aud">
-        <span class="emoji">▍</span>
-        <div>
-          <h4><span class="en">Beginners getting into AI coding</span><span class="zh">想入门 AI 编程的小白</span></h4>
-          <p><span class="en">Claude Code is the easiest entry to AI coding. With the docs-cockpit plugin, you say one sentence — AI installs Python, runs commands, opens the browser. You only see the result.</span><span class="zh">Claude Code 是最适合入门的 AI 编程工具。装好 docs-cockpit 插件后，你跟 AI 说一句话，它会自己装 Python、自己跑命令、自己开浏览器——你只需要看结果。</span></p>
-          <a href="#how"><span class="en">▶ One-command install</span><span class="zh">▶ Claude Code 一键装</span></a>
-        </div>
-      </div>
-      <div class="aud">
-        <span class="emoji">▍</span>
-        <div>
-          <h4><span class="en">Tech bloggers · KOLs · early adopters</span><span class="zh">技术博主 / KOL / 早期 adopter</span></h4>
-          <p><span class="en">v0.14 was a rare "complete answer" in the vibe-coding engineering direction: skill + validator + dashboard + portfolio (removed in v1.0) + bilingual + 118 unit tests + CI matrix. Architecture diagrams and CHANGELOG are ready material.</span><span class="zh">v0.14 是 vibe coding 工程化方向上少见的"完整答卷"：skill + validator + dashboard + portfolio（v1.0 已移除）+ bilingual + 118 单测 + CI 矩阵。架构图和 CHANGELOG 直接可用作素材。</span></p>
-          <a href="https://github.com/Guohao1020/docs-cockpit/blob/main/CHANGELOG.md" rel="noopener"><span class="en">▶ Read CHANGELOG</span><span class="zh">▶ CHANGELOG 看深度</span></a>
-        </div>
+  <section id="faq" class="alt" aria-labelledby="faq-title">
+    <div class="wrap">
+      <p class="kicker">FAQ</p>
+      <h2 id="faq-title">Current support, local data, and agent adapters.</h2>
+      <div class="faq-grid">
+        <article class="faq-item">
+          <h3>Is Codex supported?</h3>
+          <p>Yes. docs-cockpit ships a Codex plugin workflow with marketplace install commands, SessionStart routing, and skills shared with the Claude Code surface.</p>
+        </article>
+        <article class="faq-item">
+          <h3>Is Claude Code supported?</h3>
+          <p>Yes. Claude Code remains a supported plugin workflow and uses the same build, rebuild, render, and upgrade model.</p>
+        </article>
+        <article class="faq-item">
+          <h3>What about other agents?</h3>
+          <p>The core renderer and schema are agent-agnostic. Other agents can use the CLI today, while native adapter packaging can evolve around the same files.</p>
+        </article>
+        <article class="faq-item">
+          <h3>Does the dashboard need a server?</h3>
+          <p>No. <code>docs-cockpit render</code> writes static HTML and <code>state.json</code>. You can open the dashboard from <code>file://</code> or host it as static assets.</p>
+        </article>
+        <article class="faq-item">
+          <h3>Why use skills instead of a smarter CLI?</h3>
+          <p>Agents are better at judgment and dialogue. The CLI is deliberately mechanical, so rendering and validation stay deterministic.</p>
+        </article>
+        <article class="faq-item">
+          <h3>How do upgrades work?</h3>
+          <p>Run <code>docs-cockpit upgrade</code>. It checks CLI and plugin versions, shows release notes, clears plugin cache when needed, and explains the restart step.</p>
+        </article>
       </div>
     </div>
-  </div>
-</section>
+  </section>
 
-<!-- FAQ -->
-<section id="faq" class="alt">
-  <div class="wrap">
-    <p class="kicker">
-      <span class="en">Common questions</span>
-      <span class="zh">常见问题</span>
-    </p>
-    <h2>
-      <span class="en">What you're <span class="hl">probably wondering</span>.</span>
-      <span class="zh">你大概率<span class="hl">想问的</span>。</span>
-    </h2>
-    <p class="section-lead">
-      <span class="en">Not on the list? File an issue on GitHub.</span>
-      <span class="zh">如果你的问题不在下面，欢迎到 GitHub Issues 留言。</span>
-    </p>
-
-    <details open>
-      <summary>
-        <span class="en">Why does my docs folder get worse the more AI writes?</span>
-        <span class="zh">为什么 AI 写出来的 markdown 越多反而越乱？</span>
-      </summary>
-      <div>
-        <span class="en">Because LLMs invent a new format every time you ask. No schema = AI is your most unreliable teammate. Ask "what fields should a plan have" today, get answer A; ask tomorrow, get answer B. docs-cockpit writes the spec into a skill — AI reads it before authoring every plan / RFC / spec, runs frontmatter validation on disk-write, and errors point to the exact spec line that was violated.</span>
-        <span class="zh">因为大模型每次写文档的字段、命名、格式都不一样——没有 schema 约束，AI 是最不可靠的"同事"。你今天问它"plan 该有哪些字段"它给一套答案，明天再问换一套。docs-cockpit 把规范写进一份 skill，AI 每次写 plan / RFC / spec 都先读规范，落盘前还会跑 frontmatter 验证，错了立刻指向规范第几条。</span>
+  <section class="final-cta" aria-labelledby="cta-title">
+    <div class="wrap">
+      <p class="kicker">Start</p>
+      <h2 id="cta-title">Give your AI-written markdown a cockpit.</h2>
+      <p class="lead">Install the plugin, open a repo, and let the skills build or refresh a schema-validated dashboard over the markdown already on disk.</p>
+      <div class="final-actions">
+        <a class="button primary" href="https://github.com/Guohao1020/docs-cockpit" rel="noopener">View on GitHub</a>
+        <a class="button secondary" href="#install-codex">Install with Codex</a>
       </div>
-    </details>
-
-    <details>
-      <summary>
-        <span class="en">How is docs-cockpit different from Notion / Jira / Linear?</span>
-        <span class="zh">docs-cockpit 和 Notion / Jira / Linear 有什么区别？</span>
-      </summary>
-      <div>
-        <span class="en">Notion / Jira / Linear are SaaS — you copy-paste content there, data lives on their servers, team use means monthly fees. docs-cockpit reads markdown directly from your git repo. Zero deps, no network, single HTML you double-click. AI edits md → re-run one command → dashboard updates. The philosophy: <strong>markdown is the source of truth, dashboard is just a view.</strong></span>
-        <span class="zh">Notion / Jira / Linear 是 SaaS——你要复制粘贴内容过去，数据在他们手里，多人用还得交月费。docs-cockpit 直接读你 git 仓库里的 markdown，零依赖、不联网、单 HTML 文件双击就开。AI 改 md，重跑一行命令，看板就同步。哲学是<strong>"markdown 是 source of truth，dashboard 只是一种视图"</strong>。</span>
-      </div>
-    </details>
-
-    <details>
-      <summary>
-        <span class="en">I'm not a developer — can I use this?</span>
-        <span class="zh">我不是程序员，可以用吗？</span>
-      </summary>
-      <div>
-        <span class="en">Yes. If you already use Claude Code or Cursor to draft project notes, organize material, or write product docs, docs-cockpit is for you. Lowest bar: install the Claude Code plugin in one command, then say "make a dashboard for my docs folder" — it installs Python, runs the CLI, and generates the dashboard. You only see the result.</span>
-        <span class="zh">可以。如果你已经在用 Claude Code / Cursor 写项目笔记、整理资料、做产品文档，docs-cockpit 就是给你的。最低门槛：装一次 Claude Code 插件（一行命令），然后跟 AI 说"帮我把 docs 文件夹做成看板"，它自己装 Python、自己跑、自己出图。你只需要看结果。</span>
-      </div>
-    </details>
-
-    <details>
-      <summary>
-        <span class="en">Which AI coding tools are supported?</span>
-        <span class="zh">支持哪些 AI 编程工具？</span>
-      </summary>
-      <div>
-        <span class="en">Native: Claude Code (plugin marketplace, one-command install). Under the hood it's a Python CLI plus markdown skills, so Cursor / Codex CLI / Codex App / Factory Droid / Gemini CLI / OpenCode / GitHub Copilot CLI users can install the CLI manually — every agent shares the same schema. Native packaging for the rest is on the roadmap.</span>
-        <span class="zh">原生支持 Claude Code（插件市场一行命令安装）。底层是 Python CLI + markdown skill，所以 Cursor / Codex CLI / Codex App / Factory Droid / Gemini CLI / OpenCode / GitHub Copilot CLI 用户可以手动装 CLI 后使用——所有 agent 共用同一份 schema 规范。原生打包正在路线图上。</span>
-      </div>
-    </details>
-
-    <details>
-      <summary>
-        <span class="en">Is data uploaded? Is it free?</span>
-        <span class="zh">数据会上传吗？要付费吗？</span>
-      </summary>
-      <div>
-        <span class="en">Free, MIT license, <strong>zero network calls at runtime</strong>. The dashboard is a local HTML file — open it locally or commit it to git for team sharing. All data lives on your disk and in your git repository.</span>
-        <span class="zh">完全免费、MIT 协议开源、运行时<strong>零网络请求</strong>。dashboard 是一个本地 HTML 文件，你可以双击打开，也可以提交到 git 仓库作为团队共享。所有数据都在你自己的硬盘和 git 仓库里。</span>
-      </div>
-    </details>
-
-    <details>
-      <summary>
-        <span class="en">What happens when AI generates broken frontmatter?</span>
-        <span class="zh">大模型生成的 frontmatter 经常出错怎么办？</span>
-      </summary>
-      <div>
-        <span class="en">This is exactly what docs-cockpit solves. Every build runs <code>validate_meta()</code> and emits three severities:<br>
-        ▍ <strong>error</strong> — dashboard can't render this doc (e.g. missing <code>id</code>)<br>
-        ▍ <strong>warn</strong> — renders but state is suspicious (e.g. status:done with progress:60)<br>
-        ▍ <strong>hint</strong> — polish (e.g. missing <code>desc</code> weakens subtask prompt context)<br>
-        Every issue carries a <code>💡 fix</code> suggestion and a <code>📚 see</code> spec reference — AI sees the error and fixes itself.</span>
-        <span class="zh">这是 docs-cockpit 专门解决的问题。每次 build 都会跑 <code>validate_meta()</code>，输出三级问题：<br>
-        ▍ <strong>error</strong>（看板没法渲染这个文档，比如 <code>id</code> 缺失）<br>
-        ▍ <strong>warn</strong>（能渲染但状态可疑，比如 status:done 但 progress:60）<br>
-        ▍ <strong>hint</strong>（可润色，比如缺 desc 会让子任务 prompt 上下文不全）<br>
-        每条问题都带 <code>💡 fix</code> 修复建议和 <code>📚 see</code> 规范引用——AI 看到错误能自己改。</span>
-      </div>
-    </details>
-
-    <details>
-      <summary>
-        <span class="en">How do I migrate existing <code>docs/plans/</code> / <code>docs/RFC/</code>?</span>
-        <span class="zh">已有的 docs/plans/ docs/RFC/ 目录怎么迁移？</span>
-      </summary>
-      <div>
-        <span class="en">Tell your AI "take over this project with docs-cockpit". The <code>docs-cockpit</code> skill triggers the migrate flow — dry-runs first, shows what will move where, confirms, then <code>git mv</code> + frontmatter scaffold injection. All in git history, fully reversible.</span>
-        <span class="zh">跟你的 AI 说"用 docs-cockpit 接管这个项目"。<code>docs-cockpit</code> skill 会触发 migrate 流程：先 dry-run 给你看会动哪些文件，确认后 <code>git mv</code> 重命名 + 注入 frontmatter scaffold，全程在 git 历史里可追溯。</span>
-      </div>
-    </details>
-
-    <details>
-      <summary>
-        <span class="en">Can it integrate with CI / pre-commit?</span>
-        <span class="zh">能集成到 CI / pre-commit 吗？</span>
-      </summary>
-      <div>
-        <span class="en">Yes. <code>docs-cockpit lint</code> emits structured stdout (error/warn/hint), and <code>--strict</code> exits non-zero on errors — drop it into GitHub Actions or a pre-commit hook. <code>state.json</code> is a stable machine-readable sidecar (0.2.0+ only adds fields, never removes) — external tools read it for invariant checks. This repo itself ships a 9-cell CI matrix (3 Python × 3 OS) + 118 unit tests, directly usable as a reference.</span>
-        <span class="zh">可以。<code>docs-cockpit lint</code> 输出 stdout 三段式（error/warn/hint），且 <code>--strict</code> 模式会因 error 退出非零——直接接到 GitHub Actions / pre-commit hook 都行。<code>state.json</code> 是稳定的机器可读 sidecar（0.2.0+ 只加字段不减字段），外部工具读它做不变式检查。v0.14 仓库本身就有 9-cell CI 矩阵（3 Python × 3 OS）+ 118 单测，可以直接参考。</span>
-      </div>
-    </details>
-  </div>
-</section>
-
-<!-- CTA -->
-<section style="text-align:center; padding: 80px 0 96px;">
-  <div class="wrap">
-    <h2 style="margin-bottom:16px;">
-      <span class="en">Time to teach <span class="hl">AI</span> to write to spec.</span>
-      <span class="zh">该让 <span class="hl">AI</span> 学会按规范写文档了。</span>
-    </h2>
-    <p class="section-lead" style="margin: 0 auto 32px; text-align:center;">
-      <span class="en">MIT license. Python. One-command install for Claude Code. Give your project a cockpit.</span>
-      <span class="zh">MIT 协议、Python 实现、Claude Code 一行命令装。给你的项目装一个驾驶舱。</span>
-    </p>
-    <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
-      <a class="btn btn-primary" href="https://github.com/Guohao1020/docs-cockpit" rel="noopener">
-        <span class="en">▍ View on GitHub / Star</span>
-        <span class="zh">▍ 在 GitHub 看代码 / Star</span>
-      </a>
-      <a class="btn btn-ghost" href="https://github.com/Guohao1020/docs-cockpit/blob/main/CHANGELOG.md" rel="noopener">
-        <span class="en">Read CHANGELOG</span>
-        <span class="zh">读 CHANGELOG</span>
-      </a>
     </div>
-  </div>
-</section>
+  </section>
+</main>
 
-<!-- Footer -->
 <footer>
-  <div class="wrap">
-    <div class="footer-grid">
-      <div>
-        <h5>docs-cockpit</h5>
-        <p style="margin:0 0 8px;color:#b8c4d6;">
-          <span class="en">A project cockpit for AI-coding agents. Let LLMs write markdown by schema. Folder → single-file dashboard.</span>
-          <span class="zh">AI 时代的项目驾驶舱·让大模型按规范写 markdown，文档自动变看板。</span>
-        </p>
-        <p style="margin:0;font-size:12px;color:#6b7a8f;">v0.14.3 · MIT License · Python 3.10+</p>
-      </div>
-      <div>
-        <h5><span class="en">Project</span><span class="zh">项目</span></h5>
-        <ul>
-          <li><a href="https://github.com/Guohao1020/docs-cockpit" rel="noopener"><span class="en">GitHub Repo</span><span class="zh">GitHub 仓库</span></a></li>
-          <li><a href="https://github.com/Guohao1020/docs-cockpit/blob/main/CHANGELOG.md" rel="noopener">CHANGELOG</a></li>
-          <li><a href="https://github.com/Guohao1020/docs-cockpit/blob/main/LICENSE" rel="noopener">License (MIT)</a></li>
-        </ul>
-      </div>
-      <div>
-        <h5><span class="en">Docs</span><span class="zh">文档</span></h5>
-        <ul>
-          <li><a href="https://github.com/Guohao1020/docs-cockpit/blob/main/README.md" rel="noopener">English README</a></li>
-          <li><a href="https://github.com/Guohao1020/docs-cockpit/blob/main/README.zh-CN.md" rel="noopener">中文 README</a></li>
-          <li><a href="https://github.com/Guohao1020/docs-cockpit/tree/main/references" rel="noopener"><span class="en">References</span><span class="zh">参考资料</span></a></li>
-        </ul>
-      </div>
-      <div>
-        <h5><span class="en">Feedback</span><span class="zh">反馈</span></h5>
-        <ul>
-          <li><a href="https://github.com/Guohao1020/docs-cockpit/issues" rel="noopener">Issues</a></li>
-          <li><a href="https://github.com/Guohao1020/docs-cockpit/pulls" rel="noopener">Pull Requests</a></li>
-        </ul>
-      </div>
-    </div>
-    <div class="copyright">
-      <span class="en">© 2026 docs-cockpit · Give AI coding a schema · Made for vibe coders</span>
-      <span class="zh">© 2026 docs-cockpit · 用 markdown 给 AI 编程一份规范 · Made for vibe coders</span>
+  <div class="wrap footer-inner">
+    <div>docs-cockpit 1.3.1 · MIT License · Python 3.10+</div>
+    <div class="footer-links">
+      <a href="https://github.com/Guohao1020/docs-cockpit" rel="noopener">GitHub</a>
+      <a href="https://github.com/Guohao1020/docs-cockpit/blob/main/README.md" rel="noopener">README</a>
+      <a href="https://github.com/Guohao1020/docs-cockpit/blob/main/CHANGELOG.md" rel="noopener">CHANGELOG</a>
     </div>
   </div>
 </footer>
-
-<script>
-(function () {
-  var STORAGE_KEY = "docs-cockpit-lang";
-  var SUPPORTED = ["en", "zh"];
-
-  function detectInitial() {
-    var m = window.location.search.match(/[?&]lang=(en|zh)\b/);
-    if (m) return m[1];
-    try {
-      var saved = localStorage.getItem(STORAGE_KEY);
-      if (saved && SUPPORTED.indexOf(saved) !== -1) return saved;
-    } catch (e) {}
-    return "en";
-  }
-
-  function applyLang(lang) {
-    if (SUPPORTED.indexOf(lang) === -1) lang = "en";
-    document.documentElement.lang = lang === "zh" ? "zh" : "en";
-    document.querySelectorAll(".lang-toggle button").forEach(function (b) {
-      b.classList.toggle("active", b.getAttribute("data-set-lang") === lang);
-      b.setAttribute("aria-pressed", String(b.getAttribute("data-set-lang") === lang));
-    });
-    try { localStorage.setItem(STORAGE_KEY, lang); } catch (e) {}
-  }
-
-  applyLang(detectInitial());
-
-  document.addEventListener("DOMContentLoaded", function () {
-    document.querySelectorAll(".lang-toggle button").forEach(function (b) {
-      b.addEventListener("click", function () {
-        applyLang(b.getAttribute("data-set-lang"));
-      });
-    });
-  });
-})();
-</script>
-
 </body>
 </html>
