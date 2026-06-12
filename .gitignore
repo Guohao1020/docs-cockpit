@@ -56,3 +56,6 @@ Thumbs.db
 # Local implementation worktrees
 .worktrees/
 .worktrees
+
+# Superpowers brainstorming companion artifacts
+.superpowers/

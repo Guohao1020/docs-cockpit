@@ -28,7 +28,7 @@
 **Files:**
 - Modify: `.gitignore`
 
-- [ ] **Step 1: Add `.superpowers/` to ignored local artifacts**
+- [x] **Step 1: Add `.superpowers/` to ignored local artifacts**
 
 Add this block near the existing local worktree ignores:
 
@@ -37,7 +37,7 @@ Add this block near the existing local worktree ignores:
 .superpowers/
 ```
 
-- [ ] **Step 2: Verify brainstorming files are ignored**
+- [x] **Step 2: Verify brainstorming files are ignored**
 
 Run:
 
@@ -47,7 +47,7 @@ git status --short --ignored .superpowers
 
 Expected: `.superpowers/` appears as ignored (`!! .superpowers/`) and is not staged.
 
-- [ ] **Step 3: Commit hygiene change**
+- [x] **Step 3: Commit hygiene change**
 
 Run:
 
@@ -68,7 +68,7 @@ git commit -m "Ignore local brainstorming artifacts" -m "将 Superpowers 视觉�
 - Create: `site/assets/screenshots/dashboard-kanban.png`
 - Create: `site/assets/screenshots/workflow-overview.svg`
 
-- [ ] **Step 1: Create asset directories**
+- [x] **Step 1: Create asset directories**
 
 Run:
 
@@ -76,7 +76,7 @@ Run:
 New-Item -ItemType Directory -Force site\assets\brand, site\assets\screenshots
 ```
 
-- [ ] **Step 2: Generate the Radar Flight Deck logo assets**
+- [x] **Step 2: Generate the Radar Flight Deck logo assets**
 
 Use the built-in image generation tool with this prompt for the main logo:
 
@@ -94,7 +94,7 @@ Avoid: clutter, gradients that obscure the shape, illegible text, generic rocket
 
 Save the selected output as `site/assets/brand/docs-cockpit-logo.png`. Crop or create a mark-only sibling as `site/assets/brand/docs-cockpit-logo-mark.png`.
 
-- [ ] **Step 3: Generate the hero background and OG cover**
+- [x] **Step 3: Generate the hero background and OG cover**
 
 Use the built-in image generation tool with this prompt:
 
@@ -113,11 +113,11 @@ Constraints: no readable fake text, no logos, no watermark, no people, no aircra
 
 Save the wide final as `site/assets/brand/docs-cockpit-hero-bg.png`. Create or crop a 1200x630 social cover as `site/assets/brand/docs-cockpit-og-cover.png`.
 
-- [ ] **Step 4: Create the Operational Kanban product proof image**
+- [x] **Step 4: Create the Operational Kanban product proof image**
 
 Prefer a deterministic static mock or screenshot over another abstract AI image. Create `site/assets/screenshots/dashboard-kanban.png` as a polished product-style kanban dashboard mock with columns `Planned`, `In progress`, `Blocked`, `Done`, visible progress bars, validation chips, and a right-side linked-doc preview. Use real docs-cockpit concepts, not fake SaaS metrics.
 
-- [ ] **Step 5: Create workflow diagram SVG**
+- [x] **Step 5: Create workflow diagram SVG**
 
 Create `site/assets/screenshots/workflow-overview.svg` showing this flow:
 
@@ -127,7 +127,7 @@ Install plugin -> SessionStart router -> build/rebuild skill -> docs-cockpit ren
 
 Keep it simple, with no external fonts and no script tags.
 
-- [ ] **Step 6: Validate assets exist and are reasonably sized**
+- [x] **Step 6: Validate assets exist and are reasonably sized**
 
 Run:
 
@@ -137,7 +137,7 @@ Get-ChildItem site\assets -Recurse | Select-Object FullName,Length
 
 Expected: all six assets exist. Raster images should not be zero bytes. Prefer keeping each raster under roughly 2 MB unless visual quality requires more.
 
-- [ ] **Step 7: Commit assets**
+- [x] **Step 7: Commit assets**
 
 Run:
 
@@ -156,7 +156,7 @@ git commit -m "Add docs-cockpit brand assets" -m "新增 Radar Flight Deck 品�
 - Modify if syncing plugin bundle: `plugins/docs-cockpit/README.md`
 - Modify if syncing plugin bundle: `plugins/docs-cockpit/README.zh-CN.md`
 
-- [ ] **Step 1: Rewrite `README.md` around the approved structure**
+- [x] **Step 1: Rewrite `README.md` around the approved structure**
 
 Use this exact section order:
 
@@ -199,11 +199,11 @@ codex plugin marketplace add Guohao1020/docs-cockpit
 codex plugin add docs-cockpit@docs-cockpit
 ```
 
-- [ ] **Step 2: Rewrite `README.zh-CN.md` with matching structure**
+- [x] **Step 2: Rewrite `README.zh-CN.md` with matching structure**
 
 Use natural Chinese and keep the same section order as `README.md`. Preserve English technical terms where clearer: `frontmatter`, `state.json`, `render`, `skill-first`, `file://`, `SessionStart`.
 
-- [ ] **Step 3: Sync plugin bundle README files if they exist**
+- [x] **Step 3: Sync plugin bundle README files if they exist**
 
 Copy the updated README content into:
 
@@ -218,7 +218,7 @@ Only adjust image paths if needed. Since these files live two directories deeper
 ![...](../../site/assets/brand/docs-cockpit-og-cover.png)
 ```
 
-- [ ] **Step 4: Scan for stale claims and mojibake**
+- [x] **Step 4: Scan for stale claims and mojibake**
 
 Run:
 
@@ -228,7 +228,7 @@ rg -n "0\\.14|v0\\.14|Codex.*roadmap|roadmap.*Codex|鈥|鐨|涓|鍗|馃|鉂" REA
 
 Expected: no matches except intentional historical references in changelog links are not present in README.
 
-- [ ] **Step 5: Commit README refresh**
+- [x] **Step 5: Commit README refresh**
 
 Run:
 
@@ -244,7 +244,7 @@ git commit -m "Refresh README product narrative" -m "重写中英文 README，�
 **Files:**
 - Modify: `site/index.html`
 
-- [ ] **Step 1: Update metadata**
+- [x] **Step 1: Update metadata**
 
 Set:
 
@@ -257,7 +257,7 @@ Set:
 
 Update JSON-LD `softwareVersion` to `1.3.1`.
 
-- [ ] **Step 2: Redesign hero with Radar Flight Deck background**
+- [x] **Step 2: Redesign hero with Radar Flight Deck background**
 
 Use `assets/brand/docs-cockpit-hero-bg.png` as the hero background. Keep headline and CTAs outside cards:
 
@@ -268,7 +268,7 @@ A skill-first project cockpit for AI coding agents.
 
 Primary CTA: GitHub. Secondary CTA: Install with Codex.
 
-- [ ] **Step 3: Add product proof band**
+- [x] **Step 3: Add product proof band**
 
 Add a section immediately after hero with:
 
@@ -278,7 +278,7 @@ Add a section immediately after hero with:
 
 Include concise install tabs or side-by-side command blocks for Codex and Claude Code.
 
-- [ ] **Step 4: Update workflow and feature sections**
+- [x] **Step 4: Update workflow and feature sections**
 
 Remove stale v0.14 language and update features around:
 
@@ -291,11 +291,11 @@ Remove stale v0.14 language and update features around:
 - local `file://` dashboard
 - `docs-cockpit upgrade`
 
-- [ ] **Step 5: Update FAQ and audience text**
+- [x] **Step 5: Update FAQ and audience text**
 
 Codex must be described as supported now, not roadmap-only. Other agents can remain roadmap/adapter mentions where true.
 
-- [ ] **Step 6: Run local preview**
+- [x] **Step 6: Run local preview**
 
 Run:
 
@@ -311,7 +311,7 @@ http://127.0.0.1:8088/
 
 Expected: hero background loads, product image loads, no overlapping text at desktop width.
 
-- [ ] **Step 7: Commit site refresh**
+- [x] **Step 7: Commit site refresh**
 
 Run:
 
@@ -327,7 +327,7 @@ git commit -m "Refresh marketing landing page" -m "更新营销页定位、视�
 **Files:**
 - No new source files unless verification reveals a bug.
 
-- [ ] **Step 1: Check stale references**
+- [x] **Step 1: Check stale references**
 
 Run:
 
@@ -337,7 +337,7 @@ rg -n "0\\.14|v0\\.14|Codex.*roadmap|roadmap.*Codex|softwareVersion\"\\s*:\\s*\"
 
 Expected: no matches.
 
-- [ ] **Step 2: Check referenced assets exist**
+- [x] **Step 2: Check referenced assets exist**
 
 Run:
 
@@ -356,7 +356,7 @@ Run:
 
 Expected: command exits successfully.
 
-- [ ] **Step 3: Run tests**
+- [x] **Step 3: Run tests**
 
 Run:
 
@@ -366,7 +366,7 @@ py -3.13 -m pytest tests/ -q
 
 Expected: all tests pass.
 
-- [ ] **Step 4: Browser verify landing page**
+- [x] **Step 4: Browser verify landing page**
 
 Use the in-app browser at `http://127.0.0.1:8088/` with desktop and mobile widths. Check:
 
@@ -376,7 +376,7 @@ Use the in-app browser at `http://127.0.0.1:8088/` with desktop and mobile width
 - mobile section flow is readable
 - install commands are current
 
-- [ ] **Step 5: Review git status**
+- [x] **Step 5: Review git status**
 
 Run:
 
