@@ -1,6 +1,6 @@
 {
   "name": "docs-cockpit",
-  "version": "1.3.1",
+  "version": "1.4.0",
   "description": "Skill-first project dashboard: 1 entry router (use-docs-cockpit, auto-injected via SessionStart hook) + 2 flow skills (docs-cockpit-build: create the module-to-doc association system in dialogue; docs-cockpit-rebuild: diagnose drift + refresh + status narratives) + a mechanical render CLI (docs-cockpit render: YAML-frontmatter markdown to single-file Kanban dashboard HTML + state.json). Cognition lives in skills; Python only renders.",
   "author": {
     "name": "Guohao1020"

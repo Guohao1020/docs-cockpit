@@ -1,11 +1,6 @@
 ---
 name: docs-cockpit-build
-description: |
-  Build a docs-cockpit project's documentation-association system from scratch or fill its gaps — scan ALL project docs, infer which module/subtask should link to which spec/plan/rfc section, dry-run-verify the anchors, then write them. Defaults to planning the WHOLE project (every module's spec/plan), deciding each linkage WITH the user in dialogue. Produces module↔subtask↔doc anchors + drafts missing spec/plan docs, then renders the dashboard. Also owns cockpit setup itself: creating/extending docs-cockpit.yaml, wiring scan dirs, and debugging build issues (0 modules / yaml errors) — its Phase 0.
-
-  TRIGGER when the user wants to: 「把项目文档体系建起来」「关联模块和任务/文档」「规划整个项目的 spec/plan」「给所有 module 补 anchor」「这些 subtask 该关联哪个文档」 / "build the doc association", "wire modules to specs", "plan the whole project's docs", "add anchors to every module". Setup/debug phrasings: 「把项目做成 dashboard / 项目看板」「搭一个 docs-cockpit」「扩展 config 扫描新目录」「为什么扫出来 0 个 module」 / "set up a docs-cockpit", "extend the config to scan new dirs", "debug build issues". Checkup phrasings — 0→1 scenarios ONLY: 「把项目搭起来顺便体检」「新项目建看板 + 入院体检」 / "set up the cockpit and run a baseline checkup".
-
-  Do NOT trigger for: an EXISTING association that drifted / needs refresh after refactor (→ docs-cockpit-rebuild); just re-rendering the HTML with no association work (→ CLI `docs-cockpit render`); reading status narratives (→ docs-cockpit-rebuild Phase 1); a health check / checkup of an EXISTING cockpit — 「体检一下」「健康检查」 "health check" "checkup" (→ docs-cockpit-rebuild); upgrading docs-cockpit itself (→ CLI `docs-cockpit upgrade`, see references/operations.md · upgrade). Discriminator: this skill is 0→1 / whole-project association BUILDING; rebuild is refreshing an existing one.
+description: "Build or set up docs-cockpit from 0→1: create docs-cockpit.yaml, wire modules to specs/plans, add anchors, draft missing docs, and render the dashboard."
 ---
 
 # docs-cockpit-build

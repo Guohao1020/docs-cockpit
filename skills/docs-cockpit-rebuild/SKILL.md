@@ -1,11 +1,6 @@
 ---
 name: docs-cockpit-rebuild
-description: |
-  Refresh / repair an EXISTING docs-cockpit association system that has drifted — anchors gone stale after a refactor, specs evolved, links outdated, or status questions about current state. Reads state.json + MD, diagnoses drift (lint + dry-run-verify every anchor's 4-tier verdict), re-infers correct anchors, and refreshes ONLY the broken ones (keeping valid links intact). Also answers narrative status questions (what's blocked / sprint progress / which modules stalled) as its Phase 1 read-current-state. Also owns the project health checkup（体检）of an existing cockpit: Phase 1–2 produce the nine-department report → docs/HEALTH.md → dashboard health panel.
-
-  TRIGGER when the user says: 「关联乱了重新梳理」「重构后 anchor 失效了」「spec 改了同步关联」「这个 module 关联还准不准」「项目进度怎么样」「哪些卡了」「sprint 进度」 / "anchors are stale", "re-sync after refactor", "is this module's linkage still right", "what's blocked", "sprint progress", "weekly status". Checkup phrasings: 「体检一下」「健康检查」「全面体检」 / "health check", "checkup", "run a health check".
-
-  Do NOT trigger for: building association from scratch / whole-project planning (→ docs-cockpit-build); pure HTML re-render (→ CLI `docs-cockpit render`). Discriminator: rebuild = an association ALREADY EXISTS and we diagnose+refresh it (or just read its state); build = create it 0→1. Health checkups of an existing cockpit land HERE — build only runs the 0→1 admission baseline.
+description: "Refresh an existing docs-cockpit: diagnose stale anchors, re-sync changed specs, answer status/progress questions, run health checks, and render fixes."
 ---
 
 # docs-cockpit-rebuild

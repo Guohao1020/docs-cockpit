@@ -2,6 +2,14 @@
 
 本项目遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/) · 版本号采用 [SemVer](https://semver.org/lang/zh-CN/)。
 
+## [1.4.0] · 2026-06-15
+
+### Fixed
+
+- **Codex skill selector discovery** — 将 `docs-cockpit-build` / `docs-cockpit-rebuild` 的 frontmatter `description` 改成短句触发描述，避免长段路由规则挤占 Codex 初始 skills 列表预算，导致 `/skills` / composer picker 只稳定显示 router skill。
+
+升级: 这次修改了 SKILL.md 的机器路由描述；按 minor 发布，用户需要运行 `docs-cockpit upgrade` 清理 plugin cache 并重启 Codex。
+
 ## [1.3.1] · 2026-06-12
 
 ### Fixed
